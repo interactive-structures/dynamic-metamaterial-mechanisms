@@ -1,0 +1,320 @@
+﻿<Window
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:view="clr-namespace:ShearCell_Interaction.View"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+        mc:Ignorable="d" 
+        x:Class="ShearCell_Interaction.MainWindow"
+        Title="MainWindow" Left="100" Top="100" Loaded="OnWindowLoaded" d:DesignHeight="1000"
+        MouseUp="OnMouseUp" MouseMove="OnMouseMove" KeyDown="OnKeyDown" KeyUp="OnKeyUp" >
+    <Window.Resources>
+        <!--<BooleanToVisibilityConverter x:Key="VisibilityConverter" />-->
+        <!--<view:InteractionModeToVisibilityConverter x:Key="InteractionModeToVisibilityConverter" />-->
+        <view:EnumToBooleanConverter x:Key="EnumToBooleanConverter" />
+    </Window.Resources>
+
+    <Grid>
+        <!--<Grid.RowDefinitions>
+            <RowDefinition Height="Auto"></RowDefinition>
+            <RowDefinition Height="*"></RowDefinition>
+        </Grid.RowDefinitions>-->
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <Canvas x:Name="MainCanvas" Background="White" MouseDown="OnMouseDown" Grid.Column="2" Margin="0" >
+
+
+            <ItemsControl x:Name="InputView" ItemsSource="{Binding InputShapeItems}" Visibility="{Binding UndeformedViewVisibility}" >
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <Canvas />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+            </ItemsControl>
+
+            <ItemsControl x:Name="DeformedView" ItemsSource="{Binding DeformedShapeItems}" Visibility="{Binding DeformedViewVisibility}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <Canvas />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+            </ItemsControl>
+            
+            <ItemsControl x:Name="AnchorView" ItemsSource="{Binding AnchorShapeItems}" >
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <Canvas  ClipToBounds="False"/>
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+            </ItemsControl>
+
+            <ItemsControl x:Name="TracingVerticesView" ItemsSource="{Binding TracingVerticesShapeItems}" >
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <Canvas />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+            </ItemsControl>
+            
+            <Polyline x:Name="SetInputPath" Points="{Binding InputPath}" Style="{StaticResource InputPathStyle}"/>
+            <Polyline x:Name="SetOutputPath" Points="{Binding OutputPath}" Style="{StaticResource InputPathStyle}"/>
+            <Path x:Name="DraggedSimulationPath" Style="{StaticResource TestPathStyle}" Visibility="Hidden"/>
+
+            <ItemsControl x:Name="DebugItemsView" ItemsSource="{Binding DebugItems}" >
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <Canvas />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+            </ItemsControl>
+
+            <!--<Ellipse Style="{StaticResource DragPointStyle}" Canvas.Left="{Binding DragPoint.X}" Canvas.Top="{Binding DragPoint.Y}" />-->
+            <Ellipse x:Name="DebugPoint" Style="{StaticResource DragPointStyle}" Visibility="Collapsed" />
+
+            <Canvas x:Name="CellAreaPreviewContainer" Background="AliceBlue"/>
+            <Polygon x:Name="VisualHoverCell" Style="{StaticResource HoverCellStyle}" Visibility="{Binding AddCellVisibility}" Points="0,0 1,0 1,1 0,1" >
+                <Polygon.RenderTransform>
+                    <ScaleTransform ScaleX="{x:Static view:ViewModel.CellScale}" ScaleY="{x:Static view:ViewModel.CellScale}" CenterX="0" CenterY="0" />
+                </Polygon.RenderTransform>
+            </Polygon>
+            <!-- Points="0,0 20,0 20,20 0,20" Width="{x:Static view:ViewModel.CellScale}" Height="{x:Static view:ViewModel.CellScale}"  -->
+        </Canvas>
+
+        <InkCanvas x:Name="DrawingCanvas" Visibility="Hidden" Background="White" Opacity=".33" Grid.Column="2" Margin="0" StrokeCollected="DrawingCanvasStrokeCollected">
+            <InkCanvas.DefaultDrawingAttributes>
+                <DrawingAttributes Color="Black" FitToCurve="True" Height="3" IgnorePressure="True" IsHighlighter="False" StylusTip="Ellipse" StylusTipTransform="Identity" Width="3"/>
+            </InkCanvas.DefaultDrawingAttributes>
+        </InkCanvas>
+
+        <ListBox x:Name="SimulationPaths" Grid.Column="1" SelectionChanged="OnSimulationPathSelectionChanged" HorizontalAlignment="Right" VerticalAlignment="Stretch" Margin="0,0,0.333,0.333" Width="62">
+            <ListBoxItem>
+                <Path Style="{StaticResource TestPathStyle}" Data="{StaticResource PathSpiral}" />
+            </ListBoxItem>
+            <ListBoxItem>
+                <Path Style="{StaticResource TestPathStyle}" Data="{StaticResource PathM}" />
+            </ListBoxItem>
+            <ListBoxItem>
+                <Path Style="{StaticResource TestPathStyle}" Data="{StaticResource PathLine}" />
+            </ListBoxItem>
+            <ListBoxItem Width="41" Height="29" Padding="0,31,0,0" Margin="0,0,5,0" >
+                <Path Style="{StaticResource TestPathStyle}" Data="{StaticResource PathLineSlantedInverse2}" />
+            </ListBoxItem>
+            <ListBoxItem>
+                <Path Style="{StaticResource TestPathStyle}" Data="{StaticResource PathLineSlanted}" />
+            </ListBoxItem>
+            <ListBoxItem>
+                <Path Style="{StaticResource TestPathStyle}" Data="{StaticResource PathCorner}" />
+            </ListBoxItem>
+            <ListBoxItem>
+                <Path Style="{StaticResource TestPathStyle}" Data="{StaticResource PathLineStraightInverse}" />
+            </ListBoxItem>
+            <ListBoxItem>
+                <Path Style="{StaticResource TestPathStyle}" Data="{StaticResource PathArc}" />
+            </ListBoxItem>
+            <ListBoxItem Width="41" Height="29" Padding="31,25,0,0" >
+                <Path Style="{StaticResource TestPathStyle}" Data="{StaticResource PathArcShifted}" />
+            </ListBoxItem>
+            <ListBoxItem>
+                <Path Style="{StaticResource TestPathStyle}" Data="{StaticResource PathArcInverse}" />
+            </ListBoxItem>
+            <ListBoxItem>
+                <Path Style="{StaticResource TestPathStyle}" Data="{StaticResource PathArcCcw}" />
+            </ListBoxItem>
+            <ListBoxItem>
+                <Path Style="{StaticResource TestPathStyle}" Data="{StaticResource PathArcInverseCcw}" />
+            </ListBoxItem>
+            <ListBoxItem Padding="0,12,0,0" Margin="0" VerticalContentAlignment="Center" RenderTransformOrigin="0.5,0.5" Height="29" Width="41" ClipToBounds="True" HorizontalContentAlignment="Center" ScrollViewer.VerticalScrollBarVisibility="Disabled">
+                <Path Style="{StaticResource TestPathStyle}" Data="{StaticResource PathHalfCircle}" />
+            </ListBoxItem>
+            <ListBoxItem>
+                <Path Style="{StaticResource TestPathStyle}" Data="{StaticResource PathSquiggle}" />
+            </ListBoxItem>
+            <ListBoxItem  Width="41" Height="29" Padding="38,6,0,1">
+                <Path Style="{StaticResource TestPathStyle}" Data="{StaticResource PathLineFqz2}" />
+            </ListBoxItem>
+            <ListBoxItem>
+                <Path Style="{StaticResource TestPathStyle}" Data="{StaticResource PathOpenBox}" />
+            </ListBoxItem>
+            <ListBoxItem>
+                <Path Style="{StaticResource TestPathStyle}" Data="{StaticResource PathOpenBoxTransformed}" />
+            </ListBoxItem>
+            <ListBoxItem Padding="0,20,0,0">
+                <!--<Path Style="{StaticResource TestPathStyle}" Data="M -1,0 A 1,1 0 1 1 1,0 M -1,0 A 1,1 0 1 0 1,0" />-->
+                <!--<Path Style="{StaticResource TestPathStyle}" Data="M -20,0 A 20,20 0 1 1 20,0 M -20,0 A 20,20 0 1 0 20,0" />-->
+                <!--<Path Style="{StaticResource TestPathStyle}" Data="M 0,0 A 20,20 0 1 1 40,0  M 40,0 A 20,20 0 1 1 0,0" />-->
+                <Path Style="{StaticResource TestPathStyle}" Data="M 0,0 A 20,20 0 1 1 40,0  A 20,20 0 1 1 0,0" />
+            </ListBoxItem>
+        </ListBox>
+
+
+        <StackPanel x:Name="Controls" Background="LightGray" Grid.Column="0" MaxWidth="200" >
+            <Grid Margin="0,10,0,0">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <Label Grid.Row="0" FontFamily="Roboto" FontSize="14" FontWeight="Bold" Content="modes"/>
+                <WrapPanel x:Name="Menu_Modes" Grid.Row="1">
+                    <RadioButton x:Name="AddShearCellButton" Content="add SHEAR cell" Style="{StaticResource InteractionModeButton}" IsChecked="{Binding InteractionMode, ConverterParameter={x:Static view:InteractionMode.AddShearCell}, Converter={StaticResource EnumToBooleanConverter}}" />
+                    <RadioButton x:Name="AddRigidCellButton" Content="add RIGID cell" Style="{StaticResource InteractionModeButton}" IsChecked="{Binding InteractionMode, ConverterParameter={x:Static view:InteractionMode.AddRigidCell}, Converter={StaticResource EnumToBooleanConverter}}" />
+                    <RadioButton x:Name="AddAnchorButton" Content="add anchor" Style="{StaticResource InteractionModeButton}" IsChecked="{Binding InteractionMode, ConverterParameter={x:Static view:InteractionMode.AddAnchor}, Converter={StaticResource EnumToBooleanConverter}}" />
+                    <RadioButton x:Name="SetInputButton" Content="set input" Style="{StaticResource InteractionModeButton}" IsChecked="{Binding InteractionMode, ConverterParameter={x:Static view:InteractionMode.SetTestInput}, Converter={StaticResource EnumToBooleanConverter}}" />
+                    <RadioButton x:Name="SetOutputButton" Content="set output" Style="{StaticResource InteractionModeButton}" IsChecked="{Binding InteractionMode, ConverterParameter={x:Static view:InteractionMode.SetTestOutput}, Converter={StaticResource EnumToBooleanConverter}}" />
+                    <RadioButton x:Name="AddTracingButton" Content="set tracing point" Style="{StaticResource InteractionModeButton}" IsChecked="{Binding InteractionMode, ConverterParameter={x:Static view:InteractionMode.AddTracingPoint}, Converter={StaticResource EnumToBooleanConverter}}" />
+                    <RadioButton x:Name="DrawInputButton" Content="draw input" Style="{StaticResource InteractionModeButton}" IsChecked="{Binding InteractionMode, ConverterParameter={x:Static view:InteractionMode.DrawInput}, Converter={StaticResource EnumToBooleanConverter}}"  Unchecked="OnDrawingButtonUnchecked" Click="OnDrawingButtonClicked"/>
+                    <RadioButton x:Name="DrawOutputButton" Content="draw output" Style="{StaticResource InteractionModeButton}" IsChecked="{Binding InteractionMode, ConverterParameter={x:Static view:InteractionMode.DrawOutput}, Converter={StaticResource EnumToBooleanConverter}}" Unchecked="OnDrawingButtonUnchecked" Click="OnDrawingButtonClicked"/>
+                </WrapPanel>
+            </Grid>
+
+            <Grid Margin="0,10,0,0">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <Label Grid.Row="0" FontFamily="Roboto" FontSize="14" FontWeight="Bold" Content="simulation"/>
+                <WrapPanel x:Name="Menu_Simulation" Grid.Row="1">
+                    <Button Content="  load optimized simulation  " Click="OnOptimizedPathSimulationClicked" Margin="5"/>
+                    <!--<Button Content=" &gt; " Click="OnSimulationPlay" Margin="10"/>-->
+                    <Button Content=" &gt; / || " Click="OnSimulationPlayPause" Margin="5"/>
+                    <CheckBox IsChecked="{Binding LoopAnimation}" Margin="5,7,5,5" >
+                        <TextBlock Text="Loop"/>
+                    </CheckBox>
+                    <Button Content=" &lt;&lt; " Click="OnSimulationStepBack" Margin="5"/>
+                    <Button Content=" &gt;&gt; " Click="OnSimulationStepForward" Margin="5"/>
+                </WrapPanel>
+            </Grid>
+
+            <Grid Margin="0,10,0,0">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <Label Grid.Row="1" Margin ="20,0,0,0" FontFamily="Roboto" FontSize="14" FontWeight="Bold" Content="info"/>
+                <Expander IsExpanded="True"  Grid.Row="1">
+                    <WrapPanel x:Name="Menu_Info" >
+                        <Label Width="97" Content="DoF:"/>
+                        <Label Content="{Binding CurrentDoF}"/>
+                        <Label Content="Input path length:"/>
+                        <Label Content="{Binding InputPathLength}" ContentStringFormat="N2"/>
+                        <Label Content="Output path length:"/>
+                        <Label Content="{Binding OutputPathLength}"  ContentStringFormat="N2"/>
+                        <Label Content="Input path distance:"/>
+                        <Label Content="{Binding InputPathDistance}"  ContentStringFormat="N2"/>
+                        <Label Content="Output path distance:"/>
+                        <Label Content="{Binding OutputPathDistance}" ContentStringFormat="N2"/>
+                        <Button Content="show connected components" Click="OnShowConnectedComponentsClicked" Margin="5"/>
+                        <Button Content="mark non-shearing cells" Click="OnMarkNonShearing" Margin="5"/>
+                        <Button Content="set non-shearing cells" Click="OnSetNonShearing" Margin="5"/>
+                        <Button Content="trace all points" Click="OnTraceAllClicked" Margin="5"/>
+                        <Button Content="to initial config" Click="OnResetDeformationClicked" Margin="5"/>
+                        <Button Content="reset" Click="OnResetConfigClicked" Margin="5"/>
+                        <Button Content="erase" Click="OnEraseClicked" Margin="5,5,70,5"/>
+                        <Button Content="scale 2x" Click="OnScaleClicked" Margin="5"/>
+                        <Button Content="scale 0.5x" Click="OnDecreaseScaleClicked" Margin="5"/>
+                        <CheckBox IsChecked="{Binding ScalePathWithCells}" Margin="0,7,0,5" >
+                            <TextBlock Text="Paths"/>
+                        </CheckBox>
+                    </WrapPanel>
+                </Expander>
+            </Grid>
+
+            <Grid Margin="0,10,0,0">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <Label Grid.Row="1" Margin ="20,0,0,0" FontFamily="Roboto" FontSize="14" FontWeight="Bold" Content="import/export"/>
+                <Expander IsExpanded="True" Grid.Row="1" >
+                    <WrapPanel x:Name="Menu_Persist" >
+                        <Button Content="import" Click="OnImportClicked" Margin="5"/>
+                        <Button Content="export" Click="OnExportClicked" Margin="5"/>
+                        <Button Content="save image" Click="OnSaveImageClicked" Margin="5"/>
+                    </WrapPanel>
+                </Expander>
+            </Grid>
+
+            <Grid Margin="0,10,0,0">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <Label Grid.Row="1" Margin ="20,0,0,0" FontFamily="Roboto" FontSize="14" FontWeight="Bold" Content="experimental"/>
+                <Expander IsExpanded="True" Grid.Row="1" >
+                    <WrapPanel x:Name="Menu_Experimental" >
+                        <Button Content="randomize exhaustive" Click="OnRandomizeClicked" Margin="5"/>
+                        <Button Content="randomize large patterns" Click="OnRandomizeLargePatternsClicked" Margin="5"/>
+                        <Button Content="test graph merge" Click="OnGraphMergeClicked" Margin="5"/>
+                        <Button Content="test graph split" Click="OnGraphSplitClicked" Margin="5"/>
+                        <Button Content="test (something)" Click="OnTempTestClicked" Margin="5"/>
+                    </WrapPanel>
+                </Expander>
+            </Grid>
+
+
+            <Grid Margin="0,10,0,0">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <Label Grid.Row="1" Margin ="20,0,0,0" FontFamily="Roboto" FontSize="14" FontWeight="Bold" Content="generation"/>
+                <Expander IsExpanded="True" Grid.Row="1" >
+                    <WrapPanel x:Name="Generation" >
+                        <Button Content="optimize patterns" Click="OnOptimizePatternClicked" Margin="5,10,5,0"/>
+                        <Button Content="optimize patterns hierarchical" Click="OnOptimizePatternHierarchicalClicked" Margin="5,10,5,0"/>
+                        <Label Content="Max number iterations"  Margin="5,5,5,-5"/>
+                        <Label Content="{Binding Value, ElementName=NumIterationsSlider, StringFormat=\{0:F0\}}" Width="34" Margin="0,5,5,-5" />
+                        <Slider x:Name="NumIterationsSlider" Value="{Binding NumberIterationsGeneration}" Minimum="10" TickFrequency="10" IsSnapToTickEnabled="True" Maximum="2000" Margin="7,5,5,5" Width="180" HorizontalAlignment="Center" />
+                        <CheckBox IsChecked="{Binding UseSimulatedAnnealing}" Margin="5,7,5,5" >
+                            <TextBlock Text="Simluated Annealing"/>
+                        </CheckBox>
+
+                        <Label Content="Min path samples"  Margin="5,5,5,-5"/>
+                        <Label Content="{Binding Value, ElementName=MinPathSamplesSlider, StringFormat=\{0:F0\}}" Width="34" Margin="0,5,5,-5" />
+                        <Slider x:Name="MinPathSamplesSlider" Value="{Binding MinNumberPathSamples}" Minimum="10" Maximum="50" Margin="7,5,5,5" Width="180" HorizontalAlignment="Center" />
+
+                        <Label Content="Max path samples"  Margin="5,5,5,-5"/>
+                        <Label Content="{Binding Value, ElementName=MaxPathSamplesSlider, StringFormat=\{0:F0\}}" Width="34" Margin="0,5,5,-5" />
+                        <Slider x:Name="MaxPathSamplesSlider" Value="{Binding MaxNumberPathSamples}" Minimum="10" Maximum="100" Margin="7,5,5,5" Width="180" HorizontalAlignment="Center" />
+
+                        <Label Content="Num path divides"  Margin="5,5,5,-5"/>
+                        <Label Content="{Binding Value, ElementName=DividePathSamplesSlider, StringFormat=\{0:F0\}}" Width="34" Margin="0,5,5,-5" />
+                        <Slider x:Name="DividePathSamplesSlider" Value="{Binding NumPathDivides}" Minimum="0" Maximum="5" Margin="7,5,5,5" Width="180" HorizontalAlignment="Center" />
+
+                        <Label Content="Num scales"  Margin="5,5,5,-5"/>
+                        <Label Content="{Binding Value, ElementName=NumScalesSlider, StringFormat=\{0:F0\}}" Width="34" Margin="0,5,5,-5" />
+                        <Slider x:Name="NumScalesSlider" Value="{Binding NumScalesOptimization}" Minimum="0" Maximum="5" Margin="7,5,5,5" Width="180" HorizontalAlignment="Center" />
+                    </WrapPanel>
+                </Expander>
+            </Grid>
+        </StackPanel>
+
+        <!--<WrapPanel Background="LightGray" Grid.Row="0" Grid.ColumnSpan="2" Margin="0,0,0.333,0">
+            -->
+        <!--<RadioButton x:Name="AddShearCellButton" Content="add SHEAR cell" Style="{StaticResource InteractionModeButton}" IsChecked="{Binding Path=InteractionMode, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter={x:Static view:InteractionMode.AddShearCell}}" ></RadioButton>
+            <RadioButton x:Name="AddRigidCellButton" Content="add RIGID cell" Style="{StaticResource InteractionModeButton}" IsChecked="{Binding Path=InteractionMode, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter={x:Static view:InteractionMode.AddRigidCell}}" ></RadioButton>
+            <RadioButton x:Name="AddAnchorButton" Content="add anchor" Style="{StaticResource InteractionModeButton}" IsChecked="{Binding Path=InteractionMode, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter={x:Static view:InteractionMode.AddAnchor}}" ></RadioButton>
+            <RadioButton x:Name="SetInputButton" Content="set input" Style="{StaticResource InteractionModeButton}" IsChecked="{Binding Path=InteractionMode, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter={x:Static view:InteractionMode.SetTestInput}}" ></RadioButton>
+            <RadioButton x:Name="SetOutputButton" Content="set output" Style="{StaticResource InteractionModeButton}" IsChecked="{Binding Path=InteractionMode, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter={x:Static view:InteractionMode.SetTestOutput}}" ></RadioButton>
+            <RadioButton x:Name="AddTracingButton" Content="set tracing point" Style="{StaticResource InteractionModeButton}" IsChecked="{Binding Path=InteractionMode, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter={x:Static view:InteractionMode.AddTracingPoint}}" ></RadioButton>-->
+        <!--<RadioButton x:Name="SimulateButton" Content="SIMULATE" Style="{StaticResource InteractionModeButton}" IsChecked="{Binding Path=InteractionMode, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter={x:Static view:InteractionMode.Simulate}}" ></RadioButton>-->
+
+        <!--<Button Content="optimized simulation" Click="OnOptimizedPathSimulationClicked" />-->
+        <!--<Button Content="automatic simulation" Click="OnPathSimulationClicked"></Button>-->
+        <!--
+            <Button Content="export" Click="OnExportClicked"></Button>
+            <Button Content="import" Click="OnImportClicked"></Button>
+            <Button Content="randomize" Click="OnRandomizeClicked"></Button>
+        </WrapPanel>-->
+
+    </Grid>
+</Window>
