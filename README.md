@@ -8,5 +8,6 @@ Contains
 - GUI
 - Simulated annealing.
 - All data management of the cell grid
+- Routines to create data sets (currently exported as images)
 
 I believe ShearCell_Editor is not used, was supposed to be the 3D version.
