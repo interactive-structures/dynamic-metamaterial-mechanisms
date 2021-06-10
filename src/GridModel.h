@@ -7,7 +7,7 @@
 #ifdef _WIN32
 #define EIGEN_DONT_ALIGN_STATICALLY
 #define EXPORT_DLL_COMMAND __declspec(dllexport)
-#elif
+#else
 #define EXPORT_DLL_COMMAND 
 #endif
 
