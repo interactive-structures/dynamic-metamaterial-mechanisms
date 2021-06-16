@@ -8,6 +8,45 @@ bool disable_keyboard (igl::opengl::glfw::Viewer& viewer, unsigned char key, int
   return true;
 }
 
+// Returns matrix representing edges to visualize a grid. Note that shared edges are represented twice, though this is fine for our purposes.
+Eigen::MatrixXi get_edge_matrix (GridModel gm) {
+  int total_edges = 0;
+  for (int i = 0; i < gm.cells.size(); i++) {
+    total_edges += 4;
+    if (gm.cells[i].type == RIGID) {
+      total_edges += 2;
+    }
+  }
+  Eigen::MatrixXi E = Eigen::MatrixXi::Zero(total_edges,2);
+
+  int index = 0;
+  for (int i = 0; i < gm.cells.size(); i++) {
+    // Add four boundary edges
+    E(index,0) = gm.cells[i].vertices(0);
+    E(index,1) = gm.cells[i].vertices(1);
+    index++;
+    E(index,0) = gm.cells[i].vertices(1);
+    E(index,1) = gm.cells[i].vertices(2);
+    index++;
+    E(index,0) = gm.cells[i].vertices(2);
+    E(index,1) = gm.cells[i].vertices(3);
+    index++;
+    E(index,0) = gm.cells[i].vertices(3);
+    E(index,1) = gm.cells[i].vertices(0);
+    index++;
+    if (gm.cells[i].type == RIGID) { // Diagonal edges
+      E(index,0) = gm.cells[i].vertices(1);
+      E(index,1) = gm.cells[i].vertices(3);
+      index++;
+      E(index,0) = gm.cells[i].vertices(0);
+      E(index,1) = gm.cells[i].vertices(2);
+      index++;
+    }
+  }
+
+  return E;
+}
+
 /** Inputs: vector of GridResults representing state of grid at each timestep, original GridModel, matrix of edges on the grid
  *  Outputs: a tuple of (points needed to plot, edges to plot, colors of points, colors of edges)
  *  Note that only the first gm.points.size() rows of points needed to plot are actually the points to plot, the remainder are used to plot the edges of the target path.
@@ -82,47 +121,15 @@ int main(int argc, char *argv[])
   viewer.core().background_color.setOnes();
 
   // Original Points
-  Eigen::MatrixXd OP = Eigen::MatrixXd::Zero(gm.points.size(),3);
-  for (int i = 0; i < gm.points.size(); i++) {
-    OP(i,0) = gm.points[i](0);
-    OP(i,1) = gm.points[i](1);
-    OP(i,2) = 0;
-  }
+  // Eigen::MatrixXd OP = Eigen::MatrixXd::Zero(gm.points.size(),3);
+  // for (int i = 0; i < gm.points.size(); i++) {
+  //   OP(i,0) = gm.points[i](0);
+  //   OP(i,1) = gm.points[i](1);
+  //   OP(i,2) = 0;
+  // }
   //std::cout << OP << std::endl;
 
-  // Grid Edges
-  int total_edges = 0;
-  for (int i = 0; i < gm.cells.size(); i++) {
-    total_edges += 4;
-    if (gm.cells[i].type == RIGID) {
-      total_edges += 2;
-    }
-  }
-  Eigen::MatrixXi E = Eigen::MatrixXi::Zero(total_edges,2);
-
-  int index = 0;
-  for (int i = 0; i < gm.cells.size(); i++) {
-    E(index,0) = gm.cells[i].vertices(0);
-    E(index,1) = gm.cells[i].vertices(1);
-    index++;
-    E(index,0) = gm.cells[i].vertices(1);
-    E(index,1) = gm.cells[i].vertices(2);
-    index++;
-    E(index,0) = gm.cells[i].vertices(2);
-    E(index,1) = gm.cells[i].vertices(3);
-    index++;
-    E(index,0) = gm.cells[i].vertices(3);
-    E(index,1) = gm.cells[i].vertices(0);
-    index++;
-    if (gm.cells[i].type == RIGID) {
-      E(index,0) = gm.cells[i].vertices(1);
-      E(index,1) = gm.cells[i].vertices(3);
-      index++;
-      E(index,0) = gm.cells[i].vertices(0);
-      E(index,1) = gm.cells[i].vertices(2);
-      index++;
-    }
-  }
+  Eigen::MatrixXi E = get_edge_matrix(gm);
   //std::cout << E << std::endl;
 
   // slow controls frame rate
