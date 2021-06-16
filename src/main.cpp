@@ -3,53 +3,64 @@
 
 #include <fstream>
 
+// Used to disable inputs to control libigl viewer. Safe to ignore for now.
 bool disable_keyboard (igl::opengl::glfw::Viewer& viewer, unsigned char key, int modifier) {
   return true;
 }
 
-std::tuple<Eigen::MatrixXd, Eigen::MatrixXi, Eigen::MatrixXd> animate_path (std::vector<GridResult> ret, std::vector<int> paths, Eigen::MatrixXi grid_edges) {
-  static int counter = 0;
+/** Inputs: vector of GridResults representing state of grid at each timestep, original GridModel, matrix of edges on the grid
+ *  Outputs: a tuple of (points needed to plot, edges to plot, colors of points, colors of edges)
+ *  Note that only the first gm.points.size() rows of points needed to plot are actually the points to plot, the remainder are used to plot the edges of the target path.
+ */
+std::tuple<Eigen::MatrixXd, Eigen::MatrixXi, Eigen::MatrixXd, Eigen::MatrixXd> animate_path (std::vector<GridResult> ret, GridModel gm, Eigen::MatrixXi grid_edges) {
+  static int counter = 0; // Tracks current frame to display
 
   // Initialize Points
-  Eigen::MatrixXd P = Eigen::MatrixXd::Zero(ret[counter].points.size() + paths.size() * ret.size(), 3);
+  Eigen::MatrixXd P = Eigen::MatrixXd::Zero(ret[counter].points.size() + gm.targets.size() * ret.size(), 3);
 
-  // Current Grid
+  // Points on grid
   for (int i = 0; i < ret[counter].points.size(); i++) {
     P(i,0) = ret[counter].points[i](0);
     P(i,1) = ret[counter].points[i](1);
     P(i,2) = 0;
   }
 
-  // Path
-  for (int i = 0; i < paths.size(); i++) { // ith input path
+  // Points on path
+  for (int i = 0; i < gm.targets.size(); i++) { // ith input path
     for (int j = 0; j < ret.size(); j++) { // at time j
-      P(ret[counter].points.size() + i * ret.size() + j, 0) = ret[j].points[paths[i]](0);
-      P(ret[counter].points.size() + i * ret.size() + j, 1) = ret[j].points[paths[i]](1);
+      P(ret[counter].points.size() + i * ret.size() + j, 0) = ret[j].points[gm.targets[i]](0);
+      P(ret[counter].points.size() + i * ret.size() + j, 1) = ret[j].points[gm.targets[i]](1);
       P(ret[counter].points.size() + i * ret.size() + j, 2) = 0;
     }
   }
 
   // Initialize Edges
-  Eigen::MatrixXi E = Eigen::MatrixXi::Zero(grid_edges.rows() + paths.size() * (ret.size() - 1), 2);
+  Eigen::MatrixXi E = Eigen::MatrixXi::Zero(grid_edges.rows() + gm.targets.size() * (ret.size() - 1), 2);
 
-  // Grid Edges
+  // Edges on grid
   E.topRows(grid_edges.rows()) = grid_edges;
 
-  // Path Edges
-  for (int i = 0; i < paths.size(); i++) { // ith input path
+  // Edges on path
+  for (int i = 0; i < gm.targets.size(); i++) { // ith input path
     for (int j = 0; j < ret.size() - 1; j++) { // edges between time j and j+1
       E(grid_edges.rows() + i * ret.size() + j, 0) = ret[counter].points.size() + i * ret.size() + j;
       E(grid_edges.rows() + i * ret.size() + j, 1) = ret[counter].points.size() + i * ret.size() + j + 1;
     }
   }
 
-  // Initialize Colors
-  Eigen::MatrixXd C = Eigen::MatrixXd::Zero(grid_edges.rows() + paths.size() * (ret.size() - 1), 3);
-  C.bottomLeftCorner(paths.size() * (ret.size() - 1), 1).setOnes();
+  // Point Colors
+  Eigen::MatrixXd PC = Eigen::MatrixXd::Zero(ret[counter].points.size(), 3);
+  for (int i : gm.anchors) {
+    PC.row(i) = Eigen::RowVector3d(1,0,0);
+  }
 
-  counter = (counter + 1) % ret.size();
+  // Edge Colors
+  Eigen::MatrixXd EC = Eigen::MatrixXd::Zero(grid_edges.rows() + gm.targets.size() * (ret.size() - 1), 3);
+  EC.bottomLeftCorner(gm.targets.size() * (ret.size() - 1), 1).setOnes();
+
+  counter = (counter + 1) % ret.size(); // Increment frame
   
-  return std::make_tuple(P, E, C);
+  return std::make_tuple(P, E, PC, EC);
 }
 
 int main(int argc, char *argv[])
@@ -114,28 +125,6 @@ int main(int argc, char *argv[])
   }
   //std::cout << E << std::endl;
 
-  // Eigen::MatrixXd P1 = Eigen::MatrixXd::Zero(ret[1].points.size(),3);
-  // for (int i = 0; i < ret[1].points.size(); i++) {
-  //   P1(i,0) = ret[1].points[i](0);
-  //   P1(i,1) = ret[1].points[i](1);
-  //   P1(i,2) = 0;
-  // }
-  // std::cout << P1 << std::endl;
-
-
-  // viewer.data().add_points(P1, Eigen::RowVector3d(1,0,0));
-
-  // for (int i = 0; i < gm.cells.size(); i++) {
-  //   viewer.data().add_edges(P1.row(gm.cells[i].vertices(0)), P1.row(gm.cells[i].vertices(1)), Eigen::RowVector3d(1,0,0));
-  //   viewer.data().add_edges(P1.row(gm.cells[i].vertices(1)), P1.row(gm.cells[i].vertices(2)), Eigen::RowVector3d(1,0,0));
-  //   viewer.data().add_edges(P1.row(gm.cells[i].vertices(2)), P1.row(gm.cells[i].vertices(3)), Eigen::RowVector3d(1,0,0));
-  //   viewer.data().add_edges(P1.row(gm.cells[i].vertices(3)), P1.row(gm.cells[i].vertices(0)), Eigen::RowVector3d(1,0,0));
-  //   if (gm.cells[i].type == RIGID) {
-  //     viewer.data().add_edges(P1.row(gm.cells[i].vertices(1)), P1.row(gm.cells[i].vertices(3)), Eigen::RowVector3d(1,0,0));
-  //     viewer.data().add_edges(P1.row(gm.cells[i].vertices(0)), P1.row(gm.cells[i].vertices(2)), Eigen::RowVector3d(1,0,0));
-  //   }
-  // }
-
   // slow controls frame rate
   int slow = 0;
 
@@ -145,13 +134,14 @@ int main(int argc, char *argv[])
     slow++;
     if (slow == 1) { // slow controls frame rate
       // Get points and edges to draw
-      auto tup = animate_path(ret, gm.targets, E);
+      auto tup = animate_path(ret, gm, E);
       auto points = std::get<0>(tup);
       auto edges = std::get<1>(tup);
-      auto colors = std::get<2>(tup);
+      auto pointColors = std::get<2>(tup);
+      auto edgeColors = std::get<3>(tup);
       // update points and edges
-      viewer.data().set_points(points.topRows(gm.points.size()), Eigen::RowVector3d(0,0,0));
-      viewer.data().set_edges(points, edges, colors);
+      viewer.data().set_points(points.topRows(gm.points.size()), pointColors);
+      viewer.data().set_edges(points, edges, edgeColors);
       slow = 0;
     }
     
