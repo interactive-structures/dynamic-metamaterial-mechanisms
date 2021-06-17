@@ -6,6 +6,7 @@
 /.vscode
 /ipopt
 #/libigl
+src/points
 
 # Compiled Object files
 *.slo
