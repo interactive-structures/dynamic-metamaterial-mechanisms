@@ -2,6 +2,7 @@
 #define GridModel_h
 
 #include <vector>
+#include <set>
 #include <iostream>
 
 #ifdef _WIN32
@@ -47,6 +48,7 @@ struct EXPORT_DLL_COMMAND GridResult
 class EXPORT_DLL_COMMAND GridModel
 {
     typedef Eigen::Vector2d Point;
+		typedef std::pair<int, int> Edge;
 public:
     
     std::vector<Point> points;
@@ -59,6 +61,8 @@ public:
     
     std::vector<std::vector<Point>> targetPaths;
     std::vector<int> targets;
+
+		std::vector<std::vector<std::set<Edge>>> constraintGraph;
 
 	GridModel(const GridModel &other)
 	{
@@ -86,6 +90,11 @@ public:
 		{
 			targetPaths.push_back(path);
 		}
+
+		for (std::vector<std::set<Edge>> component : other.constraintGraph)
+		{
+			constraintGraph.push_back(component);
+		}
 	}
 
 	GridModel()
@@ -93,6 +102,11 @@ public:
 	}
     
 	void loadFromFile(std::string fname);
+	void generateConstraintGraph();
+
+private:
+	void addConstraints(std::vector<std::set<Edge>> unlinkedConstraints);
+	std::vector<std::vector<std::set<GridModel::Edge>>> findContainingComponents(std::set<Edge> constraint, std::vector<std::vector<std::set<Edge>>> graph);
 };
 
 EXPORT_DLL_COMMAND

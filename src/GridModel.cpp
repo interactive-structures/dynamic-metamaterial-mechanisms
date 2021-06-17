@@ -196,6 +196,80 @@ void GridModel::loadFromFile(const std::string fname)
 	file.close();
 }
 
+// Returns std::vector of all components of the given graph containing an edge also in the given constraint.
+std::vector<std::vector<std::set<GridModel::Edge>>> GridModel::findContainingComponents(std::set<Edge> constraint, std::vector<std::vector<std::set<Edge>>> graph) {
+  std::vector<std::vector<std::set<Edge>>> containingComponents;
+	for (std::vector<std::set<Edge>> graphComponent : graph) {
+		for (std::set<Edge> existingConstraint : graphComponent) {
+			for (Edge e : constraint) {
+				if (existingConstraint.find(e) != existingConstraint.end()) {
+					containingComponents.push_back(graphComponent);
+					break;
+				}
+			}
+		}
+	}
+	return containingComponents;
+}
+
+void GridModel::addConstraints(std::vector<std::set<Edge>> unlinkedConstraints) {
+	std::vector<std::set<Edge>> toVisit(unlinkedConstraints); // Initialize constraints to check
+
+	while (toVisit.size() > 0) // Do while there remains unassigned constraints
+	{
+		std::set<Edge> constraint = toVisit[0]; // Get next constraint
+		toVisit.erase(toVisit.begin());
+
+		std::vector<std::set<Edge>> component({constraint}); // Create a new component
+		std::vector<std::vector<std::set<Edge>>> containingComponents = findContainingComponents(constraint, constraintGraph); // Find existing components
+
+		if (containingComponents.size() > 0) { // Join all existing components
+      for (std::vector<std::set<Edge>> containingComponent : containingComponents) {
+				for (std::set<Edge> existingConstraint : containingComponent) { // For each existing constraint
+					if (std::find(component.begin(), component.end(), existingConstraint) == component.end()) {
+						component.push_back(existingConstraint); // Add only if constraint does not yet exist TODO: consider using sets for constraints
+					}
+				}
+				constraintGraph.erase(std::find(constraintGraph.begin(), constraintGraph.end(), containingComponent));
+    	}
+    }
+    constraintGraph.push_back(component);
+		//std::cout << "Component added. " << constraintGraph.size() << " total components" << std::endl;
+	}
+	
+}
+
+void GridModel::generateConstraintGraph() {
+
+	// Track unassigned constraints
+	std::vector<std::set<Edge>> unlinkedConstraints;
+
+	// Collect all constraints
+  for (auto c : cells) {
+		Edge e1 = std::make_pair(std::min(c.vertices[0], c.vertices[1]), std::max(c.vertices[0], c.vertices[1]));
+		Edge e2 = std::make_pair(std::min(c.vertices[1], c.vertices[2]), std::max(c.vertices[1], c.vertices[2]));
+		Edge e3 = std::make_pair(std::min(c.vertices[2], c.vertices[3]), std::max(c.vertices[2], c.vertices[3]));
+		Edge e4 = std::make_pair(std::min(c.vertices[3], c.vertices[0]), std::max(c.vertices[3], c.vertices[0]));
+		if (c.type == RIGID) {
+			std::set<Edge> rigidConstraint({e1, e2, e3, e4});
+			unlinkedConstraints.push_back(rigidConstraint);
+		} else if (c.type == SHEAR) {
+			std::set<Edge> shearConstraint1({e1, e3});
+			std::set<Edge> shearConstraint2({e2, e4});
+			unlinkedConstraints.push_back(shearConstraint1);
+			unlinkedConstraints.push_back(shearConstraint2);
+		}
+	}
+
+	//std::cout << unlinkedConstraints.size() << " unlinked constraints" << std::endl;
+
+	// Reset constraint graph
+	constraintGraph.clear();
+	addConstraints(unlinkedConstraints);
+
+	//std::cout << constraintGraph.size() << " components" << std::endl;
+}
+
 std::vector<GridResult>
 optimize(const GridModel& model, std::string pointDirectory)
 {
