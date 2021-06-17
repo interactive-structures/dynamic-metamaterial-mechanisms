@@ -2,6 +2,7 @@
 #include "GridModel.h"
 
 #include <fstream>
+#include <tuple>
 
 // Used to disable inputs to control libigl viewer. Safe to ignore for now.
 bool disable_keyboard (igl::opengl::glfw::Viewer& viewer, unsigned char key, int modifier) {
@@ -102,12 +103,31 @@ std::tuple<Eigen::MatrixXd, Eigen::MatrixXi, Eigen::MatrixXd, Eigen::MatrixXd> a
   return std::make_tuple(P, E, PC, EC);
 }
 
+void printConstraintGraph (GridModel gm) {
+  auto cG = gm.constraintGraph;
+  std::cout << std::endl;
+
+  for (auto comp : cG) {
+    for (auto constraint : comp) {
+      std::cout << "{";
+      for (auto edge : constraint) {
+        std::cout << " (" << edge.first << "," << edge.second << ")";
+      }
+      std::cout << " } ";
+    }
+    std::cout << std::endl;
+  }
+}
+
 int main(int argc, char *argv[])
 {
 
   //std::cout << "loading" << std::endl;
   GridModel gm;
   gm.loadFromFile("../cells.txt");
+  gm.generateConstraintGraph();
+  //std::cout << gm.constraintGraph.size() << std::endl;
+  printConstraintGraph(gm);
   //std::cout << "loaded" << std::endl;
   auto ret = optimize(gm, "../points/");
 
