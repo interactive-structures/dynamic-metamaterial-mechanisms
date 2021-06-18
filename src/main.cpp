@@ -110,7 +110,8 @@ void printConstraintGraph (GridModel gm) {
   for (auto comp : cG) {
     for (auto constraint : comp) {
       std::cout << "{";
-      for (auto edge : constraint) {
+      std::cout << "Cell: " << constraint.first.vertices[0] << ", " << constraint.first.vertices[1] << ", " << constraint.first.vertices[2] << ", " << constraint.first.vertices[3] << " ";
+      for (auto edge : constraint.second) {
         std::cout << " (" << edge.first << "," << edge.second << ")";
       }
       std::cout << " } ";

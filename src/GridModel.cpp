@@ -5,6 +5,12 @@
 #include "MyNLP.hpp"
 
 #include <fstream>
+#include <stdlib.h>
+#include <time.h>
+
+bool operator==(const GridCell& lhs, const GridCell& rhs) {
+	return lhs.type == rhs.type && lhs.vertices.isApprox(rhs.vertices);
+}
 
 namespace {
 	int optimize(SmartPtr<MyNLP>& mynlp)
@@ -197,12 +203,12 @@ void GridModel::loadFromFile(const std::string fname)
 }
 
 // Returns std::vector of all components of the given graph containing an edge also in the given constraint.
-std::vector<std::vector<std::set<GridModel::Edge>>> GridModel::findContainingComponents(std::set<Edge> constraint, std::vector<std::vector<std::set<Edge>>> graph) {
-  std::vector<std::vector<std::set<Edge>>> containingComponents;
-	for (std::vector<std::set<Edge>> graphComponent : graph) {
-		for (std::set<Edge> existingConstraint : graphComponent) {
-			for (Edge e : constraint) {
-				if (existingConstraint.find(e) != existingConstraint.end()) {
+std::vector<std::vector<std::pair<GridCell, std::set<GridModel::Edge>>>> GridModel::findContainingComponents(std::pair<GridCell, std::set<Edge>> constraint, std::vector<std::vector<std::pair<GridCell, std::set<Edge>>>> graph) {
+  std::vector<std::vector<std::pair<GridCell, std::set<Edge>>>> containingComponents;
+	for (std::vector<std::pair<GridCell, std::set<Edge>>> graphComponent : graph) {
+		for (std::pair<GridCell, std::set<Edge>> existingConstraint : graphComponent) {
+			for (Edge e : constraint.second) {
+				if (existingConstraint.second.find(e) != existingConstraint.second.end()) {
 					containingComponents.push_back(graphComponent);
 					break;
 				}
@@ -212,22 +218,22 @@ std::vector<std::vector<std::set<GridModel::Edge>>> GridModel::findContainingCom
 	return containingComponents;
 }
 
-void GridModel::addConstraints(std::vector<std::set<Edge>> unlinkedConstraints) {
-	std::vector<std::set<Edge>> toVisit(unlinkedConstraints); // Initialize constraints to check
+void GridModel::addConstraints(std::vector<std::pair<GridCell, std::set<Edge>>> unlinkedConstraints) {
+	std::vector<std::pair<GridCell, std::set<Edge>>> toVisit(unlinkedConstraints); // Initialize constraints to check
 
 	while (toVisit.size() > 0) // Do while there remains unassigned constraints
 	{
-		std::set<Edge> constraint = toVisit[0]; // Get next constraint
+		std::pair<GridCell, std::set<Edge>> constraint = toVisit[0]; // Get next constraint
 		toVisit.erase(toVisit.begin());
 
-		std::vector<std::set<Edge>> component({constraint}); // Create a new component
-		std::vector<std::vector<std::set<Edge>>> containingComponents = findContainingComponents(constraint, constraintGraph); // Find existing components
+		std::vector<std::pair<GridCell, std::set<Edge>>> component({constraint}); // Create a new component
+		std::vector<std::vector<std::pair<GridCell, std::set<Edge>>>> containingComponents = findContainingComponents(constraint, constraintGraph); // Find existing components
 
 		if (containingComponents.size() > 0) { // Join all existing components
-      for (std::vector<std::set<Edge>> containingComponent : containingComponents) {
-				for (std::set<Edge> existingConstraint : containingComponent) { // For each existing constraint
+      for (std::vector<std::pair<GridCell, std::set<Edge>>> containingComponent : containingComponents) {
+				for (std::pair<GridCell, std::set<Edge>> existingConstraint : containingComponent) { // For each existing constraint
 					if (std::find(component.begin(), component.end(), existingConstraint) == component.end()) {
-						component.push_back(existingConstraint); // Add only if constraint does not yet exist TODO: consider using sets for constraints
+						component.push_back(existingConstraint); // Add only if constraint does not yet exist
 					}
 				}
 				constraintGraph.erase(std::find(constraintGraph.begin(), constraintGraph.end(), containingComponent));
@@ -242,7 +248,8 @@ void GridModel::addConstraints(std::vector<std::set<Edge>> unlinkedConstraints) 
 void GridModel::generateConstraintGraph() {
 
 	// Track unassigned constraints
-	std::vector<std::set<Edge>> unlinkedConstraints;
+	std::vector<std::pair<GridCell, std::set<Edge>>> unlinkedConstraints;
+	std::vector<GridCell> associatedCells;
 
 	// Collect all constraints
   for (auto c : cells) {
@@ -251,11 +258,14 @@ void GridModel::generateConstraintGraph() {
 		Edge e3 = std::make_pair(std::min(c.vertices[2], c.vertices[3]), std::max(c.vertices[2], c.vertices[3]));
 		Edge e4 = std::make_pair(std::min(c.vertices[3], c.vertices[0]), std::max(c.vertices[3], c.vertices[0]));
 		if (c.type == RIGID) {
-			std::set<Edge> rigidConstraint({e1, e2, e3, e4});
+			std::set<Edge> constraintEdges({e1, e2, e3, e4});
+			std::pair<GridCell, std::set<Edge>> rigidConstraint = std::make_pair(c, constraintEdges);
 			unlinkedConstraints.push_back(rigidConstraint);
 		} else if (c.type == SHEAR) {
-			std::set<Edge> shearConstraint1({e1, e3});
-			std::set<Edge> shearConstraint2({e2, e4});
+			std::set<Edge> constraintEdges1({e1, e3});
+			std::set<Edge> constraintEdges2({e2, e4});
+			std::pair<GridCell, std::set<Edge>> shearConstraint1 = std::make_pair(c, constraintEdges1);
+			std::pair<GridCell, std::set<Edge>> shearConstraint2 = std::make_pair(c, constraintEdges2);
 			unlinkedConstraints.push_back(shearConstraint1);
 			unlinkedConstraints.push_back(shearConstraint2);
 		}
@@ -268,6 +278,40 @@ void GridModel::generateConstraintGraph() {
 	addConstraints(unlinkedConstraints);
 
 	//std::cout << constraintGraph.size() << " components" << std::endl;
+}
+
+void GridModel::mergeComponents() {
+	int currentDOFs = constraintGraph.size();
+	int newDOFs = constraintGraph.size();
+
+	while (newDOFs > currentDOFs)
+	{
+
+		// Select components to merge
+	  int comp1 = -1;
+		int comp2 = -1;
+
+		if (constraintGraph.size() < 2) {
+			std::cout << "Failed to merge: not enough components remain" << std::endl;
+			break;
+		}
+
+		srand (time(NULL)); // Initialize rng
+		comp1 = rand() % constraintGraph.size();
+		while (comp2 < 0 || comp2 == comp1) {
+			comp2 = rand() % constraintGraph.size();
+		}
+
+		std::vector<GridCell> cellsComp1;
+		std::vector<GridCell> cellsComp2;
+
+		
+		
+
+
+
+	}
+	
 }
 
 std::vector<GridResult>

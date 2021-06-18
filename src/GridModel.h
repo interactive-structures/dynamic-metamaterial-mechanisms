@@ -36,6 +36,8 @@ public:
 	GridCell(const int a, const int b, const int c, const int d, const int t);
 };
 
+bool operator==(const GridCell& lhs, const GridCell& rhs);
+
 // Struct representing the optimization result
 // for one frame.
 struct EXPORT_DLL_COMMAND GridResult
@@ -62,7 +64,7 @@ public:
     std::vector<std::vector<Point>> targetPaths;
     std::vector<int> targets;
 
-		std::vector<std::vector<std::set<Edge>>> constraintGraph;
+		std::vector<std::vector<std::pair<GridCell, std::set<Edge>>>> constraintGraph;
 
 	GridModel(const GridModel &other)
 	{
@@ -91,7 +93,7 @@ public:
 			targetPaths.push_back(path);
 		}
 
-		for (std::vector<std::set<Edge>> component : other.constraintGraph)
+		for (std::vector<std::pair<GridCell, std::set<Edge>>> component : other.constraintGraph)
 		{
 			constraintGraph.push_back(component);
 		}
@@ -103,10 +105,11 @@ public:
     
 	void loadFromFile(std::string fname);
 	void generateConstraintGraph();
+	void mergeComponents();
 
 private:
-	void addConstraints(std::vector<std::set<Edge>> unlinkedConstraints);
-	std::vector<std::vector<std::set<GridModel::Edge>>> findContainingComponents(std::set<Edge> constraint, std::vector<std::vector<std::set<Edge>>> graph);
+	void addConstraints(std::vector<std::pair<GridCell, std::set<Edge>>> unlinkedConstraints);
+	std::vector<std::vector<std::pair<GridCell, std::set<GridModel::Edge>>>> findContainingComponents(std::pair<GridCell, std::set<Edge>> constraint, std::vector<std::vector<std::pair<GridCell, std::set<Edge>>>> graph);
 };
 
 EXPORT_DLL_COMMAND
