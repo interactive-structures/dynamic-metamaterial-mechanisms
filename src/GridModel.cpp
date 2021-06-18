@@ -283,8 +283,9 @@ void GridModel::generateConstraintGraph() {
 void GridModel::mergeComponents() {
 	int currentDOFs = constraintGraph.size();
 	int newDOFs = constraintGraph.size();
+	srand (time(NULL)); // Initialize rng
 
-	while (newDOFs > currentDOFs)
+	while (newDOFs >= currentDOFs)
 	{
 
 		// Select components to merge
@@ -296,7 +297,6 @@ void GridModel::mergeComponents() {
 			break;
 		}
 
-		srand (time(NULL)); // Initialize rng
 		comp1 = rand() % constraintGraph.size();
 		while (comp2 < 0 || comp2 == comp1) {
 			comp2 = rand() % constraintGraph.size();
@@ -305,11 +305,44 @@ void GridModel::mergeComponents() {
 		std::vector<GridCell> cellsComp1;
 		std::vector<GridCell> cellsComp2;
 
+		for (auto constraint : constraintGraph[comp1]) { // Get cells in first component
+			if (std::find(cellsComp1.begin(), cellsComp1.end(), constraint.first) == cellsComp1.end()) {
+				cellsComp1.push_back(constraint.first);
+			}
+		}
+
+		for (auto constraint : constraintGraph[comp2]) { // Get cells in second component
+			if (std::find(cellsComp2.begin(), cellsComp2.end(), constraint.first) == cellsComp2.end()) {
+				cellsComp2.push_back(constraint.first);
+			}
+		}
+
+		std::vector<GridCell> candidateCells;
+
+		for (auto cell : cellsComp1) { // Collect cells common to both components
+			if (std::find(cellsComp2.begin(), cellsComp2.end(), cell) != cellsComp2.end()) {
+				candidateCells.push_back(cell);
+			}
+		}
+
+		std::cout << "Trying to merge " << comp1 << " and " << comp2 << ". ";
+		std::cout << "Candidates:";
+		for (auto c : candidateCells) {
+			std::cout << " (Cell: " << c.vertices[0] << ", " << c.vertices[1] << ", " << c.vertices[2] << ", " << c.vertices[3] << ")";
+		}
+		std::cout << std::endl;
+
+		if (candidateCells.size() < 1) {
+			std::cout << "Failed to merge: no cells common to both components." << std::endl;
+			continue;
+		}
+
+		GridCell cellToMerge = candidateCells[rand() % candidateCells.size()];
+
+		std::find(cells.begin(), cells.end(), cellToMerge)->type = RIGID;
 		
-		
-
-
-
+		generateConstraintGraph();
+		newDOFs = constraintGraph.size();
 	}
 	
 }

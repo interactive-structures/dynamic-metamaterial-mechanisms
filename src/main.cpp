@@ -110,13 +110,14 @@ void printConstraintGraph (GridModel gm) {
   for (auto comp : cG) {
     for (auto constraint : comp) {
       std::cout << "{";
-      std::cout << "Cell: " << constraint.first.vertices[0] << ", " << constraint.first.vertices[1] << ", " << constraint.first.vertices[2] << ", " << constraint.first.vertices[3] << " ";
+      std::cout << "Cell: " << constraint.first.vertices[0] << ", " << constraint.first.vertices[1];
+      std::cout << ", " << constraint.first.vertices[2] << ", " << constraint.first.vertices[3] << ". Constraints:";
       for (auto edge : constraint.second) {
         std::cout << " (" << edge.first << "," << edge.second << ")";
       }
-      std::cout << " } ";
+      std::cout << "} ";
     }
-    std::cout << std::endl;
+    std::cout << std::endl << std::endl;
   }
 }
 
@@ -128,6 +129,10 @@ int main(int argc, char *argv[])
   gm.loadFromFile("../cells.txt");
   gm.generateConstraintGraph();
   //std::cout << gm.constraintGraph.size() << std::endl;
+  printConstraintGraph(gm);
+  gm.mergeComponents();
+  printConstraintGraph(gm);
+  gm.mergeComponents();
   printConstraintGraph(gm);
   //std::cout << "loaded" << std::endl;
   auto ret = optimize(gm, "../points/");
