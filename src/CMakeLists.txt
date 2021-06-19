@@ -12,3 +12,5 @@ include(libigl)
 file(GLOB SRC_FILES *.cpp)
 add_executable(${PROJECT_NAME} ${SRC_FILES})
 target_link_libraries(${PROJECT_NAME} PUBLIC igl::core igl::opengl_glfw)
+
+target_compile_features(example PRIVATE cxx_std_17)

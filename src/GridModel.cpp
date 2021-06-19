@@ -2,18 +2,23 @@
 #include "MetaGrid.hpp"
 #include "coin/IpIpoptApplication.hpp"
 #include "coin/IpSolveStatistics.hpp"
+#include "cppopt/cppOpt.h"
 #include "MyNLP.hpp"
 
 #include <fstream>
 #include <stdlib.h>
 #include <time.h>
 
-bool operator==(const GridCell& lhs, const GridCell& rhs) {
+using namespace cppOpt;
+
+bool operator==(const GridCell &lhs, const GridCell &rhs)
+{
 	return lhs.type == rhs.type && lhs.vertices.isApprox(rhs.vertices);
 }
 
-namespace {
-	int optimize(SmartPtr<MyNLP>& mynlp)
+namespace
+{
+	int optimize(SmartPtr<MyNLP> &mynlp)
 	{
 		sort(mynlp->fixedDofs.begin(), mynlp->fixedDofs.end());
 		SmartPtr<IpoptApplication> app = IpoptApplicationFactory();
@@ -22,8 +27,11 @@ namespace {
 		ApplicationReturnStatus status;
 		status = app->Initialize();
 
-		if (status != Solve_Succeeded) {
-			std::cout << std::endl << std::endl << "*** Error during initialization!" << std::endl;
+		if (status != Solve_Succeeded)
+		{
+			std::cout << std::endl
+					  << std::endl
+					  << "*** Error during initialization!" << std::endl;
 			return (int)status;
 		}
 
@@ -33,7 +41,6 @@ namespace {
 		app->Options()->SetIntegerValue("print_level", 0);
 		//app->Options()->SetStringValue("derivative_test", "second-order");
 		status = app->OptimizeTNLP(mynlp);
-
 
 		/*
 		 if (status == Solve_Succeeded) {
@@ -58,7 +65,6 @@ GridCell::GridCell(const int a, const int b, const int c, const int d, CellType 
 	: vertices(a, b, c, d), type(t)
 {
 }
-
 
 GridCell::GridCell(const int a, const int b, const int c, const int d, const int t)
 	: vertices(a, b, c, d)
@@ -114,7 +120,8 @@ void GridModel::loadFromFile(const std::string fname)
 		file >> npath2;
 	}
 
-	if (constr2 != -1) inputs.push_back(constr2);
+	if (constr2 != -1)
+		inputs.push_back(constr2);
 	targets.push_back(constr);
 
 	file.getline(tmp, 1024);
@@ -143,7 +150,7 @@ void GridModel::loadFromFile(const std::string fname)
 	}
 
 	// shift = vertices[anchors.front()];
-	 //  anchors.pop_back();
+	//  anchors.pop_back();
 
 	file.getline(tmp, 1024);
 	file.getline(tmp, 1024);
@@ -203,12 +210,17 @@ void GridModel::loadFromFile(const std::string fname)
 }
 
 // Returns std::vector of all components of the given graph containing an edge also in the given constraint.
-std::vector<std::vector<std::pair<GridCell, std::set<GridModel::Edge>>>> GridModel::findContainingComponents(std::pair<GridCell, std::set<Edge>> constraint, std::vector<std::vector<std::pair<GridCell, std::set<Edge>>>> graph) {
-  std::vector<std::vector<std::pair<GridCell, std::set<Edge>>>> containingComponents;
-	for (std::vector<std::pair<GridCell, std::set<Edge>>> graphComponent : graph) {
-		for (std::pair<GridCell, std::set<Edge>> existingConstraint : graphComponent) {
-			for (Edge e : constraint.second) {
-				if (existingConstraint.second.find(e) != existingConstraint.second.end()) {
+std::vector<std::vector<std::pair<GridCell, std::set<GridModel::Edge>>>> GridModel::findContainingComponents(std::pair<GridCell, std::set<Edge>> constraint, std::vector<std::vector<std::pair<GridCell, std::set<Edge>>>> graph)
+{
+	std::vector<std::vector<std::pair<GridCell, std::set<Edge>>>> containingComponents;
+	for (std::vector<std::pair<GridCell, std::set<Edge>>> graphComponent : graph)
+	{
+		for (std::pair<GridCell, std::set<Edge>> existingConstraint : graphComponent)
+		{
+			for (Edge e : constraint.second)
+			{
+				if (existingConstraint.second.find(e) != existingConstraint.second.end())
+				{
 					containingComponents.push_back(graphComponent);
 					break;
 				}
@@ -218,7 +230,8 @@ std::vector<std::vector<std::pair<GridCell, std::set<GridModel::Edge>>>> GridMod
 	return containingComponents;
 }
 
-void GridModel::addConstraints(std::vector<std::pair<GridCell, std::set<Edge>>> unlinkedConstraints) {
+void GridModel::addConstraints(std::vector<std::pair<GridCell, std::set<Edge>>> unlinkedConstraints)
+{
 	std::vector<std::pair<GridCell, std::set<Edge>>> toVisit(unlinkedConstraints); // Initialize constraints to check
 
 	while (toVisit.size() > 0) // Do while there remains unassigned constraints
@@ -226,42 +239,50 @@ void GridModel::addConstraints(std::vector<std::pair<GridCell, std::set<Edge>>> 
 		std::pair<GridCell, std::set<Edge>> constraint = toVisit[0]; // Get next constraint
 		toVisit.erase(toVisit.begin());
 
-		std::vector<std::pair<GridCell, std::set<Edge>>> component({constraint}); // Create a new component
+		std::vector<std::pair<GridCell, std::set<Edge>>> component({constraint});																	// Create a new component
 		std::vector<std::vector<std::pair<GridCell, std::set<Edge>>>> containingComponents = findContainingComponents(constraint, constraintGraph); // Find existing components
 
-		if (containingComponents.size() > 0) { // Join all existing components
-      for (std::vector<std::pair<GridCell, std::set<Edge>>> containingComponent : containingComponents) {
-				for (std::pair<GridCell, std::set<Edge>> existingConstraint : containingComponent) { // For each existing constraint
-					if (std::find(component.begin(), component.end(), existingConstraint) == component.end()) {
+		if (containingComponents.size() > 0)
+		{ // Join all existing components
+			for (std::vector<std::pair<GridCell, std::set<Edge>>> containingComponent : containingComponents)
+			{
+				for (std::pair<GridCell, std::set<Edge>> existingConstraint : containingComponent)
+				{ // For each existing constraint
+					if (std::find(component.begin(), component.end(), existingConstraint) == component.end())
+					{
 						component.push_back(existingConstraint); // Add only if constraint does not yet exist
 					}
 				}
 				constraintGraph.erase(std::find(constraintGraph.begin(), constraintGraph.end(), containingComponent));
-    	}
-    }
-    constraintGraph.push_back(component);
+			}
+		}
+		constraintGraph.push_back(component);
 		//std::cout << "Component added. " << constraintGraph.size() << " total components" << std::endl;
 	}
-	
 }
 
-void GridModel::generateConstraintGraph() {
+void GridModel::generateConstraintGraph()
+{
 
 	// Track unassigned constraints
 	std::vector<std::pair<GridCell, std::set<Edge>>> unlinkedConstraints;
 	std::vector<GridCell> associatedCells;
 
 	// Collect all constraints
-  for (auto c : cells) {
+	for (auto c : cells)
+	{
 		Edge e1 = std::make_pair(std::min(c.vertices[0], c.vertices[1]), std::max(c.vertices[0], c.vertices[1]));
 		Edge e2 = std::make_pair(std::min(c.vertices[1], c.vertices[2]), std::max(c.vertices[1], c.vertices[2]));
 		Edge e3 = std::make_pair(std::min(c.vertices[2], c.vertices[3]), std::max(c.vertices[2], c.vertices[3]));
 		Edge e4 = std::make_pair(std::min(c.vertices[3], c.vertices[0]), std::max(c.vertices[3], c.vertices[0]));
-		if (c.type == RIGID) {
+		if (c.type == RIGID)
+		{
 			std::set<Edge> constraintEdges({e1, e2, e3, e4});
 			std::pair<GridCell, std::set<Edge>> rigidConstraint = std::make_pair(c, constraintEdges);
 			unlinkedConstraints.push_back(rigidConstraint);
-		} else if (c.type == SHEAR) {
+		}
+		else if (c.type == SHEAR)
+		{
 			std::set<Edge> constraintEdges1({e1, e3});
 			std::set<Edge> constraintEdges2({e2, e4});
 			std::pair<GridCell, std::set<Edge>> shearConstraint1 = std::make_pair(c, constraintEdges1);
@@ -280,59 +301,70 @@ void GridModel::generateConstraintGraph() {
 	//std::cout << constraintGraph.size() << " components" << std::endl;
 }
 
-void GridModel::mergeComponents() {
+void GridModel::mergeComponents()
+{
 	int currentDOFs = constraintGraph.size();
 	int newDOFs = constraintGraph.size();
-	srand (time(NULL)); // Initialize rng
+	srand(time(NULL)); // Initialize rng
 
 	while (newDOFs >= currentDOFs)
 	{
 
 		// Select components to merge
-	  int comp1 = -1;
+		int comp1 = -1;
 		int comp2 = -1;
 
-		if (constraintGraph.size() < 2) {
+		if (constraintGraph.size() < 2)
+		{
 			std::cout << "Failed to merge: not enough components remain" << std::endl;
 			break;
 		}
 
 		comp1 = rand() % constraintGraph.size();
-		while (comp2 < 0 || comp2 == comp1) {
+		while (comp2 < 0 || comp2 == comp1)
+		{
 			comp2 = rand() % constraintGraph.size();
 		}
 
 		std::vector<GridCell> cellsComp1;
 		std::vector<GridCell> cellsComp2;
 
-		for (auto constraint : constraintGraph[comp1]) { // Get cells in first component
-			if (std::find(cellsComp1.begin(), cellsComp1.end(), constraint.first) == cellsComp1.end()) {
+		for (auto constraint : constraintGraph[comp1])
+		{ // Get cells in first component
+			if (std::find(cellsComp1.begin(), cellsComp1.end(), constraint.first) == cellsComp1.end())
+			{
 				cellsComp1.push_back(constraint.first);
 			}
 		}
 
-		for (auto constraint : constraintGraph[comp2]) { // Get cells in second component
-			if (std::find(cellsComp2.begin(), cellsComp2.end(), constraint.first) == cellsComp2.end()) {
+		for (auto constraint : constraintGraph[comp2])
+		{ // Get cells in second component
+			if (std::find(cellsComp2.begin(), cellsComp2.end(), constraint.first) == cellsComp2.end())
+			{
 				cellsComp2.push_back(constraint.first);
 			}
 		}
 
 		std::vector<GridCell> candidateCells;
 
-		for (auto cell : cellsComp1) { // Collect cells common to both components
-			if (std::find(cellsComp2.begin(), cellsComp2.end(), cell) != cellsComp2.end()) {
+		for (auto cell : cellsComp1)
+		{ // Collect cells common to both components
+			if (std::find(cellsComp2.begin(), cellsComp2.end(), cell) != cellsComp2.end())
+			{
 				candidateCells.push_back(cell);
 			}
 		}
 
 		std::cout << "Trying to merge " << comp1 << " and " << comp2 << ". ";
 		std::cout << "Candidates:";
-		for (auto c : candidateCells) {
+		for (auto c : candidateCells)
+		{
 			std::cout << " (Cell: " << c.vertices[0] << ", " << c.vertices[1] << ", " << c.vertices[2] << ", " << c.vertices[3] << ")";
 		}
 		std::cout << std::endl;
 
-		if (candidateCells.size() < 1) {
+		if (candidateCells.size() < 1)
+		{
 			std::cout << "Failed to merge: no cells common to both components." << std::endl;
 			continue;
 		}
@@ -340,15 +372,20 @@ void GridModel::mergeComponents() {
 		GridCell cellToMerge = candidateCells[rand() % candidateCells.size()];
 
 		std::find(cells.begin(), cells.end(), cellToMerge)->type = RIGID;
-		
+
 		generateConstraintGraph();
 		newDOFs = constraintGraph.size();
 	}
-	
 }
 
+auto toOptimize = [](OptCalculation<double> &optCalculation)
+{
+	double x = optCalculation.get_parameter("x");
+	// TODO: generate a grid model
+};
+
 std::vector<GridResult>
-optimize(const GridModel& model, std::string pointDirectory)
+optimize(const GridModel &model, std::string pointDirectory)
 {
 	using namespace std;
 
@@ -361,7 +398,7 @@ optimize(const GridModel& model, std::string pointDirectory)
 	std::vector<GridResult> ret;
 
 	vector<int> sizes;
-	for (auto& x : grid.constrained)
+	for (auto &x : grid.constrained)
 		sizes.push_back(x.second.size());
 
 	int nframes = *min_element(sizes.begin(), sizes.end());
@@ -377,7 +414,7 @@ optimize(const GridModel& model, std::string pointDirectory)
 
 	for (int i = 0; i < nframes; i += 1)
 	{
-		for (auto& x : grid.constrained)
+		for (auto &x : grid.constrained)
 		{
 			mynlp->setConstraint(x.first, x.second[i]);
 		}
@@ -390,12 +427,16 @@ optimize(const GridModel& model, std::string pointDirectory)
 
 		GridResult resi;
 
-		for (auto& p : pts) resi.points.push_back(p + grid.shift);
+		for (auto &p : pts)
+			resi.points.push_back(p + grid.shift);
+
+		resi.objError = mynlp->objError;
+		resi.constrError = mynlp->objError;
 
 		if (!pointDirectory.empty())
 		{
 			ofstream file(pointDirectory + "/p" + to_string(i));
-			for (auto& p : resi.points)
+			for (auto &p : resi.points)
 				file << p[0] << " " << p[1] << "\n";
 			file.close();
 		}
@@ -406,12 +447,52 @@ optimize(const GridModel& model, std::string pointDirectory)
 	return ret;
 }
 
-Eigen::Vector2d*
+void SA()
+{
+	OptBoundaries<double> optBoundaries;
+	optBoundaries.add_boundary({-5.12, 5.12, "x"});
+
+	//number of calculations
+	unsigned int maxCalculations = 3000;
+
+	//we want to find the minimum
+	OptTarget optTarget = OptTarget::MINIMIZE;
+
+	//how fast the simulated annealing algorithm slows down
+	//http://en.wikipedia.org/wiki/Simulated_annealing
+	double coolingFactor = 0.99;
+
+	//the chance in the beginning to follow bad solutions
+	double startChance = 0.25;
+
+	//define your coordinator
+	// OptCoordinator<double, false> coordinator(
+	// 	maxCalculations,
+	// 	toOptimize,
+	// 	optTarget,
+	// 	0);
+
+	//add simulated annealing as child
+	// coordinator.add_child(make_unique<OptSimulatedAnnealing<double>>(
+	// 	optBoundaries,
+	// 	coolingFactor,
+	// 	startChance));
+
+	//let's go
+	// coordinator.run_optimisation();
+
+	//print result
+	// OptCalculation<double> best = coordinator.get_best_calculation();
+	// cout << best.to_string_header() << endl;
+	// cout << best.to_string_values() << endl;
+}
+
+Eigen::Vector2d *
 buildAndOptimize(Eigen::Vector2d *points, int numPoints,
-	int numCells, Eigen::Vector4i* cellsVertices, int* cellsTypes,
-	int* anchors, int numAnchors,
-	int* inputs, int numInputs, int* inputPathLenghts, Eigen::Vector2d* inputPaths,
-	int* targets, int numTargets, int *targetPathLenghths, Eigen::Vector2d* targetPaths)
+				 int numCells, Eigen::Vector4i *cellsVertices, int *cellsTypes,
+				 int *anchors, int numAnchors,
+				 int *inputs, int numInputs, int *inputPathLenghts, Eigen::Vector2d *inputPaths,
+				 int *targets, int numTargets, int *targetPathLenghths, Eigen::Vector2d *targetPaths)
 {
 	GridModel model;
 
@@ -472,7 +553,7 @@ buildAndOptimize(Eigen::Vector2d *points, int numPoints,
 		if (targetPath.size() > 0)
 			model.targetPaths.push_back(targetPath);
 	}
-	
+
 	std::vector<GridResult> results = optimize(model, "");
 
 	std::vector<Eigen::Vector2d> *resultPoints = new std::vector<Eigen::Vector2d>();
