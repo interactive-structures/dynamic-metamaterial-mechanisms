@@ -215,14 +215,15 @@ std::vector<std::vector<std::pair<GridCell, std::set<GridModel::Edge>>>> GridMod
 	std::vector<std::vector<std::pair<GridCell, std::set<Edge>>>> containingComponents;
 	for (std::vector<std::pair<GridCell, std::set<Edge>>> graphComponent : graph)
 	{
+		bool added = false;
 		for (std::pair<GridCell, std::set<Edge>> existingConstraint : graphComponent)
 		{
 			for (Edge e : constraint.second)
 			{
-				if (existingConstraint.second.find(e) != existingConstraint.second.end())
+				if (!added && existingConstraint.second.find(e) != existingConstraint.second.end())
 				{
 					containingComponents.push_back(graphComponent);
-					break;
+					added = true;
 				}
 			}
 		}
@@ -241,6 +242,15 @@ void GridModel::addConstraints(std::vector<std::pair<GridCell, std::set<Edge>>> 
 
 		std::vector<std::pair<GridCell, std::set<Edge>>> component({constraint});																	// Create a new component
 		std::vector<std::vector<std::pair<GridCell, std::set<Edge>>>> containingComponents = findContainingComponents(constraint, constraintGraph); // Find existing components
+
+		// std::cout << containingComponents.size() << " Containing Components" << std::endl;
+		// for (auto test : containingComponents) {
+		// 	std::cout << "{";
+		// 	for (auto con : test) {
+		// 		std::cout << "(" << con.first.vertices[0] << con.first.vertices[1] << con.first.vertices[2] << con.first.vertices[3] << ")";
+		// 	}
+		// 	std::cout << "}" << std::endl;
+		// }
 
 		if (containingComponents.size() > 0)
 		{ // Join all existing components
