@@ -128,13 +128,21 @@ int main(int argc, char *argv[])
   GridModel gm;
   gm.loadFromFile("../cells.txt");
   gm.generateConstraintGraph();
+
   //std::cout << gm.constraintGraph.size() << std::endl;
+
   printConstraintGraph(gm);
-  gm.mergeComponents();
-  printConstraintGraph(gm);
-  gm.mergeComponents();
-  printConstraintGraph(gm);
+  // gm.splitComponents();
+  // printConstraintGraph(gm);
+  // gm.mergeComponents();
+  // printConstraintGraph(gm);
+  // gm.mergeComponents();
+  // printConstraintGraph(gm);
+  // gm.splitComponents();
+  // printConstraintGraph(gm);
+
   //std::cout << "loaded" << std::endl;
+
   auto ret = optimize(gm, "../points/");
 
   // Initialize viewer

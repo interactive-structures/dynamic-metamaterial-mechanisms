@@ -378,6 +378,58 @@ void GridModel::mergeComponents()
 	}
 }
 
+void GridModel::splitComponents()
+{
+	// This implementation splits at random rigid cells until the DOFs increase
+
+	int currentDOFs = constraintGraph.size();
+	int newDOFs = constraintGraph.size();
+	srand(time(NULL)); // Initialize rng
+
+	// Collect split candidate components
+	std::vector<std::vector<std::pair<GridCell, std::set<GridModel::Edge>>>> splitCandidateComponents;
+
+	for (auto component : constraintGraph) {
+		for (auto constraint : component) {
+			if (constraint.second.size() == 4) {
+				splitCandidateComponents.push_back(component);
+				break;
+			}
+		}
+	}
+
+	// Select component and collect candidate cells
+	if (splitCandidateComponents.size() < 1) {
+		std::cout << "Unable to split: no valid candidate components" << std::endl;
+		return;
+	}
+
+	std::vector<GridCell> splitCandidates;
+	int comp = rand() % splitCandidateComponents.size();
+
+	std::cout << "Trying to split " << comp << std::endl;
+	std::vector<std::pair<GridCell, std::set<GridModel::Edge>>> selectedComponent = splitCandidateComponents[comp];
+	for (auto constraint : selectedComponent) {
+		if (constraint.second.size() == 4) {
+			splitCandidates.push_back(constraint.first);
+		}
+	}
+
+	// Turn cells to SHEAR until DOFs increase
+	while (newDOFs <= currentDOFs) {
+		if (splitCandidates.size() < 1) {
+			std::cout << "[THIS SHOULD NEVER HAPPEN] Split failed: no split candidates remain and DOFs did not increase" << std::endl;
+			break;
+		}
+
+		GridCell toSplit = splitCandidates[rand() % splitCandidates.size()];
+		splitCandidates.erase(std::find(splitCandidates.begin(), splitCandidates.end(), toSplit));
+		std::find(cells.begin(), cells.end(), toSplit)->type = SHEAR;
+		generateConstraintGraph();
+		newDOFs = constraintGraph.size();
+	}
+}
+
 auto toOptimize = [](OptCalculation<double> &optCalculation)
 {
 	double x = optCalculation.get_parameter("x");
