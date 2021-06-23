@@ -382,6 +382,7 @@ void GridModel::mergeComponents()
 		GridCell cellToMerge = candidateCells[rand() % candidateCells.size()];
 
 		std::find(cells.begin(), cells.end(), cellToMerge)->type = RIGID;
+		std::cout << "Merging with (Cell: " << cellToMerge.vertices[0] << ", " << cellToMerge.vertices[1] << ", " << cellToMerge.vertices[2] << ", " << cellToMerge.vertices[3] << ")" << std::endl;
 
 		generateConstraintGraph();
 		newDOFs = constraintGraph.size();
@@ -433,8 +434,11 @@ void GridModel::splitComponents()
 		}
 
 		GridCell toSplit = splitCandidates[rand() % splitCandidates.size()];
+
 		splitCandidates.erase(std::find(splitCandidates.begin(), splitCandidates.end(), toSplit));
 		std::find(cells.begin(), cells.end(), toSplit)->type = SHEAR;
+		std::cout << "Splitting (Cell: " << toSplit.vertices[0] << ", " << toSplit.vertices[1] << ", " << toSplit.vertices[2] << ", " << toSplit.vertices[3] << ")" << std::endl;
+
 		generateConstraintGraph();
 		newDOFs = constraintGraph.size();
 	}
