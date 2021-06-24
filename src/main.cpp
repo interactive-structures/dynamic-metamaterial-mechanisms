@@ -10,6 +10,22 @@ bool disable_keyboard(igl::opengl::glfw::Viewer &viewer, unsigned char key, int 
   return true;
 }
 
+// Returns vector of interior angles of each cell at each time step. By convention, the lower-left angle (vertices 3, 0, 1).
+std::vector<std::vector<double>> get_angles(std::vector<GridResult> res, GridModel model) {
+  std::vector<std::vector<double>> angles;
+  for (auto frame : res) {
+    std::vector<double> anglesThisFrame;
+    for (auto cell : model.cells) {
+      Eigen::Vector2d vec1 = frame.points[cell.vertices[1]] - frame.points[cell.vertices[0]];
+      Eigen::Vector2d vec2 = frame.points[cell.vertices[3]] - frame.points[cell.vertices[0]];
+      double angle = std::atan2(vec1[0]*vec2[1] - vec1[1]*vec2[0], vec1.dot(vec2));
+      anglesThisFrame.push_back(angle);
+    }
+    angles.push_back(anglesThisFrame);
+  }
+  return angles;
+}
+
 // Returns matrix representing edges to visualize a grid. Note that shared edges are represented twice, though this is fine for our purposes.
 Eigen::MatrixXi get_edge_matrix(GridModel gm)
 {
@@ -165,7 +181,7 @@ int main(int argc, char *argv[])
 
   //std::cout << "loaded" << std::endl;
 
-  auto ret = optimize(gm, "../points/");
+  // auto ret = optimize(gm, "../points/");
   srand(time(NULL)); // Initialize rng
 
   auto toOptimize = [&](cppOpt::OptCalculation<double> &optCalculation)
@@ -225,6 +241,14 @@ int main(int argc, char *argv[])
   cppOpt::OptCalculation<double> best = coordinator.get_best_calculation();
   cout << best.to_string_header() << endl;
   cout << best.to_string_values() << endl;
+
+  auto ret = optimize(gm, "../points/");
+  // auto angles = get_angles(ret, gm);
+  // std::cout << "Frame 0 angles: ";
+  // for (double angle : angles[0]) {
+  //   std::cout << angle << " ";
+  // }
+  // std::cout << std::endl;
 
   // Initialize viewer
   igl::opengl::glfw::Viewer viewer;
