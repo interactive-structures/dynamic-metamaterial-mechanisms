@@ -119,10 +119,13 @@ std::tuple<Eigen::MatrixXd, Eigen::MatrixXi, Eigen::MatrixXd, Eigen::MatrixXd> a
 void printConstraintGraph(GridModel gm)
 {
   auto cG = gm.constraintGraph;
-  std::cout << std::endl;
+  std::cout << std::endl
+            << "Constraint Graph [" << std::endl;
+  int compCount = 0;
 
   for (auto comp : cG)
   {
+    std::cout << "Component " << compCount << std::endl;
     for (auto constraint : comp)
     {
       std::cout << "{";
@@ -134,9 +137,10 @@ void printConstraintGraph(GridModel gm)
       }
       std::cout << "} ";
     }
-    std::cout << std::endl
-              << std::endl;
+    compCount++;
+    std::cout << std::endl;
   }
+  std::cout << "]" << std::endl;
 }
 
 int main(int argc, char *argv[])
