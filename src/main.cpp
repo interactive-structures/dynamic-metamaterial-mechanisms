@@ -1,46 +1,52 @@
 #include <igl/opengl/glfw/Viewer.h>
 #include "GridModel.h"
-
+#include "cppopt/cppOpt.h"
 #include <fstream>
 #include <tuple>
 
 // Used to disable inputs to control libigl viewer. Safe to ignore for now.
-bool disable_keyboard (igl::opengl::glfw::Viewer& viewer, unsigned char key, int modifier) {
+bool disable_keyboard(igl::opengl::glfw::Viewer &viewer, unsigned char key, int modifier)
+{
   return true;
 }
 
 // Returns matrix representing edges to visualize a grid. Note that shared edges are represented twice, though this is fine for our purposes.
-Eigen::MatrixXi get_edge_matrix (GridModel gm) {
+Eigen::MatrixXi get_edge_matrix(GridModel gm)
+{
   int total_edges = 0;
-  for (int i = 0; i < gm.cells.size(); i++) {
+  for (int i = 0; i < gm.cells.size(); i++)
+  {
     total_edges += 4;
-    if (gm.cells[i].type == RIGID) {
+    if (gm.cells[i].type == RIGID)
+    {
       total_edges += 2;
     }
   }
-  Eigen::MatrixXi E = Eigen::MatrixXi::Zero(total_edges,2);
+  Eigen::MatrixXi E = Eigen::MatrixXi::Zero(total_edges, 2);
 
   int index = 0;
-  for (int i = 0; i < gm.cells.size(); i++) {
+  for (int i = 0; i < gm.cells.size(); i++)
+  {
     // Add four boundary edges
-    E(index,0) = gm.cells[i].vertices(0);
-    E(index,1) = gm.cells[i].vertices(1);
+    E(index, 0) = gm.cells[i].vertices(0);
+    E(index, 1) = gm.cells[i].vertices(1);
     index++;
-    E(index,0) = gm.cells[i].vertices(1);
-    E(index,1) = gm.cells[i].vertices(2);
+    E(index, 0) = gm.cells[i].vertices(1);
+    E(index, 1) = gm.cells[i].vertices(2);
     index++;
-    E(index,0) = gm.cells[i].vertices(2);
-    E(index,1) = gm.cells[i].vertices(3);
+    E(index, 0) = gm.cells[i].vertices(2);
+    E(index, 1) = gm.cells[i].vertices(3);
     index++;
-    E(index,0) = gm.cells[i].vertices(3);
-    E(index,1) = gm.cells[i].vertices(0);
+    E(index, 0) = gm.cells[i].vertices(3);
+    E(index, 1) = gm.cells[i].vertices(0);
     index++;
-    if (gm.cells[i].type == RIGID) { // Diagonal edges
-      E(index,0) = gm.cells[i].vertices(1);
-      E(index,1) = gm.cells[i].vertices(3);
+    if (gm.cells[i].type == RIGID)
+    { // Diagonal edges
+      E(index, 0) = gm.cells[i].vertices(1);
+      E(index, 1) = gm.cells[i].vertices(3);
       index++;
-      E(index,0) = gm.cells[i].vertices(0);
-      E(index,1) = gm.cells[i].vertices(2);
+      E(index, 0) = gm.cells[i].vertices(0);
+      E(index, 1) = gm.cells[i].vertices(2);
       index++;
     }
   }
@@ -52,22 +58,26 @@ Eigen::MatrixXi get_edge_matrix (GridModel gm) {
  *  Outputs: a tuple of (points needed to plot, edges to plot, colors of points, colors of edges)
  *  Note that only the first gm.points.size() rows of points needed to plot are actually the points to plot, the remainder are used to plot the edges of the target path.
  */
-std::tuple<Eigen::MatrixXd, Eigen::MatrixXi, Eigen::MatrixXd, Eigen::MatrixXd> animate_path (std::vector<GridResult> ret, GridModel gm, Eigen::MatrixXi grid_edges) {
+std::tuple<Eigen::MatrixXd, Eigen::MatrixXi, Eigen::MatrixXd, Eigen::MatrixXd> animate_path(std::vector<GridResult> ret, GridModel gm, Eigen::MatrixXi grid_edges)
+{
   static int counter = 0; // Tracks current frame to display
 
   // Initialize Points
   Eigen::MatrixXd P = Eigen::MatrixXd::Zero(ret[counter].points.size() + gm.targets.size() * ret.size(), 3);
 
   // Points on grid
-  for (int i = 0; i < ret[counter].points.size(); i++) {
-    P(i,0) = ret[counter].points[i](0);
-    P(i,1) = ret[counter].points[i](1);
-    P(i,2) = 0;
+  for (int i = 0; i < ret[counter].points.size(); i++)
+  {
+    P(i, 0) = ret[counter].points[i](0);
+    P(i, 1) = ret[counter].points[i](1);
+    P(i, 2) = 0;
   }
 
   // Points on path
-  for (int i = 0; i < gm.targets.size(); i++) { // ith input path
-    for (int j = 0; j < ret.size(); j++) { // at time j
+  for (int i = 0; i < gm.targets.size(); i++)
+  { // ith input path
+    for (int j = 0; j < ret.size(); j++)
+    { // at time j
       P(ret[counter].points.size() + i * ret.size() + j, 0) = ret[j].points[gm.targets[i]](0);
       P(ret[counter].points.size() + i * ret.size() + j, 1) = ret[j].points[gm.targets[i]](1);
       P(ret[counter].points.size() + i * ret.size() + j, 2) = 0;
@@ -81,8 +91,10 @@ std::tuple<Eigen::MatrixXd, Eigen::MatrixXi, Eigen::MatrixXd, Eigen::MatrixXd> a
   E.topRows(grid_edges.rows()) = grid_edges;
 
   // Edges on path
-  for (int i = 0; i < gm.targets.size(); i++) { // ith input path
-    for (int j = 0; j < ret.size() - 1; j++) { // edges between time j and j+1
+  for (int i = 0; i < gm.targets.size(); i++)
+  { // ith input path
+    for (int j = 0; j < ret.size() - 1; j++)
+    { // edges between time j and j+1
       E(grid_edges.rows() + i * ret.size() + j, 0) = ret[counter].points.size() + i * ret.size() + j;
       E(grid_edges.rows() + i * ret.size() + j, 1) = ret[counter].points.size() + i * ret.size() + j + 1;
     }
@@ -90,8 +102,9 @@ std::tuple<Eigen::MatrixXd, Eigen::MatrixXi, Eigen::MatrixXd, Eigen::MatrixXd> a
 
   // Point Colors
   Eigen::MatrixXd PC = Eigen::MatrixXd::Zero(ret[counter].points.size(), 3);
-  for (int i : gm.anchors) {
-    PC.row(i) = Eigen::RowVector3d(1,0,0);
+  for (int i : gm.anchors)
+  {
+    PC.row(i) = Eigen::RowVector3d(1, 0, 0);
   }
 
   // Edge Colors
@@ -99,25 +112,30 @@ std::tuple<Eigen::MatrixXd, Eigen::MatrixXi, Eigen::MatrixXd, Eigen::MatrixXd> a
   EC.bottomLeftCorner(gm.targets.size() * (ret.size() - 1), 1).setOnes();
 
   counter = (counter + 1) % ret.size(); // Increment frame
-  
+
   return std::make_tuple(P, E, PC, EC);
 }
 
-void printConstraintGraph (GridModel gm) {
+void printConstraintGraph(GridModel gm)
+{
   auto cG = gm.constraintGraph;
   std::cout << std::endl;
 
-  for (auto comp : cG) {
-    for (auto constraint : comp) {
+  for (auto comp : cG)
+  {
+    for (auto constraint : comp)
+    {
       std::cout << "{";
       std::cout << "Cell: " << constraint.first.vertices[0] << ", " << constraint.first.vertices[1];
       std::cout << ", " << constraint.first.vertices[2] << ", " << constraint.first.vertices[3] << ". Constraints:";
-      for (auto edge : constraint.second) {
+      for (auto edge : constraint.second)
+      {
         std::cout << " (" << edge.first << "," << edge.second << ")";
       }
       std::cout << "} ";
     }
-    std::cout << std::endl << std::endl;
+    std::cout << std::endl
+              << std::endl;
   }
 }
 
@@ -144,6 +162,65 @@ int main(int argc, char *argv[])
   //std::cout << "loaded" << std::endl;
 
   auto ret = optimize(gm, "../points/");
+  srand(time(NULL)); // Initialize rng
+
+  auto toOptimize = [&](cppOpt::OptCalculation<double> &optCalculation)
+  {
+    double x = optCalculation.get_parameter("x");
+    double error = 0;
+    if (rand() % 2 == 0)
+    {
+      gm.splitComponents();
+    }
+    else
+    {
+      gm.mergeComponents();
+    }
+    auto ret2 = optimize(gm, "../points/");
+    for (auto re : ret2)
+    {
+      error += re.constrError;
+      error += re.objError;
+    }
+    optCalculation.result = error;
+  };
+
+  cppOpt::OptBoundaries<double> optBoundaries;
+  optBoundaries.add_boundary({-1, 1, "x"});
+
+  //number of calculations
+  unsigned int maxCalculations = 30;
+
+  //we want to find the minimum
+  cppOpt::OptTarget optTarget = cppOpt::OptTarget::MINIMIZE;
+
+  //how fast the simulated annealing algorithm slows down
+  //http://en.wikipedia.org/wiki/Simulated_annealing
+  double coolingFactor = 0.99;
+
+  //the chance in the beginning to follow bad solutions
+  double startChance = 0.25;
+
+  //define your coordinator
+  cppOpt::OptCoordinator<double, false> coordinator(
+      maxCalculations,
+      toOptimize,
+      optTarget,
+      0);
+
+  //add simulated annealing as child
+  coordinator.add_child(make_unique<cppOpt::OptSimulatedAnnealing<double>>(
+      optBoundaries,
+      coolingFactor,
+      startChance));
+
+  //let's go
+  coordinator.run_optimisation();
+
+  //print result
+  cppOpt::OptCalculation<double> best = coordinator.get_best_calculation();
+  cout << best.to_string_header() << endl;
+  cout << best.to_string_values() << endl;
 
   // Initialize viewer
   igl::opengl::glfw::Viewer viewer;
@@ -170,10 +247,11 @@ int main(int argc, char *argv[])
   int slow = 0;
 
   // Animation Callback
-  viewer.callback_pre_draw = [&](igl::opengl::glfw::Viewer & )->bool
+  viewer.callback_pre_draw = [&](igl::opengl::glfw::Viewer &) -> bool
   {
     slow++;
-    if (slow == 1) { // slow controls frame rate
+    if (slow == 1)
+    { // slow controls frame rate
       // Get points and edges to draw
       auto tup = animate_path(ret, gm, E);
       auto points = std::get<0>(tup);
@@ -185,7 +263,7 @@ int main(int argc, char *argv[])
       viewer.data().set_edges(points, edges, edgeColors);
       slow = 0;
     }
-    
+
     return false;
   };
 

@@ -399,9 +399,12 @@ void GridModel::splitComponents()
 	// Collect split candidate components
 	std::vector<std::vector<std::pair<GridCell, std::set<GridModel::Edge>>>> splitCandidateComponents;
 
-	for (auto component : constraintGraph) {
-		for (auto constraint : component) {
-			if (constraint.second.size() == 4) {
+	for (auto component : constraintGraph)
+	{
+		for (auto constraint : component)
+		{
+			if (constraint.second.size() == 4)
+			{
 				splitCandidateComponents.push_back(component);
 				break;
 			}
@@ -409,7 +412,8 @@ void GridModel::splitComponents()
 	}
 
 	// Select component and collect candidate cells
-	if (splitCandidateComponents.size() < 1) {
+	if (splitCandidateComponents.size() < 1)
+	{
 		std::cout << "Unable to split: no valid candidate components" << std::endl;
 		return;
 	}
@@ -419,15 +423,19 @@ void GridModel::splitComponents()
 
 	std::cout << "Trying to split " << comp << std::endl;
 	std::vector<std::pair<GridCell, std::set<GridModel::Edge>>> selectedComponent = splitCandidateComponents[comp];
-	for (auto constraint : selectedComponent) {
-		if (constraint.second.size() == 4) {
+	for (auto constraint : selectedComponent)
+	{
+		if (constraint.second.size() == 4)
+		{
 			splitCandidates.push_back(constraint.first);
 		}
 	}
 
 	// Turn cells to SHEAR until DOFs increase
-	while (newDOFs <= currentDOFs) {
-		if (splitCandidates.size() < 1) {
+	while (newDOFs <= currentDOFs)
+	{
+		if (splitCandidates.size() < 1)
+		{
 			std::cout << "[THIS SHOULD NEVER HAPPEN] Split failed: no split candidates remain and DOFs did not increase" << std::endl;
 			break;
 		}
@@ -439,12 +447,6 @@ void GridModel::splitComponents()
 		newDOFs = constraintGraph.size();
 	}
 }
-
-auto toOptimize = [](OptCalculation<double> &optCalculation)
-{
-	double x = optCalculation.get_parameter("x");
-	// TODO: generate a grid model
-};
 
 std::vector<GridResult>
 optimize(const GridModel &model, std::string pointDirectory)
@@ -507,46 +509,6 @@ optimize(const GridModel &model, std::string pointDirectory)
 	}
 
 	return ret;
-}
-
-void SA()
-{
-	OptBoundaries<double> optBoundaries;
-	optBoundaries.add_boundary({-5.12, 5.12, "x"});
-
-	//number of calculations
-	unsigned int maxCalculations = 3000;
-
-	//we want to find the minimum
-	OptTarget optTarget = OptTarget::MINIMIZE;
-
-	//how fast the simulated annealing algorithm slows down
-	//http://en.wikipedia.org/wiki/Simulated_annealing
-	double coolingFactor = 0.99;
-
-	//the chance in the beginning to follow bad solutions
-	double startChance = 0.25;
-
-	//define your coordinator
-	// OptCoordinator<double, false> coordinator(
-	// 	maxCalculations,
-	// 	toOptimize,
-	// 	optTarget,
-	// 	0);
-
-	//add simulated annealing as child
-	// coordinator.add_child(make_unique<OptSimulatedAnnealing<double>>(
-	// 	optBoundaries,
-	// 	coolingFactor,
-	// 	startChance));
-
-	//let's go
-	// coordinator.run_optimisation();
-
-	//print result
-	// OptCalculation<double> best = coordinator.get_best_calculation();
-	// cout << best.to_string_header() << endl;
-	// cout << best.to_string_values() << endl;
 }
 
 Eigen::Vector2d *
