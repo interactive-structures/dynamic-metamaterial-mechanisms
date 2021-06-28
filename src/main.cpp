@@ -1,8 +1,8 @@
 #include <igl/opengl/glfw/Viewer.h>
 #include "GridModel.h"
-#include "cppopt/cppOpt.h"
 #include <fstream>
 #include <tuple>
+#include <float.h>
 
 // Used to disable inputs to control libigl viewer. Safe to ignore for now.
 bool disable_keyboard(igl::opengl::glfw::Viewer &viewer, unsigned char key, int modifier)
@@ -11,14 +11,17 @@ bool disable_keyboard(igl::opengl::glfw::Viewer &viewer, unsigned char key, int 
 }
 
 // Returns vector of interior angles of each cell at each time step. By convention, the lower-left angle (vertices 3, 0, 1).
-std::vector<std::vector<double>> get_angles(std::vector<GridResult> res, GridModel model) {
+std::vector<std::vector<double>> get_angles(std::vector<GridResult> res, GridModel model)
+{
   std::vector<std::vector<double>> angles;
-  for (auto frame : res) {
+  for (auto frame : res)
+  {
     std::vector<double> anglesThisFrame;
-    for (auto cell : model.cells) {
+    for (auto cell : model.cells)
+    {
       Eigen::Vector2d vec1 = frame.points[cell.vertices[1]] - frame.points[cell.vertices[0]];
       Eigen::Vector2d vec2 = frame.points[cell.vertices[3]] - frame.points[cell.vertices[0]];
-      double angle = std::atan2(vec1[0]*vec2[1] - vec1[1]*vec2[0], vec1.dot(vec2));
+      double angle = std::atan2(vec1[0] * vec2[1] - vec1[1] * vec2[0], vec1.dot(vec2));
       anglesThisFrame.push_back(angle);
     }
     angles.push_back(anglesThisFrame);
@@ -168,8 +171,10 @@ int main(int argc, char *argv[])
   gm.generateConstraintGraph();
 
   //std::cout << gm.constraintGraph.size() << std::endl;
+  SimuAn sa;
+  sa.simulatedAnnealing(gm);
 
-  printConstraintGraph(gm);
+  //printConstraintGraph(gm);
   // gm.splitComponents();
   // printConstraintGraph(gm);
   // gm.mergeComponents();
@@ -182,67 +187,7 @@ int main(int argc, char *argv[])
   //std::cout << "loaded" << std::endl;
 
   // auto ret = optimize(gm, "../points/");
-  srand(time(NULL)); // Initialize rng
 
-  auto toOptimize = [&](cppOpt::OptCalculation<double> &optCalculation)
-  {
-    double x = optCalculation.get_parameter("x");
-    double error = 0;
-    if (rand() % 2 == 0)
-    {
-      gm.splitComponents();
-    }
-    else
-    {
-      gm.mergeComponents();
-    }
-    auto ret2 = optimize(gm, "../points/");
-    for (auto re : ret2)
-    {
-      error += re.constrError;
-      error += re.objError;
-    }
-    optCalculation.result = error;
-  };
-
-  cppOpt::OptBoundaries<double> optBoundaries;
-  optBoundaries.add_boundary({-1, 1, "x"});
-
-  //number of calculations
-  unsigned int maxCalculations = 30;
-
-  //we want to find the minimum
-  cppOpt::OptTarget optTarget = cppOpt::OptTarget::MINIMIZE;
-
-  //how fast the simulated annealing algorithm slows down
-  //http://en.wikipedia.org/wiki/Simulated_annealing
-  double coolingFactor = 0.99;
-
-  //the chance in the beginning to follow bad solutions
-  double startChance = 0.25;
-
-  //define your coordinator
-  cppOpt::OptCoordinator<double, false> coordinator(
-      maxCalculations,
-      toOptimize,
-      optTarget,
-      0);
-
-  //add simulated annealing as child
-  coordinator.add_child(make_unique<cppOpt::OptSimulatedAnnealing<double>>(
-      optBoundaries,
-      coolingFactor,
-      startChance));
-
-  //let's go
-  coordinator.run_optimisation();
-
-  //print result
-  cppOpt::OptCalculation<double> best = coordinator.get_best_calculation();
-  cout << best.to_string_header() << endl;
-  cout << best.to_string_values() << endl;
-
-  auto ret = optimize(gm, "../points/");
   // auto angles = get_angles(ret, gm);
   // std::cout << "Frame 0 angles: ";
   // for (double angle : angles[0]) {
@@ -281,7 +226,7 @@ int main(int argc, char *argv[])
     if (slow == 1)
     { // slow controls frame rate
       // Get points and edges to draw
-      auto tup = animate_path(ret, gm, E);
+      auto tup = animate_path(sa.best_res, sa.best_model, E);
       auto points = std::get<0>(tup);
       auto edges = std::get<1>(tup);
       auto pointColors = std::get<2>(tup);

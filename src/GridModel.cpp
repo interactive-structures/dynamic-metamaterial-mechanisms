@@ -8,8 +8,7 @@
 #include <fstream>
 #include <stdlib.h>
 #include <time.h>
-
-using namespace cppOpt;
+#include <float.h>
 
 bool operator==(const GridCell &lhs, const GridCell &rhs)
 {
@@ -513,6 +512,74 @@ optimize(const GridModel &model, std::string pointDirectory)
 	}
 
 	return ret;
+}
+
+void SimuAn::simulatedAnnealing(GridModel &gm, double coolingFactor, double startChance)
+{
+	srand(time(NULL)); // Initialize rng
+	least_error = FLT_MAX;
+
+	auto toOptimize = [&](cppOpt::OptCalculation<double> &optCalculation)
+	{
+		double x = optCalculation.get_parameter("x");
+		double error = 0;
+		if (rand() % 2 == 0)
+		{
+			gm.splitComponents();
+		}
+		else
+		{
+			gm.mergeComponents();
+		}
+		auto ret2 = optimize(gm, "../points/");
+		for (auto re : ret2)
+		{
+			error += re.objError;
+		}
+		optCalculation.result = error;
+		if (error < least_error)
+		{
+			best_model = gm;
+			best_res = ret2;
+		}
+	};
+
+	cppOpt::OptBoundaries<double> optBoundaries;
+	optBoundaries.add_boundary({-1, 1, "x"});
+
+	//number of calculations
+	unsigned int maxCalculations = 100;
+
+	//we want to find the minimum
+	cppOpt::OptTarget optTarget = cppOpt::OptTarget::MINIMIZE;
+
+	//how fast the simulated annealing algorithm slows down
+	//http://en.wikipedia.org/wiki/Simulated_annealing
+	//double coolingFactor = 0.99;
+
+	//the chance in the beginning to follow bad solutions
+	//double startChance = 0.25;
+
+	//define your coordinator
+	cppOpt::OptCoordinator<double, false> coordinator(
+		maxCalculations,
+		toOptimize,
+		optTarget,
+		0);
+
+	//add simulated annealing as child
+	coordinator.add_child(make_unique<cppOpt::OptSimulatedAnnealing<double>>(
+		optBoundaries,
+		coolingFactor,
+		startChance));
+
+	//let's go
+	coordinator.run_optimisation();
+
+	//print result
+	cppOpt::OptCalculation<double> best = coordinator.get_best_calculation();
+	cout << best.to_string_header() << endl;
+	cout << best.to_string_values() << endl;
 }
 
 Eigen::Vector2d *

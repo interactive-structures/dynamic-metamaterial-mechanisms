@@ -127,4 +127,15 @@ buildAndOptimize(Eigen::Vector2d *points, int numPoints, int numCells,
 				 int *inputs, int numInputs, int *inputPathLenghts, Eigen::Vector2d *inputPaths,
 				 int *targets, int numTargets, int *targetPathLenghths, Eigen::Vector2d *targetPaths);
 
+class EXPORT_DLL_COMMAND SimuAn
+{
+
+public:
+	GridModel best_model;
+	double least_error;
+	std::vector<GridResult> best_res;
+
+	void simulatedAnnealing(GridModel &gm, double coolingFactor = 0.99, double startChance = 0.25);
+};
+
 #endif /* GridModel_h */
