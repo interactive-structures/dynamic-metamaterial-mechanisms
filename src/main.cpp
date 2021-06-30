@@ -51,7 +51,7 @@ int main(int argc, char *argv[])
 
   //std::cout << "loading" << std::endl;
   GridModel gm;
-  gm.loadFromFile("../cells.txt");
+  gm.loadFromFile("../cells_3x3.txt");
   //std::cout << "loaded" << std::endl;
 
   gm.generateConstraintGraph();
@@ -65,11 +65,16 @@ int main(int argc, char *argv[])
   gm_copy.targetPaths = std::vector<std::vector<Eigen::Vector2d>>();
 
   // turn all shearing cells to active
-  for (GridCell &cell : gm_copy.cells) {
-    if (cell.type == SHEAR) {
-      cell.type = ACTIVE;
-    }
-  }
+  // for (GridCell &cell : gm_copy.cells) {
+  //   if (cell.type == SHEAR) {
+  //     cell.type = ACTIVE;
+  //   }
+  // }
+
+  gm_copy.cells[0].type = ACTIVE;
+  gm_copy.cells[1].type = ACTIVE;
+  //gm_copy.cells[5].type = ACTIVE;
+  //gm_copy.cells[6].type = ACTIVE;
 
   // std::cout << "Frame 0 angles: ";
   // for (double angle : cell_angles[0]) {
@@ -88,8 +93,10 @@ int main(int argc, char *argv[])
   //   std::cout << angle << " ";
   // }
   // std::cout << std::endl;
+  Animation original(gm, ret, 2, gm.targets);
 
-  Animation animation(gm_copy, angle_ret);
+  Animation animation(gm_copy, angle_ret, 2, gm.targets);
   // Animation animation(sa.best_model, sa.best_res);
+  original.animate();
   animation.animate();
 }

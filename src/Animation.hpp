@@ -16,13 +16,16 @@ class EXPORT_DLL_COMMAND Animation
 public:
   int frame;
   int rate;
-  Animation(GridModel model, std::vector<GridResult> results, int framerate=1)
+  std::vector<int> to_trace;
+
+  Animation(GridModel model, std::vector<GridResult> results, int framerate=1, std::vector<int> traces=std::vector<int>())
   {
     frame = 0;
     rate = framerate;
     gm = model;
     res = results;
     grid_edges = get_edge_matrix();
+    to_trace = traces;
   }
   std::vector<std::vector<double>> get_angles();
   void animate();
