@@ -55,6 +55,7 @@ public:
     std::vector<int> fixedDofs;
     
     MyNLP(MetaGrid& _grid);
+    MyNLP(MetaGrid& _grid, std::vector<double> angles);
     
     void setStartConfiguration(const std::vector<Point>& init);
     

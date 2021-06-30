@@ -105,6 +105,28 @@ MyNLP::MyNLP(MetaGrid &_grid)
     }*/
 }
 
+MyNLP::MyNLP(MetaGrid &_grid, std::vector<double> angles)
+    : grid(_grid), start(_grid.vertices)
+{
+    dofs = grid.degreesOfFreedom();
+
+    auto edgeTraf = grid.propagateEdgeDOFsActive(dofs, angles);
+    vertexTransformations = grid.propagateVertexDOFs(edgeTraf);
+    grid.vertexTransformations = vertexTransformations;
+
+    for (auto &c : grid.cells)
+    {
+        if (c.type == SHEAR)
+            orientationConstraints.emplace_back(grid, c);
+    }
+
+    /*
+    for(int d : dofs)
+    {
+        orientationConstraints.emplace_back(grid, grid.edges[d]);
+    }*/
+}
+
 MyNLP::~MyNLP()
 {
 }

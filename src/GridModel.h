@@ -19,7 +19,8 @@ enum EXPORT_DLL_COMMAND CellType
 	RIGID = 0,
 	SHEAR = 1,
 	VOID = 2,
-	BROKEN = 3
+	BROKEN = 3,
+	ACTIVE = 4
 };
 
 // Representing a cell in the grid by the indizes
@@ -34,6 +35,8 @@ public:
 	GridCell(const GridCell &other);
 
 	GridCell(const int a, const int b, const int c, const int d, const int t);
+
+	void change_type (CellType t) {type = t;}
 };
 
 bool operator==(const GridCell &lhs, const GridCell &rhs);
@@ -118,6 +121,10 @@ private:
 EXPORT_DLL_COMMAND
 std::vector<GridResult>
 optimize(const GridModel &model, std::string pointDirectory = "");
+
+EXPORT_DLL_COMMAND
+std::vector<GridResult>
+optimizeActive(const GridModel &model, std::vector<std::vector<double>> cell_angles, std::string pointDirectory = "");
 
 EXPORT_DLL_COMMAND
 Eigen::Vector2d *

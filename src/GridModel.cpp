@@ -79,6 +79,9 @@ GridCell::GridCell(const int a, const int b, const int c, const int d, const int
 	case 2:
 		type = CellType(VOID);
 		break;
+	case 4:
+		type = CellType(ACTIVE);
+		break;
 	default:
 		type = CellType(BROKEN);
 		break;
@@ -491,6 +494,62 @@ optimize(const GridModel &model, std::string pointDirectory)
 
 		auto pts = grid.setDOFs(dofs, mynlp->solution);
 		mynlp->setStartConfiguration(pts);
+
+		GridResult resi;
+
+		for (auto &p : pts)
+			resi.points.push_back(p + grid.shift);
+
+		resi.objError = mynlp->objError;
+		resi.constrError = mynlp->objError;
+
+		if (!pointDirectory.empty())
+		{
+			ofstream file(pointDirectory + "/p" + to_string(i));
+			for (auto &p : resi.points)
+				file << p[0] << " " << p[1] << "\n";
+			file.close();
+		}
+
+		ret.push_back(resi);
+	}
+
+	return ret;
+}
+
+std::vector<GridResult>
+optimizeActive(const GridModel &model, std::vector<std::vector<double>> cell_angles, std::string pointDirectory)
+{
+	using namespace std;
+
+	GridModel copy(model);
+
+	MetaGrid grid(copy);
+	grid.setEdges();
+	grid.setEdgeRelations();
+
+	std::vector<GridResult> ret;
+	std::vector<Point> start = grid.vertices;
+
+	int nframes = cell_angles.size();
+
+	double totError = .0;
+	grid.setEdgeRelations();
+	auto dofs = grid.degreesOfFreedom();
+
+	int cnt = 0;
+
+	for (int i = 0; i < nframes; i += 1)
+	{
+		SmartPtr<MyNLP> mynlp = new MyNLP(grid, cell_angles[i]);
+		mynlp->setStartConfiguration(start);
+
+
+		optimize(mynlp);
+		totError += mynlp->objError;
+
+		auto pts = grid.setDOFsActive(dofs, mynlp->solution, cell_angles[i]);
+		start = pts;
 
 		GridResult resi;
 

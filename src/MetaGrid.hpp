@@ -16,7 +16,11 @@ enum RelationType
     IDENTITY,
     INVERTED,
     ROT90,
-    ROT270
+    ROT270,
+    ROT_PI_MINUS_THETA,
+    ROT_2PI_MINUS_THETA,
+    ROT_THETA,
+    ROT_THETA_PLUS_PI
 };
 
 struct Edge
@@ -61,9 +65,10 @@ struct RelEdge
 {
     int i;
     RelationType type;
+    int cell_index;
     
-    RelEdge(int _i, RelationType _type)
-    : i(_i), type(_type)
+    RelEdge(int _i, RelationType _type, int _cell_index)
+    : i(_i), type(_type), cell_index(_cell_index)
     {}
     
     char flag = false;
@@ -96,10 +101,13 @@ public:
     void setEdges();
     
     std::vector<Point> propagateDOFs(const std::vector<std::pair<int, Vector2d>>& dofs);
-    std::vector<Eigen::Matrix<double, 2, -1>> propagateEdgeDOFs(const std::vector<int>& dofs);
+    std::vector<Point> propagateDOFsActive(const std::vector<std::pair<int, Vector2d>>& dofs, std::vector<double> angles);
+    std::vector<Eigen::Matrix<double, 2, -1>> propagateEdgeDOFs(const std::vector<int> &dofs);
+    std::vector<Eigen::Matrix<double, 2, -1>> propagateEdgeDOFsActive(const std::vector<int> &dofs, std::vector<double> angles);
     std::vector<Eigen::Matrix<double, 2, -1>> propagateVertexDOFs(const std::vector<Eigen::Matrix<double, 2, -1>>& edgeTransformations);
 
     std::vector<Point> setDOFs(const std::vector<int>& dofs, const std::vector<double>& values);
+    std::vector<Point> setDOFsActive(const std::vector<int>& dofs, const std::vector<double>& values, std::vector<double> angles);
     std::vector<int> degreesOfFreedom();
 };
 

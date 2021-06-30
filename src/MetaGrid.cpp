@@ -5,8 +5,11 @@
 //
 
 #include "MetaGrid.hpp"
+#include <math.h>
 #include <fstream>
 #include <iostream>
+
+#define PI 3.14159265
 
 using namespace std;
 
@@ -83,6 +86,85 @@ Eigen::Matrix2d transformation(RelationType type)
     case ROT270:
         m(0, 1) = 1;
         m(1, 0) = -1;
+        break;
+
+    case ROT_PI_MINUS_THETA:
+        cout << "Active cell found when none were expected." << endl;
+        break;
+
+    case ROT_2PI_MINUS_THETA:
+        cout << "Active cell found when none were expected." << endl;
+        break;
+
+    case ROT_THETA:
+        cout << "Active cell found when none were expected." << endl;
+        break;
+
+    case ROT_THETA_PLUS_PI:
+        cout << "Active cell found when none were expected." << endl;
+        break;
+
+    default:
+        cout << "Unknown RelationType" << endl;
+        break;
+    }
+
+    return m;
+}
+
+Eigen::Matrix2d transformationActive(RelationType type, double angle)
+{
+    Eigen::Matrix2d m;
+    m.setZero();
+
+    switch (type)
+    {
+    case IDENTITY:
+        m(0, 0) = 1;
+        m(1, 1) = 1;
+        break;
+
+    case INVERTED:
+        m(0, 0) = -1;
+        m(1, 1) = -1;
+        break;
+
+    case ROT90:
+        m(0, 1) = -1;
+        m(1, 0) = 1;
+        break;
+
+    case ROT270:
+        m(0, 1) = 1;
+        m(1, 0) = -1;
+        break;
+
+    case ROT_PI_MINUS_THETA:
+        m(0, 0) = cos(PI - angle);
+        m(0, 1) = -sin(PI - angle);
+        m(1, 0) = sin(PI - angle);
+        m(1, 1) = cos(PI - angle);
+        break;
+
+    case ROT_2PI_MINUS_THETA:
+        m(0, 0) = cos(2 * PI - angle);
+        m(0, 1) = -sin(2 * PI - angle);
+        m(1, 0) = sin(2 * PI - angle);
+        m(1, 1) = cos(2 * PI - angle);
+        break;
+
+    case ROT_THETA:
+        m(0, 0) = cos(angle);
+        m(0, 1) = -sin(angle);
+        m(1, 0) = sin(angle);
+        m(1, 1) = cos(angle);
+        break;
+
+    case ROT_THETA_PLUS_PI:
+        m(0, 0) = cos(PI + angle);
+        m(0, 1) = -sin(PI + angle);
+        m(1, 0) = sin(PI + angle);
+        m(1, 1) = cos(PI + angle);
         break;
 
     default:
@@ -165,6 +247,49 @@ MetaGrid::propagateEdgeDOFs(const vector<int> &dofs)
                 if (i.i != -1 && !visited[i.i])
                 {
                     ret[i.i][cnt] = transformation(i.type) * ret[k][cnt];
+
+                    comp.push_back(i.i);
+                    visited[i.i] = true;
+                }
+            }
+        }
+
+        ++cnt;
+    }
+
+    vector<Eigen::Matrix<double, 2, -1> > ret2(edges.size());
+
+    for (int i = 0; i < edges.size(); ++i)
+        ret2[i] = concatTransforms(ret[i]);
+
+    return ret2;
+}
+
+vector<Eigen::Matrix<double, 2, -1> >
+MetaGrid::propagateEdgeDOFsActive(const vector<int> &dofs, vector<double> angles)
+{
+    vector<vector<Eigen::Matrix2d> > ret(edges.size(), vector<Eigen::Matrix2d>(dofs.size(), Eigen::Matrix2d::Zero()));
+
+    const int n = edgeGraph.size();
+    vector<char> visited(n, false);
+
+    int cnt = 0;
+    for (int i : dofs)
+    {
+        ret[i][cnt] = Eigen::Matrix2d::Identity();
+        vector<int> comp{i};
+        visited[i] = true;
+
+        int pos = 0;
+        while (pos < comp.size())
+        {
+            int k = comp[pos++];
+
+            for (auto i : edgeGraph[k])
+            {
+                if (i.i != -1 && !visited[i.i])
+                {
+                    ret[i.i][cnt] = transformationActive(i.type, angles[i.cell_index]) * ret[k][cnt];
 
                     comp.push_back(i.i);
                     visited[i.i] = true;
@@ -314,6 +439,61 @@ MetaGrid::propagateDOFs(const vector<pair<int, Vector2d> > &dofs)
 }
 
 vector<Point>
+MetaGrid::propagateDOFsActive(const vector<pair<int, Vector2d> > &dofs, vector<double> angles)
+{
+    const int n = edgeGraph.size();
+    const int ne = edges.size();
+    const int ndof = dofs.size();
+
+    vector<int> dofIds;
+    for (auto &x : dofs)
+        dofIds.push_back(x.first);
+
+    auto edgeTransformations = propagateEdgeDOFsActive(dofIds, angles);
+    vector<Vector2d> eVectors(ne, Vector2d(0, 0));
+
+    for (int i = 0; i < ne; ++i)
+    {
+        for (int j = 0; j < ndof; ++j)
+            eVectors[i] += edgeTransformations[i].block(0, 2 * j, 2, 2) * dofs[j].second;
+    }
+
+    // integrate edge vectors
+    vector<Point> points = vertices;
+    vector<char> visited(vertices.size(), false);
+    visited[anchors.front()] = true;
+
+    while (1)
+    {
+        bool found = false;
+
+        auto it = eVectors.begin();
+        for (auto &e : edges)
+        {
+            if (visited[e.i] && !visited[e.j])
+            {
+                found = true;
+                points[e.j] = points[e.i] + *it;
+                visited[e.j] = true;
+            }
+            else if (visited[e.j] && !visited[e.i])
+            {
+                found = true;
+                points[e.i] = points[e.j] - *it;
+                visited[e.i] = true;
+            }
+
+            ++it;
+        }
+
+        if (!found)
+            break;
+    }
+
+    return points;
+}
+
+vector<Point>
 MetaGrid::setDOFs(const vector<int> &dofs, const vector<double> &values)
 {
     //cout << dofs.size() << " " << values.size() << endl;
@@ -329,6 +509,24 @@ MetaGrid::setDOFs(const vector<int> &dofs, const vector<double> &values)
     }
 
     return propagateDOFs(dofValues);
+}
+
+vector<Point>
+MetaGrid::setDOFsActive(const vector<int> &dofs, const vector<double> &values, vector<double> angles)
+{
+    //cout << dofs.size() << " " << values.size() << endl;
+    assert(dofs.size() * 2 == values.size());
+    vector<pair<int, Vector2d> > dofValues;
+
+    auto it = values.begin();
+    for (int i : dofs)
+    {
+        double x = *it++;
+        double y = *it++;
+        dofValues.push_back(make_pair(i, Vector2d(x, y)));
+    }
+
+    return propagateDOFsActive(dofValues, angles);
 }
 
 void MetaGrid::setEdges()
@@ -361,37 +559,58 @@ void MetaGrid::setEdgeRelations()
     edgeGraph.clear();
     edgeGraph.resize(edges.size());
 
-    auto addEdge = [&](const int i, const int j, RelationType type)
+    auto addEdge = [&](const int ind, const int i, const int j, RelationType type)
     {
         RelationType type2 = type;
         if (type == ROT270)
             type2 = ROT90;
         if (type == ROT90)
             type2 = ROT270;
+        if (type == ROT_PI_MINUS_THETA)
+            type2 = ROT_THETA_PLUS_PI;
+        if (type == ROT_2PI_MINUS_THETA)
+            type2 = ROT_THETA;
+        if (type == ROT_THETA)
+            type2 = ROT_2PI_MINUS_THETA;
+        if (type == ROT_THETA_PLUS_PI)
+            type2 = ROT_PI_MINUS_THETA;
 
-        edgeGraph[i].push_back(RelEdge(j, type));
-        edgeGraph[j].push_back(RelEdge(i, type2));
+        edgeGraph[i].push_back(RelEdge(j, type, ind));
+        edgeGraph[j].push_back(RelEdge(i, type2, ind));
     };
 
+
+    int cell_index = 0;
     for (auto &c : cells)
     {
         if (c.type == SHEAR)
         {
-            addEdge(c.edges[0].first, c.edges[2].first, c.edges[0].second == c.edges[2].second ? INVERTED : IDENTITY);
-            addEdge(c.edges[1].first, c.edges[3].first, c.edges[1].second == c.edges[3].second ? INVERTED : IDENTITY);
+            addEdge(cell_index, c.edges[0].first, c.edges[2].first, c.edges[0].second == c.edges[2].second ? INVERTED : IDENTITY);
+            addEdge(cell_index, c.edges[1].first, c.edges[3].first, c.edges[1].second == c.edges[3].second ? INVERTED : IDENTITY);
         }
         else if (c.type == RIGID)
         {
+            addEdge(cell_index, c.edges[0].first, c.edges[1].first, c.edges[0].second == c.edges[1].second ? ROT90 : ROT270);
+            addEdge(cell_index, c.edges[0].first, c.edges[2].first, c.edges[0].second == c.edges[2].second ? INVERTED : IDENTITY);
+            addEdge(cell_index, c.edges[0].first, c.edges[3].first, c.edges[0].second == c.edges[3].second ? ROT270 : ROT90);
 
-            addEdge(c.edges[0].first, c.edges[1].first, c.edges[0].second == c.edges[1].second ? ROT90 : ROT270);
-            addEdge(c.edges[0].first, c.edges[2].first, c.edges[0].second == c.edges[2].second ? INVERTED : IDENTITY);
-            addEdge(c.edges[0].first, c.edges[3].first, c.edges[0].second == c.edges[3].second ? ROT270 : ROT90);
+            addEdge(cell_index, c.edges[1].first, c.edges[2].first, c.edges[1].second == c.edges[2].second ? ROT90 : ROT270);
+            addEdge(cell_index, c.edges[1].first, c.edges[3].first, c.edges[1].second == c.edges[3].second ? INVERTED : IDENTITY);
 
-            addEdge(c.edges[1].first, c.edges[2].first, c.edges[1].second == c.edges[2].second ? ROT90 : ROT270);
-            addEdge(c.edges[1].first, c.edges[3].first, c.edges[1].second == c.edges[3].second ? INVERTED : IDENTITY);
-
-            addEdge(c.edges[2].first, c.edges[3].first, c.edges[2].second == c.edges[3].second ? ROT90 : ROT270);
+            addEdge(cell_index, c.edges[2].first, c.edges[3].first, c.edges[2].second == c.edges[3].second ? ROT90 : ROT270);
         }
+        else if (c.type == ACTIVE)
+        {
+            addEdge(cell_index, c.edges[0].first, c.edges[1].first, c.edges[0].second == c.edges[1].second ? ROT_THETA : ROT_THETA_PLUS_PI);
+            addEdge(cell_index, c.edges[0].first, c.edges[2].first, c.edges[0].second == c.edges[2].second ? INVERTED : IDENTITY);
+            addEdge(cell_index, c.edges[0].first, c.edges[3].first, c.edges[0].second == c.edges[3].second ? ROT_THETA_PLUS_PI : ROT_THETA);
+
+            addEdge(cell_index, c.edges[1].first, c.edges[2].first, c.edges[1].second == c.edges[2].second ? ROT_PI_MINUS_THETA : ROT_2PI_MINUS_THETA);
+            addEdge(cell_index, c.edges[1].first, c.edges[3].first, c.edges[1].second == c.edges[3].second ? INVERTED : IDENTITY);
+
+            addEdge(cell_index, c.edges[2].first, c.edges[3].first, c.edges[2].second == c.edges[3].second ? ROT_THETA : ROT_THETA_PLUS_PI);
+        }
+        cell_index++;
     }
 }
 
