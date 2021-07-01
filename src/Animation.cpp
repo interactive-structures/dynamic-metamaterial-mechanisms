@@ -11,6 +11,10 @@ Eigen::MatrixXi Animation::get_edge_matrix()
     {
       total_edges += 2;
     }
+    if (gm.cells[i].type == ACTIVE)
+    {
+      total_edges += 1;
+    }
   }
   Eigen::MatrixXi E = Eigen::MatrixXi::Zero(total_edges, 2);
 
@@ -37,6 +41,12 @@ Eigen::MatrixXi Animation::get_edge_matrix()
       index++;
       E(index, 0) = gm.cells[i].vertices(0);
       E(index, 1) = gm.cells[i].vertices(2);
+      index++;
+    }
+    if (gm.cells[i].type == ACTIVE)
+    { // Single diagonal edges
+      E(index, 0) = gm.cells[i].vertices(1);
+      E(index, 1) = gm.cells[i].vertices(3);
       index++;
     }
   }

@@ -169,7 +169,7 @@ void GridModel::loadFromFile(const std::string fname)
 		file >> c;
 		file >> d;
 
-		cells.push_back(GridCell(a, b, c, d, t == 's' ? SHEAR : RIGID));
+		cells.push_back(GridCell(a, b, c, d, t == 's' ? SHEAR : t == 'a' ? ACTIVE : RIGID));
 	}
 
 	file.getline(tmp, 1024);
