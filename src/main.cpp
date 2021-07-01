@@ -3,6 +3,8 @@
 #include <fstream>
 #include <float.h>
 
+#define PI 3.14159265
+
 void printConstraintGraph(GridModel gm)
 {
   auto cG = gm.constraintGraph;
@@ -48,55 +50,54 @@ std::vector<std::vector<double>> get_angles(std::vector<GridResult> res, GridMod
 
 int main(int argc, char *argv[])
 {
-
-  //std::cout << "loading" << std::endl;
   GridModel gm;
-  gm.loadFromFile("../cells_3x3.txt");
-  //std::cout << "loaded" << std::endl;
+  gm.loadFromFile("../cells_3x3_quadrifolium.txt");
 
   gm.generateConstraintGraph();
   auto ret = optimize(gm, "../points/");
 
-  auto cell_angles = get_angles(ret, gm);
-  GridModel gm_copy(gm);
-
-  // remove target paths
-  gm_copy.targets = std::vector<int>();
-  gm_copy.targetPaths = std::vector<std::vector<Eigen::Vector2d>>();
-
-  // turn all shearing cells to active
-  // for (GridCell &cell : gm_copy.cells) {
-  //   if (cell.type == SHEAR) {
-  //     cell.type = ACTIVE;
-  //   }
-  // }
-
-  gm_copy.cells[0].type = ACTIVE;
-  gm_copy.cells[1].type = ACTIVE;
-  //gm_copy.cells[5].type = ACTIVE;
-  //gm_copy.cells[6].type = ACTIVE;
-
-  // std::cout << "Frame 0 angles: ";
-  // for (double angle : cell_angles[0]) {
-  //   std::cout << angle << " ";
-  // }
-  // std::cout << std::endl;
-
-  auto angle_ret = optimizeActive(gm_copy, cell_angles, "../angle_points/");
-
   // SimuAn sa;
-  // sa.simulatedAnnealing(gm);  
+  // sa.simulatedAnnealing(gm); 
 
-  // auto angles = get_angles(ret, gm);
-  // std::cout << "Frame 0 angles: ";
-  // for (double angle : angles[0]) {
-  //   std::cout << angle << " ";
-  // }
-  // std::cout << std::endl;
+  auto cell_angles = get_angles(ret, gm);
+  GridModel gm_active = gm.addActiveCells();
+  auto active_ret = optimizeActive(gm_active, cell_angles, "../angle_points/"); 
+
+  // Code for 2x2 test case with each cell actuating at different times
+  /**
+  GridModel gm;
+  gm.loadFromFile("../cells_2x2.txt");
+  gm.generateConstraintGraph();
+  GridModel gm_active = gm.addActiveCells();
+  std::vector<std::vector<double>> cell_angles;
+  for (int i = 0; i <= 25; i++)
+  {
+    std::vector<double> angles (4, PI/2.0);
+    angles[0] = (PI/2.0) - (PI/4.0) * (i/25.0);
+    cell_angles.push_back(angles);
+  }
+  for (int i = 0; i <= 25; i++)
+  {
+    std::vector<double> angles (4, PI/2.0);
+    angles[0] = (PI/4.0);
+    angles[2] = (PI/2.0) - (PI/4.0) * (i/25.0);
+    cell_angles.push_back(angles);
+  }
+  for (int i = 0; i <= 25; i++)
+  {
+    std::vector<double> angles (4, PI/2.0);
+    angles[0] = (PI/4.0);
+    angles[2] = (PI/4.0);
+    angles[3] = (PI/2.0) - (PI/4.0) * (i/25.0);
+    cell_angles.push_back(angles);
+  }
+  auto active_ret = optimizeActive(gm, cell_angles, "../angle_points/");
+  **/
+
   Animation original(gm, ret, 2, gm.targets);
-
-  Animation animation(gm_copy, angle_ret, 2, gm.targets);
+  Animation animation(gm_active, active_ret, 2, gm.targets);
   // Animation animation(sa.best_model, sa.best_res);
+
   original.animate();
   animation.animate();
 }
