@@ -287,7 +287,7 @@ void GridModel::generateConstraintGraph()
 		Edge e2 = std::make_pair(std::min(c.vertices[1], c.vertices[2]), std::max(c.vertices[1], c.vertices[2]));
 		Edge e3 = std::make_pair(std::min(c.vertices[2], c.vertices[3]), std::max(c.vertices[2], c.vertices[3]));
 		Edge e4 = std::make_pair(std::min(c.vertices[3], c.vertices[0]), std::max(c.vertices[3], c.vertices[0]));
-		if (c.type == RIGID)
+		if (c.type == RIGID || c.type == ACTIVE)
 		{
 			std::set<Edge> constraintEdges({e1, e2, e3, e4});
 			std::pair<GridCell, std::set<Edge>> rigidConstraint = std::make_pair(c, constraintEdges);
@@ -313,7 +313,7 @@ void GridModel::generateConstraintGraph()
 	//std::cout << constraintGraph.size() << " components" << std::endl;
 }
 
-void GridModel::mergeComponents()
+void GridModel::mergeComponents(bool toActive)
 {
 	int currentDOFs = constraintGraph.size();
 	int newDOFs = constraintGraph.size();
@@ -383,9 +383,14 @@ void GridModel::mergeComponents()
 
 		GridCell cellToMerge = candidateCells[rand() % candidateCells.size()];
 
-		std::find(cells.begin(), cells.end(), cellToMerge)->type = RIGID;
-		std::cout << "Merging with (Cell: " << cellToMerge.vertices[0] << ", " << cellToMerge.vertices[1] << ", " << cellToMerge.vertices[2] << ", " << cellToMerge.vertices[3] << ")" << std::endl;
-
+		if (toActive) {
+			std::find(cells.begin(), cells.end(), cellToMerge)->type = ACTIVE;
+			std::cout << "New Active (Cell: " << cellToMerge.vertices[0] << ", " << cellToMerge.vertices[1] << ", " << cellToMerge.vertices[2] << ", " << cellToMerge.vertices[3] << ")" << std::endl;
+		} else {
+			std::find(cells.begin(), cells.end(), cellToMerge)->type = RIGID;
+			std::cout << "Merging with (Cell: " << cellToMerge.vertices[0] << ", " << cellToMerge.vertices[1] << ", " << cellToMerge.vertices[2] << ", " << cellToMerge.vertices[3] << ")" << std::endl;
+		}
+		
 		generateConstraintGraph();
 		newDOFs = constraintGraph.size();
 	}
@@ -452,6 +457,23 @@ void GridModel::splitComponents()
 		generateConstraintGraph();
 		newDOFs = constraintGraph.size();
 	}
+}
+
+GridModel GridModel::addActiveCells()
+{
+	GridModel active(*this);
+	active.generateConstraintGraph();
+
+	// Remove paths
+	active.targets = std::vector<int>();
+  active.targetPaths = std::vector<std::vector<Eigen::Vector2d>>();
+
+	// Add active cells until 1 DoF
+	while (active.constraintGraph.size() > 1)
+	{
+		active.mergeComponents(true);
+	}
+	return active;
 }
 
 std::vector<GridResult>

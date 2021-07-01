@@ -110,8 +110,9 @@ public:
 
 	void loadFromFile(std::string fname);
 	void generateConstraintGraph();
-	void mergeComponents();
+	void mergeComponents(bool toActive = false);
 	void splitComponents();
+	GridModel addActiveCells();
 
 private:
 	void addConstraints(std::vector<std::pair<GridCell, std::set<Edge>>> unlinkedConstraints);
