@@ -55,7 +55,7 @@ std::vector<std::vector<double> > get_angles(std::vector<GridResult> res, GridMo
 int main(int argc, char *argv[])
 {
   GridModel gm;
-  gm.loadFromFile("../cells_3x3_quadrifolium.txt");
+  gm.loadFromFile("../cells_2x2_separate.txt");
 
   gm.generateConstraintGraph();
   auto ret = optimize(gm, "../points/");
