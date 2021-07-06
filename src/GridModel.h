@@ -36,7 +36,7 @@ public:
 
 	GridCell(const int a, const int b, const int c, const int d, const int t);
 
-	void change_type (CellType t) {type = t;}
+	void change_type(CellType t) { type = t; }
 };
 
 bool operator==(const GridCell &lhs, const GridCell &rhs);
@@ -64,12 +64,12 @@ public:
 	std::vector<int> anchors;
 
 	std::vector<int> inputs;
-	std::vector<std::vector<Point>> inputPaths;
+	std::vector<std::vector<Point> > inputPaths;
 
-	std::vector<std::vector<Point>> targetPaths;
+	std::vector<std::vector<Point> > targetPaths;
 	std::vector<int> targets;
 
-	std::vector<std::vector<std::pair<GridCell, std::set<Edge>>>> constraintGraph;
+	std::vector<std::vector<std::pair<GridCell, std::set<Edge> > > > constraintGraph;
 
 	GridModel(const GridModel &other)
 	{
@@ -98,7 +98,7 @@ public:
 			targetPaths.push_back(path);
 		}
 
-		for (std::vector<std::pair<GridCell, std::set<Edge>>> component : other.constraintGraph)
+		for (std::vector<std::pair<GridCell, std::set<Edge> > > component : other.constraintGraph)
 		{
 			constraintGraph.push_back(component);
 		}
@@ -115,8 +115,8 @@ public:
 	GridModel addActiveCells();
 
 private:
-	void addConstraints(std::vector<std::pair<GridCell, std::set<Edge>>> unlinkedConstraints);
-	std::vector<std::vector<std::pair<GridCell, std::set<GridModel::Edge>>>> findContainingComponents(std::pair<GridCell, std::set<Edge>> constraint, std::vector<std::vector<std::pair<GridCell, std::set<Edge>>>> graph);
+	void addConstraints(std::vector<std::pair<GridCell, std::set<Edge> > > unlinkedConstraints);
+	std::vector<std::vector<std::pair<GridCell, std::set<GridModel::Edge> > > > findContainingComponents(std::pair<GridCell, std::set<Edge> > constraint, std::vector<std::vector<std::pair<GridCell, std::set<Edge> > > > graph);
 };
 
 EXPORT_DLL_COMMAND
@@ -125,7 +125,7 @@ optimize(const GridModel &model, std::string pointDirectory = "");
 
 EXPORT_DLL_COMMAND
 std::vector<GridResult>
-optimizeActive(const GridModel &model, std::vector<std::vector<double>> cell_angles, std::string pointDirectory = "");
+optimizeActive(const GridModel &model, std::vector<std::vector<double> > cell_angles, std::string pointDirectory = "");
 
 EXPORT_DLL_COMMAND
 Eigen::Vector2d *
@@ -134,16 +134,5 @@ buildAndOptimize(Eigen::Vector2d *points, int numPoints, int numCells,
 				 int *anchors, int numAnchors,
 				 int *inputs, int numInputs, int *inputPathLenghts, Eigen::Vector2d *inputPaths,
 				 int *targets, int numTargets, int *targetPathLenghths, Eigen::Vector2d *targetPaths);
-
-class EXPORT_DLL_COMMAND SimuAn
-{
-
-public:
-	GridModel best_model;
-	double least_error;
-	std::vector<GridResult> best_res;
-
-	void simulatedAnnealing(GridModel &gm, double coolingFactor = 0.99, double startChance = 0.25);
-};
 
 #endif /* GridModel_h */

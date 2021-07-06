@@ -1,5 +1,6 @@
 #include "Animation.hpp"
 #include "GridModel.h"
+#include "SimuAn.hpp"
 #include <fstream>
 #include <float.h>
 
@@ -33,14 +34,17 @@ void printConstraintGraph(GridModel gm)
 }
 
 // Returns vector of interior angles of each cell at each time step. By convention, the lower-left angle (vertices 3, 0, 1).
-std::vector<std::vector<double>> get_angles(std::vector<GridResult> res, GridModel model) {
-  std::vector<std::vector<double>> angles;
-  for (auto frame : res) {
+std::vector<std::vector<double> > get_angles(std::vector<GridResult> res, GridModel model)
+{
+  std::vector<std::vector<double> > angles;
+  for (auto frame : res)
+  {
     std::vector<double> anglesThisFrame;
-    for (auto cell : model.cells) {
+    for (auto cell : model.cells)
+    {
       Eigen::Vector2d vec1 = frame.points[cell.vertices[1]] - frame.points[cell.vertices[0]];
       Eigen::Vector2d vec2 = frame.points[cell.vertices[3]] - frame.points[cell.vertices[0]];
-      double angle = std::atan2(vec1[0]*vec2[1] - vec1[1]*vec2[0], vec1.dot(vec2));
+      double angle = std::atan2(vec1[0] * vec2[1] - vec1[1] * vec2[0], vec1.dot(vec2));
       anglesThisFrame.push_back(angle);
     }
     angles.push_back(anglesThisFrame);
@@ -56,12 +60,13 @@ int main(int argc, char *argv[])
   gm.generateConstraintGraph();
   auto ret = optimize(gm, "../points/");
 
-  // SimuAn sa;
-  // sa.simulatedAnnealing(gm); 
+  SimuAn sa;
+  sa.gm = gm;
+  sa.simulatedAnnealing();
 
   auto cell_angles = get_angles(ret, gm);
   GridModel gm_active = gm.addActiveCells();
-  auto active_ret = optimizeActive(gm_active, cell_angles, "../angle_points/"); 
+  auto active_ret = optimizeActive(gm_active, cell_angles, "../angle_points/");
 
   // Code for 2x2 test case with each cell actuating at different times
   /**
