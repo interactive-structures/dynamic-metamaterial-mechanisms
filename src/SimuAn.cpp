@@ -5,11 +5,13 @@
 #include <stdlib.h>
 #include <time.h>
 #include <float.h>
+#include <math.h>
+
 
 int SimuAn::getRigidNum()
 {
     int currRigid = 0;
-    for (auto c : gm.cells)
+    for (auto c : working_model.cells)
     {
         if (c.type == RIGID)
         {
@@ -22,11 +24,24 @@ int SimuAn::getRigidNum()
 double SimuAn::getError()
 {
     double error = 0;
-    auto ret = optimize(gm, "../points/");
+    auto ret = optimize(working_model, "../points/");
     for (auto re : ret)
     {
         error += re.objError;
     }
+}
+
+double SimuAn::calcObj()
+{
+    double error = 0;
+    auto ret = optimize(working_model, "../points/");
+    for (auto re : ret)
+    {
+        error += re.objError;
+    }
+    error += working_model.constraintGraph.size();
+
+    return error;
 }
 
 void SimuAn::simulatedAnnealing(double coolingFactor, double startChance)
@@ -38,66 +53,110 @@ void SimuAn::simulatedAnnealing(double coolingFactor, double startChance)
     {
         double x = optCalculation.get_parameter("x");
 
-        int cellSize = gm.cells.size();
-        int rigidNum = getRigidNum();
+        // find or generate grid associated with parameter
+        if (past_models.find(x) != past_models.end()) {
+            working_model = GridModel(past_models.find(x)->second);
+            std::cout << "Previously seen model" << std::endl;
+        } else {
+            working_model.generateConstraintGraph();
+            int dofs = working_model.constraintGraph.size();
+            int target_dofs = 2 + floor(x * 4.0); //TODO: adjust
 
-        int targetRigidNum = int(x * cellSize + 0.5);
-        int iteration = 0;
-        int lastRigidNum, currRigidNum;
+            std::cout << "Current DOFs: " << dofs << ". Target DOFs: " << target_dofs << ". x = " << x << std::endl;
 
-        if (rigidNum == targetRigidNum)
-        {
-            ;
-        }
-        else if (rigidNum < targetRigidNum)
-        {
-            while (getRigidNum() < targetRigidNum)
-            {
-                std::cout << targetRigidNum << endl;
-                std::cout << getRigidNum() << endl;
-                lastRigidNum = getRigidNum();
-                gm.mergeComponents(false);
-                currRigidNum = getRigidNum();
-                if (lastRigidNum == currRigidNum)
-                {
-                    iteration++;
+            if (dofs < target_dofs) {
+                while (working_model.constraintGraph.size() < target_dofs) {
+                    working_model.splitComponents();
+                    working_model.generateConstraintGraph();
                 }
-                if (iteration > 5)
-                {
-                    iteration = 0;
-                    gm.splitComponents();
-                    break;
+            } else if (dofs > target_dofs) {
+                while (working_model.constraintGraph.size() > target_dofs) {
+                    working_model.mergeComponents();
+                    working_model.generateConstraintGraph();
                 }
-            }
-        }
-        else
-        {
-            while (getRigidNum() > targetRigidNum)
-            {
-                std::cout << targetRigidNum << endl;
-                std::cout << getRigidNum() << endl;
-                lastRigidNum = getRigidNum();
-                gm.splitComponents();
-                currRigidNum = getRigidNum();
-                if (lastRigidNum == currRigidNum)
-                {
-                    iteration++;
-                }
-                if (iteration > 5)
-                {
-                    iteration = 0;
-                    gm.mergeComponents(false);
-                    break;
+            } else {
+                if (dofs > 1 && rand() % 2 == 0) {
+                    working_model.mergeComponents();
+                    working_model.splitComponents();
+                    working_model.generateConstraintGraph();
+                } else {
+                    working_model.splitComponents();
+                    working_model.mergeComponents();
+                    working_model.generateConstraintGraph();
                 }
             }
         }
 
-        optCalculation.result = getError();
+        // add this grid to records
+        past_models.insert(std::pair<double, GridModel>(x, GridModel(working_model)));
+
+        // int cellSize = gm.cells.size();
+        // int rigidNum = getRigidNum();
+
+        // int targetRigidNum = int(x * cellSize + 0.5);
+        // int iteration = 0;
+        // int lastRigidNum, currRigidNum;
+
+        // if (rigidNum == targetRigidNum)
+        // {
+        //     ;
+        // }
+        // else if (rigidNum < targetRigidNum)
+        // {
+        //     while (getRigidNum() < targetRigidNum)
+        //     {
+        //         std::cout << targetRigidNum << endl;
+        //         std::cout << getRigidNum() << endl;
+
+        //         lastRigidNum = getRigidNum();
+        //         gm.mergeComponents(false);
+        //         currRigidNum = getRigidNum();
+
+
+        //         if (lastRigidNum == currRigidNum)
+        //         {
+        //             iteration++;
+        //         }
+        //         if (iteration > 5)
+        //         {
+        //             iteration = 0;
+        //             gm.splitComponents();
+        //             break;
+        //         }
+        //     }
+        // }
+        // else
+        // {
+        //     while (getRigidNum() > targetRigidNum)
+        //     {
+        //         std::cout << targetRigidNum << endl;
+        //         std::cout << getRigidNum() << endl;
+        //         lastRigidNum = getRigidNum();
+        //         gm.splitComponents();
+        //         currRigidNum = getRigidNum();
+        //         if (lastRigidNum == currRigidNum)
+        //         {
+        //             iteration++;
+        //         }
+        //         if (iteration > 5)
+        //         {
+        //             iteration = 0;
+        //             gm.mergeComponents(false);
+        //             break;
+        //         }
+        //     }
+        // }
+
+        optCalculation.result = calcObj();
+        std::cout << optCalculation.result;
 
         if (optCalculation.result < least_error)
         {
-            best_model = gm;
+            best_model = GridModel(working_model);
+            least_error = optCalculation.result;
+            std::cout << ": New best model";
         }
+        std::cout << std::endl;
     };
 
     cppOpt::OptBoundaries<double> optBoundaries;

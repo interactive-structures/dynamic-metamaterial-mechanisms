@@ -2,6 +2,8 @@
 #define SimuAn_hpp
 
 #include "GridModel.h"
+#include <float.h>
+#include <map>
 
 #ifdef _WIN32
 #define EIGEN_DONT_ALIGN_STATICALLY
@@ -17,7 +19,19 @@ public:
     GridModel best_model;
     double least_error;
     //std::vector<GridResult> best_res;
-    GridModel gm;
+    std::map<double, GridModel> past_models;
+    GridModel working_model;
+
+    SimuAn()
+    {
+        std::cout << "Error: No starting model/path specified." << std::endl;
+    };
+
+    SimuAn(GridModel start)
+    {
+        working_model = GridModel(start);
+        best_model = GridModel(start);
+    };
 
     void simulatedAnnealing(double coolingFactor = 0.99, double startChance = 0.25);
 
@@ -25,6 +39,7 @@ private:
     std::vector<GridResult> res;
     int getRigidNum();
     double getError();
+    double calcObj();
 };
 
 #endif
