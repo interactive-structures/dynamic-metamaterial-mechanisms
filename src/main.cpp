@@ -1,6 +1,7 @@
 #include "Animation.hpp"
 #include "GridModel.h"
 #include "SimuAn.hpp"
+#include "SimAnnMan.hpp"
 #include <fstream>
 #include <float.h>
 
@@ -60,10 +61,13 @@ int main(int argc, char *argv[])
   //gm.generateConstraintGraph();
   //auto ret = optimize(gm, "../points/");
 
-  SimuAn sa(gm);
-  sa.simulatedAnnealing();
+  // SimuAn sa(gm);
+  // sa.simulatedAnnealing();
 
-  gm = sa.best_model;
+  SimAnnMan sa(gm);
+  sa.runSimulatedAnnealing(100, 0.97);
+
+  gm = sa.bestModel;
   auto ret = optimize(gm, "../points/");
 
   auto cell_angles = get_angles(ret, gm);
