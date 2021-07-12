@@ -22,7 +22,7 @@ void SimAnnMan::runSimulatedAnnealing (int maxIterations, double coolingFactor)
     double objective = 1.0 / calcObj(candidate);
     double forceAccept = 1.0 / (1.0 + exp(objective / (startTemp * pow(coolingFactor, i))));
 
-    std::cout << "This Error: " << newError << ". ";
+    std::cout << "Iteration " << i << " Error: " << newError << ". ";
 
     // Update accordingly
     if (newError < workingError) {
@@ -47,13 +47,43 @@ void SimAnnMan::runSimulatedAnnealing (int maxIterations, double coolingFactor)
 
 double SimAnnMan::calcObj(GridModel candidate)
 {
-    double error = 0;
+    double objective = 0;
+    double pathObjective = 0;
+    double dofObjective = 0;
+    double angleObjective = 0;
     auto ret = optimize(candidate, "../points/");
+
+    // from accuracy
     for (auto re : ret)
     {
-        error += re.objError;
+        pathObjective += re.objError;
     }
-    error += candidate.constraintGraph.size();
 
-    return error;
+    // from dof
+    dofObjective += candidate.constraintGraph.size();
+
+    // from angles
+    std::vector<std::vector<double> > angles;
+    for (auto frame : ret)
+    {
+      std::vector<double> anglesThisFrame;
+      for (auto cell : candidate.cells)
+      {
+        Eigen::Vector2d vec1 = frame.points[cell.vertices[1]] - frame.points[cell.vertices[0]];
+        Eigen::Vector2d vec2 = frame.points[cell.vertices[3]] - frame.points[cell.vertices[0]];
+        double angle = std::atan2(vec1[0] * vec2[1] - vec1[1] * vec2[0], vec1.dot(vec2));
+        anglesThisFrame.push_back(angle);
+      }
+      angles.push_back(anglesThisFrame);
+    }
+    for (int i = 1; i < angles.size(); i++)
+    {
+      for (int j = 0; j < angles[1].size(); j++)
+      {
+        angleObjective += std::abs(angles[i-1][j] - angles[i][j]);
+      }
+    }
+
+    objective = 1.0 * pathObjective + 1.0 * dofObjective + 0.05 * angleObjective;
+    return objective;
 }
