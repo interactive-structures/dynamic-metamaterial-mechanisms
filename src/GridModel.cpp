@@ -124,7 +124,8 @@ void GridModel::loadFromFile(const std::string fname)
 
 	if (constr2 != -1)
 		inputs.push_back(constr2);
-	targets.push_back(constr);
+	if (constr != -1)
+		targets.push_back(constr);
 
 	file.getline(tmp, 1024);
 	file.getline(tmp, 1024);
@@ -172,23 +173,26 @@ void GridModel::loadFromFile(const std::string fname)
 		cells.push_back(GridCell(a, b, c, d, t == 's' ? SHEAR : t == 'a' ? ACTIVE : RIGID));
 	}
 
-	file.getline(tmp, 1024);
-	file.getline(tmp, 1024);
-	file.getline(tmp, 1024);
-
 	vector<Point> path;
 
-	for (int i = 0; i < npath; ++i)
+	if (constr != -1) 
 	{
-		double x, y;
-		file >> x;
-		file >> y;
+		file.getline(tmp, 1024);
+		file.getline(tmp, 1024);
+		file.getline(tmp, 1024);
 
-		path.push_back(Point(x, y));
+		for (int i = 0; i < npath; ++i)
+		{
+			double x, y;
+			file >> x;
+			file >> y;
+
+			path.push_back(Point(x, y));
+		}
+
+		targetPaths.push_back(path);
+		path.clear();
 	}
-
-	targetPaths.push_back(path);
-	path.clear();
 
 	if (constr2 != -1)
 	{

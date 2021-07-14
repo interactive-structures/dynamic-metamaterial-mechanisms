@@ -112,6 +112,25 @@ void storeModel(GridModel gm, std::string outFolder) {
     
   gridOutFile.close();
 }
+
+std::vector<std::vector<double> > anglesFromFolder(std::string anglesFolder)
+{
+  std::vector<std::vector<double> > angles;
+  int i = 0;
+  while (std::filesystem::exists(anglesFolder + "a" + std::to_string(i)))
+  {
+    std::ifstream frame(anglesFolder + "a" + std::to_string(i));
+    std::vector<double> anglesThisFrame;
+    std::string line;
+    for (std::getline(frame, line); !line.empty(); std::getline(frame, line)) {
+      anglesThisFrame.push_back(std::stod(line));
+    }
+    angles.push_back(anglesThisFrame);
+    i++;
+  }
+  return angles;
+}
+
 int main(int argc, char *argv[])
 {
   GridModel gm;
@@ -178,4 +197,12 @@ int main(int argc, char *argv[])
 
   // original.animate();
   animation.animate();
+
+  // Verify everything works by constructing gridmodel and angles from files
+  GridModel gmFile;
+  gmFile.loadFromFile(folder + "output_model");
+  auto file_ret = optimizeActive(gmFile, anglesFromFolder(anglesFolder), "", "");
+
+  Animation test(gmFile, file_ret, 2, gm.targets);
+  test.animate();
 }
