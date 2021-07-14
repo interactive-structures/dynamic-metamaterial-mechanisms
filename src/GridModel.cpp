@@ -540,7 +540,7 @@ optimize(const GridModel &model, std::string pointDirectory)
 }
 
 std::vector<GridResult>
-optimizeActive(const GridModel &model, std::vector<std::vector<double>> cell_angles, std::string pointDirectory)
+optimizeActive(const GridModel &model, std::vector<std::vector<double>> cell_angles, std::string pointDirectory, std::string angleDirectory)
 {
 	using namespace std;
 
@@ -586,6 +586,14 @@ optimizeActive(const GridModel &model, std::vector<std::vector<double>> cell_ang
 			ofstream file(pointDirectory + "/p" + to_string(i));
 			for (auto &p : resi.points)
 				file << p[0] << " " << p[1] << "\n";
+			file.close();
+		}
+
+		if (!angleDirectory.empty())
+		{
+			ofstream file(angleDirectory + "/a" + to_string(i));
+			for (auto a : cell_angles[i])
+				file << a << "\n";
 			file.close();
 		}
 

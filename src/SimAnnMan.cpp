@@ -31,10 +31,14 @@ void SimAnnMan::runSimulatedAnnealing(int maxIterations, double coolingFactor)
 {
   double startTemp = maxIterations / 3.0;
   srand(time(NULL)); // Initialize rng
-  std::ofstream objOutFile;
-  objOutFile.open("../objectives/objectives", std::ofstream::out | std::ofstream::trunc);
-  objOutFile.close();
   Timer timer("timer"); // Initialize timer
+  if (!outFolder.empty()) { // Intialize objective file
+    std::ofstream objOutFile;
+    objOutFile.open(outFolder + "objectives.csv", std::ofstream::out | std::ofstream::trunc);
+    objOutFile << "Path Accuracy,DOFs,Error\n";
+    objOutFile.close();
+  }
+  
   queue<double> err;
   int window = 10;
   double th = 0.001;
@@ -111,7 +115,7 @@ double SimAnnMan::calcObj(GridModel candidate)
   double pathObjective = 0;
   double dofObjective = 0;
   double angleObjective = 0;
-  auto ret = optimize(candidate, "../points/");
+  auto ret = optimize(candidate, "");
 
   // from accuracy
   for (auto re : ret)
@@ -145,10 +149,10 @@ double SimAnnMan::calcObj(GridModel candidate)
   //   }
   // }
 
-  std::ofstream objOutFile;
-  objOutFile.open("../objectives/objectives", std::ios_base::app);
-  objOutFile << pathObjective << " " << dofObjective << "\n";
-  objOutFile.close();
-  objective = pathObjective + 0.2 * dofObjective * dofObjective + 0.0 * angleObjective;
-  return objective;
+    std::ofstream objOutFile;
+    objOutFile.open(outFolder + "objectives.csv", std::ios_base::app);
+    objective = pathObjective + 0.2 * dofObjective * dofObjective + 0.0 * angleObjective;
+    objOutFile << pathObjective << "," << dofObjective << "," << objective <<  "\n";
+    objOutFile.close();
+    return objective;
 }

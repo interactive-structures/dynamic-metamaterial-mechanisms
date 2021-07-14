@@ -20,16 +20,18 @@ public:
   GridModel workingModel;
   double minError;
   double workingError;
+  std::string outFolder;
 
   SimAnnMan () {
     std::cout << "Error: No model specified" << std::endl;
   };
 
-  SimAnnMan (GridModel gm) {
+  SimAnnMan (GridModel gm, std::string folder = "") {
     bestModel = GridModel(gm);
     workingModel = GridModel(gm);
     minError = DBL_MAX;
     workingError = DBL_MAX;
+    outFolder = folder;
   };
 
   void runSimulatedAnnealing (int maxIterations = 100, double coolingFactor = 0.99);

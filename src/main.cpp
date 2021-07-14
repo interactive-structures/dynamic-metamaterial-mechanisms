@@ -4,6 +4,7 @@
 #include "SimAnnMan.hpp"
 #include <fstream>
 #include <float.h>
+#include <filesystem>
 
 #define PI 3.14159265
 
@@ -56,7 +57,14 @@ std::vector<std::vector<double> > get_angles(std::vector<GridResult> res, GridMo
 int main(int argc, char *argv[])
 {
   GridModel gm;
-  gm.loadFromFile("../cells.txt");
+  gm.loadFromFile("../cells_2x2_separate.txt");
+  std::string folder = "../separate/";
+  std::string pointsFolder = folder + "points/";
+  std::string anglesFolder = folder + "angles/";
+
+  std::filesystem::create_directory(folder);
+  std::filesystem::create_directory(pointsFolder);
+  std::filesystem::create_directory(anglesFolder);
 
   //gm.generateConstraintGraph();
   //auto ret = optimize(gm, "../points/");
@@ -64,15 +72,15 @@ int main(int argc, char *argv[])
   // SimuAn sa(gm);
   // sa.simulatedAnnealing();
 
-  SimAnnMan sa(gm);
+  SimAnnMan sa(gm, folder);
   sa.runSimulatedAnnealing(100, 0.97);
 
   gm = sa.bestModel;
-  auto ret = optimize(gm, "../points/");
+  auto ret = optimize(gm, "");
 
   auto cell_angles = get_angles(ret, gm);
   GridModel gm_active = gm.addActiveCells();
-  auto active_ret = optimizeActive(gm_active, cell_angles, "../angle_points/");
+  auto active_ret = optimizeActive(gm_active, cell_angles, pointsFolder, anglesFolder);
 
   // Code for 2x2 test case with each cell actuating at different times
   /**
@@ -105,10 +113,10 @@ int main(int argc, char *argv[])
   auto active_ret = optimizeActive(gm, cell_angles, "../angle_points/");
   **/
 
-  Animation original(gm, ret, 2, gm.targets);
+  // Animation original(gm, ret, 2, gm.targets);
   Animation animation(gm_active, active_ret, 2, gm.targets);
   // Animation animation(sa.best_model, sa.best_res);
 
-  original.animate();
+  // original.animate();
   animation.animate();
 }

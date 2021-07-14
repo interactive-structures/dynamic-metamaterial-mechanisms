@@ -125,7 +125,7 @@ optimize(const GridModel &model, std::string pointDirectory = "");
 
 EXPORT_DLL_COMMAND
 std::vector<GridResult>
-optimizeActive(const GridModel &model, std::vector<std::vector<double> > cell_angles, std::string pointDirectory = "");
+optimizeActive(const GridModel &model, std::vector<std::vector<double> > cell_angles, std::string pointDirectory = "", std::string angleDirectory = "");
 
 EXPORT_DLL_COMMAND
 Eigen::Vector2d *
