@@ -1,10 +1,14 @@
 #include "SimAnnMan.hpp"
 #include <time.h>
+#include <fstream>
 
 void SimAnnMan::runSimulatedAnnealing (int maxIterations, double coolingFactor)
 {
   double startTemp = maxIterations / 3.0;
   srand(time(NULL)); // Initialize rng
+  std::ofstream objOutFile;
+  objOutFile.open("../objectives/objectives", std::ofstream::out | std::ofstream::trunc);
+  objOutFile.close();
 
   for (int i = 0; i < maxIterations; i++) {
     // Create candidate model
@@ -19,7 +23,7 @@ void SimAnnMan::runSimulatedAnnealing (int maxIterations, double coolingFactor)
 
     // Calculate simulated annealing values
     double newError = calcObj(candidate);
-    double objective = 1.0 / calcObj(candidate);
+    double objective = 1.0 / newError;
     double forceAccept = 1.0 / (1.0 + exp(objective / (startTemp * pow(coolingFactor, i))));
 
     std::cout << "Iteration " << i << " Error: " << newError << ". ";
@@ -58,32 +62,38 @@ double SimAnnMan::calcObj(GridModel candidate)
     {
         pathObjective += re.objError;
     }
+    pathObjective = pathObjective / ret.size();
 
     // from dof
-    dofObjective += candidate.constraintGraph.size();
+    dofObjective = candidate.constraintGraph.size() / (2 * sqrt(candidate.cells.size()));
 
     // from angles
-    std::vector<std::vector<double> > angles;
-    for (auto frame : ret)
-    {
-      std::vector<double> anglesThisFrame;
-      for (auto cell : candidate.cells)
-      {
-        Eigen::Vector2d vec1 = frame.points[cell.vertices[1]] - frame.points[cell.vertices[0]];
-        Eigen::Vector2d vec2 = frame.points[cell.vertices[3]] - frame.points[cell.vertices[0]];
-        double angle = std::atan2(vec1[0] * vec2[1] - vec1[1] * vec2[0], vec1.dot(vec2));
-        anglesThisFrame.push_back(angle);
-      }
-      angles.push_back(anglesThisFrame);
-    }
-    for (int i = 1; i < angles.size(); i++)
-    {
-      for (int j = 0; j < angles[1].size(); j++)
-      {
-        angleObjective += std::abs(angles[i-1][j] - angles[i][j]);
-      }
-    }
+    // std::vector<std::vector<double> > angles;
+    // for (auto frame : ret)
+    // {
+    //   std::vector<double> anglesThisFrame;
+    //   for (auto cell : candidate.cells)
+    //   {
+    //     Eigen::Vector2d vec1 = frame.points[cell.vertices[1]] - frame.points[cell.vertices[0]];
+    //     Eigen::Vector2d vec2 = frame.points[cell.vertices[3]] - frame.points[cell.vertices[0]];
+    //     double angle = std::atan2(vec1[0] * vec2[1] - vec1[1] * vec2[0], vec1.dot(vec2));
+    //     anglesThisFrame.push_back(angle);
+    //   }
+    //   angles.push_back(anglesThisFrame);
+    // }
+    // for (int i = 1; i < angles.size(); i++)
+    // {
+    //   for (int j = 0; j < angles[1].size(); j++)
+    //   {
+    //     angleObjective += std::abs(angles[i-1][j] - angles[i][j]);
+    //   }
+    // }
 
-    objective = 1.0 * pathObjective + 1.0 * dofObjective + 0.05 * angleObjective;
+
+    std::ofstream objOutFile;
+    objOutFile.open("../objectives/objectives", std::ios_base::app);
+    objOutFile << pathObjective << " " << dofObjective << "\n";
+    objOutFile.close();
+    objective = pathObjective + 0.2 * dofObjective * dofObjective + 0.0 * angleObjective;
     return objective;
 }

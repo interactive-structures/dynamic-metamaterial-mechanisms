@@ -1,5 +1,5 @@
 #num_vertices #num_cells #num_anchors #index_inputvertex #num_inputpoints #index_outputvertex #num_outputpoints
-16 9 1 8 50 -1 0 
+16 9 2 8 50 -1 0 
 
 #vertices
 2 2
@@ -20,7 +20,7 @@
 5 3
 
 #anchors
-0
+0 1
 
 #cells [type s=shear r=rigid]
 s 0 1 2 3 

@@ -8,6 +8,7 @@
 #/libigl
 src/points
 src/angle_points
+src/objectives
 
 # Compiled Object files
 *.slo
