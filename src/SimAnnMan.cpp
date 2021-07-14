@@ -2,6 +2,7 @@
 #include <time.h>
 #include <fstream>
 #include <queue>
+#include "Timer.hpp"
 
 using namespace std;
 
@@ -33,6 +34,7 @@ void SimAnnMan::runSimulatedAnnealing(int maxIterations, double coolingFactor)
   std::ofstream objOutFile;
   objOutFile.open("../objectives/objectives", std::ofstream::out | std::ofstream::trunc);
   objOutFile.close();
+  Timer timer("timer"); // Initialize timer
   queue<double> err;
   int window = 10;
   double th = 0.001;
@@ -57,7 +59,7 @@ void SimAnnMan::runSimulatedAnnealing(int maxIterations, double coolingFactor)
     double objective = 1.0 / newError;
     double forceAccept = 1.0 / (1.0 + exp(objective / (startTemp * pow(coolingFactor, i))));
 
-    std::cout << "Iteration " << i << " Error: " << newError << ". ";
+    // std::cout << "Iteration " << i << " Error: " << newError << ". ";
     if (err.size() < window)
     {
       err.push(newError);
@@ -68,7 +70,7 @@ void SimAnnMan::runSimulatedAnnealing(int maxIterations, double coolingFactor)
       err.pop();
       if (getVariane(err) < th)
       {
-        cout << "jump" << endl;
+        // cout << "jump" << endl;
         continue;
       }
     }
@@ -78,26 +80,29 @@ void SimAnnMan::runSimulatedAnnealing(int maxIterations, double coolingFactor)
     {
       workingModel = candidate;
       workingError = newError;
-      std::cout << "Update Working. ";
+      // std::cout << "Update Working. ";
       if (newError < minError)
       {
         bestModel = GridModel(candidate);
         minError = newError;
-        std::cout << "New Best.";
+        // std::cout << "New Best.";
       }
-      std::cout << std::endl;
+      // std::cout << std::endl;
     }
     else if ((double)rand() / RAND_MAX < forceAccept)
     {
       workingModel = candidate;
       workingError = newError;
-      std::cout << "Force Accepted: " << forceAccept << std::endl;
+      // std::cout << "Force Accepted: " << forceAccept << std::endl;
     }
     else
     {
-      std::cout << "Not Accepted: " << forceAccept << std::endl;
+      // std::cout << "Not Accepted: " << forceAccept << std::endl;
     }
   }
+
+  int elapsed = timer.seconds();
+  std::cout << "Simulated Annealing completed in " << elapsed << " seconds." << std::endl;
 }
 
 double SimAnnMan::calcObj(GridModel candidate)

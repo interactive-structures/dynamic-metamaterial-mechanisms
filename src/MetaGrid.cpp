@@ -640,7 +640,7 @@ MetaGrid::MetaGrid(const GridModel &model)
     // constraints
     const int numInputs = model.inputs.size();
     assert(model.inputPaths.size() == numInputs);
-    std::cout << numInputs << std::endl;
+    // std::cout << numInputs << std::endl;
 
     for (int i = 0; i < numInputs; ++i)
         constrained.push_back(make_pair(model.inputs[i],
@@ -648,7 +648,7 @@ MetaGrid::MetaGrid(const GridModel &model)
 
     const int numTargets = model.targets.size();
     assert(model.targetPaths.size() == numTargets);
-    std::cout << numTargets << std::endl;
+    // std::cout << numTargets << std::endl;
 
     for (int i = 0; i < numTargets; ++i)
         constrained.push_back(make_pair(model.targets[i],

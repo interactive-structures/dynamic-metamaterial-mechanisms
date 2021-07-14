@@ -328,7 +328,7 @@ void GridModel::mergeComponents(bool toActive)
 
 		if (constraintGraph.size() < 2)
 		{
-			std::cout << "Failed to merge: not enough components remain" << std::endl;
+			// std::cout << "Failed to merge: not enough components remain" << std::endl;
 			break;
 		}
 
@@ -367,17 +367,17 @@ void GridModel::mergeComponents(bool toActive)
 			}
 		}
 
-		std::cout << "Trying to merge " << comp1 << " and " << comp2 << ". ";
-		std::cout << "Candidates:";
-		for (auto c : candidateCells)
-		{
-			std::cout << " (Cell: " << c.vertices[0] << ", " << c.vertices[1] << ", " << c.vertices[2] << ", " << c.vertices[3] << ")";
-		}
-		std::cout << std::endl;
+		// std::cout << "Trying to merge " << comp1 << " and " << comp2 << ". ";
+		// std::cout << "Candidates:";
+		// for (auto c : candidateCells)
+		// {
+		// 	std::cout << " (Cell: " << c.vertices[0] << ", " << c.vertices[1] << ", " << c.vertices[2] << ", " << c.vertices[3] << ")";
+		// }
+		// std::cout << std::endl;
 
 		if (candidateCells.size() < 1)
 		{
-			std::cout << "Failed to merge: no cells common to both components." << std::endl;
+			// std::cout << "Failed to merge: no cells common to both components." << std::endl;
 			continue;
 		}
 
@@ -385,10 +385,10 @@ void GridModel::mergeComponents(bool toActive)
 
 		if (toActive) {
 			std::find(cells.begin(), cells.end(), cellToMerge)->type = ACTIVE;
-			std::cout << "New Active (Cell: " << cellToMerge.vertices[0] << ", " << cellToMerge.vertices[1] << ", " << cellToMerge.vertices[2] << ", " << cellToMerge.vertices[3] << ")" << std::endl;
+			// std::cout << "New Active (Cell: " << cellToMerge.vertices[0] << ", " << cellToMerge.vertices[1] << ", " << cellToMerge.vertices[2] << ", " << cellToMerge.vertices[3] << ")" << std::endl;
 		} else {
 			std::find(cells.begin(), cells.end(), cellToMerge)->type = RIGID;
-			std::cout << "Merging with (Cell: " << cellToMerge.vertices[0] << ", " << cellToMerge.vertices[1] << ", " << cellToMerge.vertices[2] << ", " << cellToMerge.vertices[3] << ")" << std::endl;
+			// std::cout << "Merging with (Cell: " << cellToMerge.vertices[0] << ", " << cellToMerge.vertices[1] << ", " << cellToMerge.vertices[2] << ", " << cellToMerge.vertices[3] << ")" << std::endl;
 		}
 		
 		generateConstraintGraph();
@@ -422,14 +422,14 @@ void GridModel::splitComponents()
 	// Select component and collect candidate cells
 	if (splitCandidateComponents.size() < 1)
 	{
-		std::cout << "Unable to split: no valid candidate components" << std::endl;
+		// std::cout << "Unable to split: no valid candidate components" << std::endl;
 		return;
 	}
 
 	std::vector<GridCell> splitCandidates;
 	int comp = rand() % splitCandidateComponents.size();
 
-	std::cout << "Trying to split " << comp << std::endl;
+	// std::cout << "Trying to split " << comp << std::endl;
 	std::vector<std::pair<GridCell, std::set<GridModel::Edge>>> selectedComponent = splitCandidateComponents[comp];
 	for (auto constraint : selectedComponent)
 	{
@@ -452,7 +452,7 @@ void GridModel::splitComponents()
 
 		splitCandidates.erase(std::find(splitCandidates.begin(), splitCandidates.end(), toSplit));
 		std::find(cells.begin(), cells.end(), toSplit)->type = SHEAR;
-		std::cout << "Splitting (Cell: " << toSplit.vertices[0] << ", " << toSplit.vertices[1] << ", " << toSplit.vertices[2] << ", " << toSplit.vertices[3] << ")" << std::endl;
+		// std::cout << "Splitting (Cell: " << toSplit.vertices[0] << ", " << toSplit.vertices[1] << ", " << toSplit.vertices[2] << ", " << toSplit.vertices[3] << ")" << std::endl;
 
 		generateConstraintGraph();
 		newDOFs = constraintGraph.size();
