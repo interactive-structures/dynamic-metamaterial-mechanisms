@@ -4,6 +4,7 @@
 #include "SimAnnMan.hpp"
 #include <fstream>
 #include <float.h>
+#include <fstream>
 #include <filesystem>
 
 #define PI 3.14159265
@@ -54,6 +55,63 @@ std::vector<std::vector<double> > get_angles(std::vector<GridResult> res, GridMo
   return angles;
 }
 
+void storeModel(GridModel gm, std::string outFolder) {
+  std::ofstream gridOutFile;
+  gridOutFile.open(outFolder + "output_model", std::ofstream::out | std::ofstream::trunc);
+
+  gridOutFile << "#num_vertices #num_cells #num_anchors #index_inputvertex #num_inputpoints #index_outputvertex #num_outputpoints\n";
+  gridOutFile << gm.points.size() << " " << gm.cells.size() << " " << gm.anchors.size() << " ";
+  if (gm.targets.size() != 0) {
+    gridOutFile << gm.targets[0] << " " << gm.targetPaths[0].size() << " ";
+  } else {
+    gridOutFile << "-1 0 ";
+  }
+  
+  if (gm.inputs.size() != 0) {
+    gridOutFile << gm.inputs[0] << " " << gm.inputPaths[0].size() << " \n";
+  } else {
+    gridOutFile << "-1 0 \n";
+  }
+
+  gridOutFile << "\n#vertices\n";
+  for (auto p : gm.points) {
+    gridOutFile << p[0] << " " << p[1] << "\n";
+  }
+
+  gridOutFile << "\n#anchors\n";
+  for (auto a : gm.anchors) {
+    gridOutFile << a << " ";
+  }
+  gridOutFile << "\n";
+
+  gridOutFile << "\n#cells [type s=shear r=rigid a=actuating]\n";
+  for (auto c : gm.cells) {
+    if (c.type == RIGID) {
+      gridOutFile << "r ";
+    } else if (c.type == SHEAR) {
+      gridOutFile << "s ";
+    } else if (c.type == ACTIVE) {
+      gridOutFile << "a ";
+    }
+    gridOutFile << c.vertices[0] << " " << c.vertices[1] << " " << c.vertices[2] << " " << c.vertices[3] << " \n";
+  }
+
+  if (gm.targets.size() != 0) {
+    gridOutFile << "\n#input path\n";
+    for (auto p : gm.targetPaths[0]) {
+      gridOutFile << p[0] << " " << p[1] << "\n";
+    }
+  }
+
+  if (gm.inputs.size() != 0) {
+    gridOutFile << "\n#output path\n";
+    for (auto p : gm.inputPaths[0]) {
+      gridOutFile << p[0] << " " << p[1] << "\n";
+    }
+  }
+    
+  gridOutFile.close();
+}
 int main(int argc, char *argv[])
 {
   GridModel gm;
@@ -81,6 +139,7 @@ int main(int argc, char *argv[])
   auto cell_angles = get_angles(ret, gm);
   GridModel gm_active = gm.addActiveCells();
   auto active_ret = optimizeActive(gm_active, cell_angles, pointsFolder, anglesFolder);
+  storeModel(gm_active, folder);
 
   // Code for 2x2 test case with each cell actuating at different times
   /**
