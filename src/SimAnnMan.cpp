@@ -38,6 +38,16 @@ void SimAnnMan::runSimulatedAnnealing(int maxIterations, double coolingFactor)
     objOutFile << "Path Accuracy,DOFs,Error\n";
     objOutFile.close();
   }
+  double objPathNormSum = 0;
+  for (int target = 0; target < workingModel.targetPaths.size(); target++) {
+    double pathNorm = 0;
+    for (int i = 1; i < workingModel.targetPaths[target].size(); i++) {
+      double dx = workingModel.targetPaths[target][i][0] - workingModel.targetPaths[target][i-1][0];
+      double dy = workingModel.targetPaths[target][i][1] - workingModel.targetPaths[target][i-1][1];
+      pathNorm += sqrt(dx * dx + dy * dy);
+    }
+    objPathNormSum += pathNorm / (workingModel.targetPaths[target].size());
+  }
   
   queue<double> err;
   int window = 10;
@@ -59,7 +69,7 @@ void SimAnnMan::runSimulatedAnnealing(int maxIterations, double coolingFactor)
     candidate.generateConstraintGraph();
 
     // Calculate simulated annealing values
-    double newError = calcObj(candidate);
+    double newError = calcObj(candidate, objPathNormSum);
     double objective = 1.0 / newError;
     double forceAccept = 1.0 / (1.0 + exp(objective / (startTemp * pow(coolingFactor, i))));
 
@@ -109,7 +119,7 @@ void SimAnnMan::runSimulatedAnnealing(int maxIterations, double coolingFactor)
   std::cout << "Simulated Annealing completed in " << elapsed << " seconds." << std::endl;
 }
 
-double SimAnnMan::calcObj(GridModel candidate)
+double SimAnnMan::calcObj(GridModel candidate, double pathNormSum)
 {
   double objective = 0;
   double pathObjective = 0;
@@ -123,17 +133,6 @@ double SimAnnMan::calcObj(GridModel candidate)
     pathObjective += re.objError;
   }
   pathObjective = pathObjective / ret.size();
-
-  double pathNormSum = 0;
-  for (int target = 0; target < candidate.targetPaths.size(); target++) {
-    double pathNorm = 0;
-    for (int i = 1; i < candidate.targetPaths[target].size(); i++) {
-      double dx = candidate.targetPaths[target][i][0] - candidate.targetPaths[target][i-1][0];
-      double dy = candidate.targetPaths[target][i][1] - candidate.targetPaths[target][i-1][1];
-      pathNorm += sqrt(dx * dx + dy * dy);
-    }
-    pathNormSum += pathNorm / (candidate.targetPaths[target].size());
-  }
   pathObjective = pathObjective / pathNormSum;
 
   // from dof

@@ -37,7 +37,7 @@ public:
   void runSimulatedAnnealing (int maxIterations = 100, double coolingFactor = 0.99);
 
 private:
-  double calcObj(GridModel candidate);
+  double calcObj(GridModel candidate, double pathNormSum);
 };
 
 #endif
