@@ -9,6 +9,7 @@
 src/points
 src/angle_points
 src/objectives
+src/results/*
 
 # Compiled Object files
 *.slo

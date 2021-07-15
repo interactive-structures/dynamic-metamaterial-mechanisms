@@ -124,6 +124,18 @@ double SimAnnMan::calcObj(GridModel candidate)
   }
   pathObjective = pathObjective / ret.size();
 
+  double pathNormSum = 0;
+  for (int target = 0; target < candidate.targetPaths.size(); target++) {
+    double pathNorm = 0;
+    for (int i = 1; i < candidate.targetPaths[target].size(); i++) {
+      double dx = candidate.targetPaths[target][i][0] - candidate.targetPaths[target][i-1][0];
+      double dy = candidate.targetPaths[target][i][1] - candidate.targetPaths[target][i-1][1];
+      pathNorm += sqrt(dx * dx + dy * dy);
+    }
+    pathNormSum += pathNorm / (candidate.targetPaths[target].size());
+  }
+  pathObjective = pathObjective / pathNormSum;
+
   // from dof
   dofObjective = candidate.constraintGraph.size() / (2 * sqrt(candidate.cells.size()));
 
@@ -151,7 +163,7 @@ double SimAnnMan::calcObj(GridModel candidate)
 
     std::ofstream objOutFile;
     objOutFile.open(outFolder + "objectives.csv", std::ios_base::app);
-    objective = pathObjective + 0.2 * dofObjective * dofObjective + 0.0 * angleObjective;
+    objective = pathObjective + dofObjective * dofObjective + 0.0 * angleObjective;
     objOutFile << pathObjective << "," << dofObjective << "," << objective <<  "\n";
     objOutFile.close();
     return objective;

@@ -135,7 +135,7 @@ int main(int argc, char *argv[])
 {
   GridModel gm;
   gm.loadFromFile("../cells_2x2_separate.txt");
-  std::string folder = "../separate/";
+  std::string folder = "../results/separate/";
   std::string pointsFolder = folder + "points/";
   std::string anglesFolder = folder + "angles/";
 
