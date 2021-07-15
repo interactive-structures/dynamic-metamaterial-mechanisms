@@ -9,9 +9,7 @@
 src/points
 src/angle_points
 src/objectives
-src/results/line
-src/results/quad
-src/results/spiral
+src/results/*
 
 # Compiled Object files
 *.slo
