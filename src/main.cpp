@@ -192,7 +192,7 @@ int main(int argc, char *argv[])
   **/
 
   // Animation original(gm, ret, 2, gm.targets);
-  Animation animation(gm_active, active_ret, 2, gm.targets);
+  Animation animation(gm_active, active_ret, gm.targetPaths, 2, gm.targets);
   // Animation animation(sa.best_model, sa.best_res);
 
   // original.animate();
@@ -203,6 +203,6 @@ int main(int argc, char *argv[])
   gmFile.loadFromFile(folder + "output_model");
   auto file_ret = optimizeActive(gmFile, anglesFromFolder(anglesFolder), "", "");
 
-  Animation test(gmFile, file_ret, 2, gm.targets);
+  Animation test(gmFile, file_ret, gm.targetPaths, 2, gm.targets);
   test.animate();
 }

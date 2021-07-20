@@ -17,8 +17,9 @@ public:
   int frame;
   int rate;
   std::vector<int> to_trace;
+  std::vector<std::vector<Eigen::Vector2d>> target_paths;
 
-  Animation(GridModel model, std::vector<GridResult> results, int framerate=1, std::vector<int> traces=std::vector<int>())
+  Animation(GridModel model, std::vector<GridResult> results, std::vector<std::vector<Eigen::Vector2d>> targets, int framerate=1, std::vector<int> traces=std::vector<int>())
   {
     frame = 0;
     rate = framerate;
@@ -26,6 +27,7 @@ public:
     res = results;
     grid_edges = get_edge_matrix();
     to_trace = traces;
+    target_paths = targets;
   }
   std::vector<std::vector<double>> get_angles();
   void animate();

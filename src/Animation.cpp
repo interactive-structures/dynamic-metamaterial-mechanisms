@@ -59,7 +59,18 @@ std::tuple<Eigen::MatrixXd, Eigen::MatrixXi, Eigen::MatrixXd, Eigen::MatrixXd> A
   frame = frame  % res.size(); // properly bound frame
 
   // Initialize Points
-  Eigen::MatrixXd P = Eigen::MatrixXd::Zero(res[frame].points.size() + to_trace.size() * res.size(), 3);
+  int points_size = res[frame].points.size() + to_trace.size() * res.size();
+  for (auto path : target_paths) {
+    points_size += path.size();
+  }
+  Eigen::MatrixXd P = Eigen::MatrixXd::Zero(points_size, 3);
+
+  // Initialize Edges
+  int edges_size = grid_edges.rows() + to_trace.size() * (res.size() - 1);
+  for (auto path : target_paths) {
+    edges_size += path.size() - 1;
+  }
+  Eigen::MatrixXi E = Eigen::MatrixXi::Zero(edges_size, 2);
 
   // Points on grid
   for (int i = 0; i < res[frame].points.size(); i++)
@@ -69,32 +80,55 @@ std::tuple<Eigen::MatrixXd, Eigen::MatrixXi, Eigen::MatrixXd, Eigen::MatrixXd> A
     P(i, 2) = 0;
   }
 
-  // Points on path
+  // Edges on grid
+  E.topRows(grid_edges.rows()) = grid_edges;
+
+  // Traced paths
   for (int i = 0; i < to_trace.size(); i++)
-  { // ith input path
+  { // ith traced path
     for (int j = 0; j < res.size(); j++)
     { // at time j
       P(res[frame].points.size() + i * res.size() + j, 0) = res[j].points[to_trace[i]](0);
       P(res[frame].points.size() + i * res.size() + j, 1) = res[j].points[to_trace[i]](1);
       P(res[frame].points.size() + i * res.size() + j, 2) = 0;
+      if (j > 0) {
+        E(grid_edges.rows() + i * res.size() + (j-1), 0) = res[frame].points.size() + i * res.size() + j - 1;
+        E(grid_edges.rows() + i * res.size() + (j-1), 1) = res[frame].points.size() + i * res.size() + j;
+      }
     }
   }
 
-  // Initialize Edges
-  Eigen::MatrixXi E = Eigen::MatrixXi::Zero(grid_edges.rows() + to_trace.size() * (res.size() - 1), 2);
-
-  // Edges on grid
-  E.topRows(grid_edges.rows()) = grid_edges;
-
-  // Edges on path
-  for (int i = 0; i < to_trace.size(); i++)
-  { // ith input path
-    for (int j = 0; j < res.size() - 1; j++)
-    { // edges between time j and j+1
-      E(grid_edges.rows() + i * res.size() + j, 0) = res[frame].points.size() + i * res.size() + j;
-      E(grid_edges.rows() + i * res.size() + j, 1) = res[frame].points.size() + i * res.size() + j + 1;
+  // Target paths
+  int i = 0;
+  int j = 0;
+  for (auto path : target_paths)
+  {
+    bool first = true;
+    for (auto point : path)
+    {
+      P(res[frame].points.size() + to_trace.size() * res.size() + i, 0) = point[0];
+      P(res[frame].points.size() + to_trace.size() * res.size() + i, 1) = point[1];
+      P(res[frame].points.size() + to_trace.size() * res.size() + i, 2) = 0;
+      if (!first) {
+        E(grid_edges.rows() + to_trace.size() * (res.size() - 1) + j, 0) = res[frame].points.size() + to_trace.size() * res.size() + i - 1;
+        E(grid_edges.rows() + to_trace.size() * (res.size() - 1) + j, 1) = res[frame].points.size() + to_trace.size() * res.size() + i;
+        j++;
+      } else {
+        first = false;
+      }
+      i++;
     }
   }
+
+  // // Edges on traced paths
+  // for (int i = 0; i < to_trace.size(); i++)
+  // { // ith traced path
+  //   for (int j = 0; j < res.size() - 1; j++)
+  //   { // edges between time j and j+1
+  //     E(grid_edges.rows() + i * res.size() + j, 0) = res[frame].points.size() + i * res.size() + j;
+  //     E(grid_edges.rows() + i * res.size() + j, 1) = res[frame].points.size() + i * res.size() + j + 1;
+  //   }
+  // }
 
   // Point Colors
   Eigen::MatrixXd PC = Eigen::MatrixXd::Zero(res[frame].points.size(), 3);
@@ -104,8 +138,10 @@ std::tuple<Eigen::MatrixXd, Eigen::MatrixXi, Eigen::MatrixXd, Eigen::MatrixXd> A
   }
 
   // Edge Colors
-  Eigen::MatrixXd EC = Eigen::MatrixXd::Zero(grid_edges.rows() + to_trace.size() * (res.size() - 1), 3);
-  EC.bottomLeftCorner(to_trace.size() * (res.size() - 1), 1).setOnes();
+  Eigen::MatrixXd EC = Eigen::MatrixXd::Zero(edges_size, 3);
+  EC.bottomLeftCorner(edges_size - grid_edges.rows(), 1).setOnes();
+  EC.bottomLeftCorner(edges_size - grid_edges.rows() - to_trace.size() * (res.size() - 1), 1).setZero();
+  EC.bottomRightCorner(edges_size - grid_edges.rows() - to_trace.size() * (res.size() - 1), 1).setOnes();
 
   frame = (frame + 1) % res.size(); // Increment frame
 
