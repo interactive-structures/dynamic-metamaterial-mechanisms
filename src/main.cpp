@@ -143,12 +143,6 @@ int main(int argc, char *argv[])
   std::filesystem::create_directory(pointsFolder);
   std::filesystem::create_directory(anglesFolder);
 
-  //gm.generateConstraintGraph();
-  //auto ret = optimize(gm, "../points/");
-
-  // SimuAn sa(gm);
-  // sa.simulatedAnnealing();
-
   SimAnnMan sa(gm, folder);
   sa.runSimulatedAnnealing(100, 0.97);
 
@@ -160,48 +154,38 @@ int main(int argc, char *argv[])
   auto active_ret = optimizeActive(gm_active, cell_angles, pointsFolder, anglesFolder);
   storeModel(gm_active, folder);
 
-  // Code for 2x2 test case with each cell actuating at different times
-  /**
-  GridModel gm;
-  gm.loadFromFile("../cells_2x2.txt");
-  gm.generateConstraintGraph();
-  GridModel gm_active = gm.addActiveCells();
-  std::vector<std::vector<double>> cell_angles;
-  for (int i = 0; i <= 25; i++)
-  {
-    std::vector<double> angles (4, PI/2.0);
-    angles[0] = (PI/2.0) - (PI/4.0) * (i/25.0);
-    cell_angles.push_back(angles);
-  }
-  for (int i = 0; i <= 25; i++)
-  {
-    std::vector<double> angles (4, PI/2.0);
-    angles[0] = (PI/4.0);
-    angles[2] = (PI/2.0) - (PI/4.0) * (i/25.0);
-    cell_angles.push_back(angles);
-  }
-  for (int i = 0; i <= 25; i++)
-  {
-    std::vector<double> angles (4, PI/2.0);
-    angles[0] = (PI/4.0);
-    angles[2] = (PI/4.0);
-    angles[3] = (PI/2.0) - (PI/4.0) * (i/25.0);
-    cell_angles.push_back(angles);
-  }
-  auto active_ret = optimizeActive(gm, cell_angles, "../angle_points/");
-  **/
-
-  // Animation original(gm, ret, 2, gm.targets);
   Animation animation(gm_active, active_ret, gm.targetPaths, 2, gm.targets);
-  // Animation animation(sa.best_model, sa.best_res);
-
-  // original.animate();
   animation.animate();
 
   // Verify everything works by constructing gridmodel and angles from files
   GridModel gmFile;
   gmFile.loadFromFile(folder + "output_model");
   auto file_ret = optimizeActive(gmFile, anglesFromFolder(anglesFolder), "", "");
+
+  // Write angles of active cells as csv to new file
+  // std::ofstream activeAngleOutFile;
+  // activeAngleOutFile.open(anglesFolder + "active.csv", std::ofstream::out | std::ofstream::trunc);
+  // std::vector<int> activeCells;
+  // std::string delim = "";
+  // for (int i = 0; i < gmFile.cells.size(); i++) {
+  //   if (gmFile.cells[i].type == ACTIVE) {
+  //     activeCells.push_back(i);
+  //     activeAngleOutFile << delim << "Cell " << i;
+  //     delim = ",";
+  //   }
+  // }
+  // activeAngleOutFile << "\n";
+  // auto angles = anglesFromFolder(anglesFolder);
+  // for (auto frame : angles) {
+  //   delim = "";
+  //   for (int cell : activeCells) {
+  //     activeAngleOutFile << delim << frame[cell];
+  //     delim = ",";
+  //   }
+  //   activeAngleOutFile << "\n";
+  // }
+  // activeAngleOutFile.close();
+
 
   Animation test(gmFile, file_ret, gm.targetPaths, 2, gm.targets);
   test.animate();
