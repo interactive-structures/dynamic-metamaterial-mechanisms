@@ -6,6 +6,83 @@
 
 using namespace std;
 
+void storeModelcpy(GridModel gm, std::string outFolder, int restart)
+{
+  std::ofstream gridOutFile;
+  gridOutFile.open(outFolder + "output_model" + to_string(restart), std::ofstream::out | std::ofstream::trunc);
+
+  gridOutFile << "#num_vertices #num_cells #num_anchors #index_inputvertex #num_inputpoints #index_outputvertex #num_outputpoints\n";
+  gridOutFile << gm.points.size() << " " << gm.cells.size() << " " << gm.anchors.size() << " ";
+  if (gm.targets.size() != 0)
+  {
+    gridOutFile << gm.targets[0] << " " << gm.targetPaths[0].size() << " ";
+  }
+  else
+  {
+    gridOutFile << "-1 0 ";
+  }
+
+  if (gm.inputs.size() != 0)
+  {
+    gridOutFile << gm.inputs[0] << " " << gm.inputPaths[0].size() << " \n";
+  }
+  else
+  {
+    gridOutFile << "-1 0 \n";
+  }
+
+  gridOutFile << "\n#vertices\n";
+  for (auto p : gm.points)
+  {
+    gridOutFile << p[0] << " " << p[1] << "\n";
+  }
+
+  gridOutFile << "\n#anchors\n";
+  for (auto a : gm.anchors)
+  {
+    gridOutFile << a << " ";
+  }
+  gridOutFile << "\n";
+
+  gridOutFile << "\n#cells [type s=shear r=rigid a=actuating]\n";
+  for (auto c : gm.cells)
+  {
+    if (c.type == RIGID)
+    {
+      gridOutFile << "r ";
+    }
+    else if (c.type == SHEAR)
+    {
+      gridOutFile << "s ";
+    }
+    else if (c.type == ACTIVE)
+    {
+      gridOutFile << "a ";
+    }
+    gridOutFile << c.vertices[0] << " " << c.vertices[1] << " " << c.vertices[2] << " " << c.vertices[3] << " \n";
+  }
+
+  if (gm.targets.size() != 0)
+  {
+    gridOutFile << "\n#input path\n";
+    for (auto p : gm.targetPaths[0])
+    {
+      gridOutFile << p[0] << " " << p[1] << "\n";
+    }
+  }
+
+  if (gm.inputs.size() != 0)
+  {
+    gridOutFile << "\n#output path\n";
+    for (auto p : gm.inputPaths[0])
+    {
+      gridOutFile << p[0] << " " << p[1] << "\n";
+    }
+  }
+
+  gridOutFile.close();
+}
+
 double getVariane(queue<double> err)
 {
   queue<double> cp1 = err;
@@ -30,28 +107,36 @@ double getVariane(queue<double> err)
 void SimAnnMan::runSimulatedAnnealing(int maxIterations, double coolingFactor)
 {
   double startTemp = maxIterations / 3.0;
-  srand(time(NULL)); // Initialize rng
+  srand(time(NULL));    // Initialize rng
   Timer timer("timer"); // Initialize timer
-  if (!outFolder.empty()) { // Intialize objective file
+  if (!outFolder.empty())
+  { // Intialize objective file
     std::ofstream objOutFile;
     objOutFile.open(outFolder + "objectives.csv", std::ofstream::out | std::ofstream::trunc);
     objOutFile << "Path Accuracy,DOFs,Error\n";
     objOutFile.close();
   }
+
+  std::string folder = "../results/separate/simAnn/";
+  std::filesystem::create_directory(folder);
+
   double objPathNormSum = 0;
-  for (int target = 0; target < workingModel.targetPaths.size(); target++) {
+  for (int target = 0; target < workingModel.targetPaths.size(); target++)
+  {
     double pathNorm = 0;
-    for (int i = 1; i < workingModel.targetPaths[target].size(); i++) {
-      double dx = workingModel.targetPaths[target][i][0] - workingModel.targetPaths[target][i-1][0];
-      double dy = workingModel.targetPaths[target][i][1] - workingModel.targetPaths[target][i-1][1];
+    for (int i = 1; i < workingModel.targetPaths[target].size(); i++)
+    {
+      double dx = workingModel.targetPaths[target][i][0] - workingModel.targetPaths[target][i - 1][0];
+      double dy = workingModel.targetPaths[target][i][1] - workingModel.targetPaths[target][i - 1][1];
       pathNorm += sqrt(dx * dx + dy * dy);
     }
     objPathNormSum += pathNorm / (workingModel.targetPaths[target].size());
   }
-  
+
   queue<double> err;
   int window = 10;
-  double th = 0.001;
+  double th = 0.01;
+  int restart = 0;
 
   for (int i = 0; i < maxIterations; i++)
   {
@@ -84,7 +169,10 @@ void SimAnnMan::runSimulatedAnnealing(int maxIterations, double coolingFactor)
       err.pop();
       if (getVariane(err) < th)
       {
-        // cout << "jump" << endl;
+        cout << "jump" << endl;
+        GridModel active = candidate.addActiveCells();
+        storeModelcpy(active, folder, restart);
+        restart++;
         continue;
       }
     }
@@ -160,10 +248,10 @@ double SimAnnMan::calcObj(GridModel candidate, double pathNormSum)
   //   }
   // }
 
-    std::ofstream objOutFile;
-    objOutFile.open(outFolder + "objectives.csv", std::ios_base::app);
-    objective = pathObjective + dofObjective * dofObjective + 0.0 * angleObjective;
-    objOutFile << pathObjective << "," << dofObjective << "," << objective <<  "\n";
-    objOutFile.close();
-    return objective;
+  std::ofstream objOutFile;
+  objOutFile.open(outFolder + "objectives.csv", std::ios_base::app);
+  objective = pathObjective + dofObjective * dofObjective + 0.0 * angleObjective;
+  objOutFile << pathObjective << "," << dofObjective << "," << objective << "\n";
+  objOutFile.close();
+  return objective;
 }

@@ -10,6 +10,10 @@ src/points
 src/angle_points
 src/objectives
 src/results/*
+/eigen
+/glfw-3.3.4
+/points
+/src/coin
 
 # Compiled Object files
 *.slo
