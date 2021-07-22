@@ -3,6 +3,7 @@
 #include <fstream>
 #include <queue>
 #include "Timer.hpp"
+#include <filesystem>
 
 using namespace std;
 
@@ -117,7 +118,7 @@ void SimAnnMan::runSimulatedAnnealing(int maxIterations, double coolingFactor)
     objOutFile.close();
   }
 
-  std::string folder = "../results/separate/simAnn/";
+  std::string folder = outFolder + "simAnn/";
   std::filesystem::create_directory(folder);
 
   double objPathNormSum = 0;
