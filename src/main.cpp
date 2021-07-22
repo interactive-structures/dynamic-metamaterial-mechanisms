@@ -134,14 +134,19 @@ std::vector<std::vector<double> > anglesFromFolder(std::string anglesFolder)
 int main(int argc, char *argv[])
 {
   GridModel gm;
-  gm.loadFromFile("../inputs/cells_5x5_test.txt");
-  std::string folder = "../results/test/";
+  gm.loadFromFile("../inputs/cells_5x5_loops.txt");
+  std::string folder = "../results/loops/";
   std::string pointsFolder = folder + "points/";
   std::string anglesFolder = folder + "angles/";
 
   std::filesystem::create_directory(folder);
   std::filesystem::create_directory(pointsFolder);
   std::filesystem::create_directory(anglesFolder);
+
+  // auto ret1 = optimize(gm, "");
+  // Animation verify(gm, ret1, gm.targetPaths, 2, gm.targets);
+  // verify.animate();
+  // abort();
 
   SimAnnMan sa(gm, folder);
   sa.runSimulatedAnnealing(100, 0.97);
