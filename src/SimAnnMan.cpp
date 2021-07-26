@@ -105,6 +105,26 @@ double getVariane(queue<double> err)
   return var / (err.size() - 1);
 }
 
+GridModel generateRandomConfig(GridModel gm)
+{
+  int randTimes = 30;
+  srand(time(NULL)); // Initialize rng
+  GridModel cpy = GridModel(gm);
+  for (int i = 0; i < randTimes; i++)
+  {
+    if (cpy.constraintGraph.size() > 1 && rand() % 2 == 0)
+    {
+      cpy.mergeComponents();
+    }
+    else
+    {
+      cpy.splitComponents();
+    }
+  }
+  cpy.generateConstraintGraph();
+  return cpy;
+}
+
 void SimAnnMan::runSimulatedAnnealing(int maxIterations, double coolingFactor)
 {
   double startTemp = maxIterations / 3.0;
@@ -170,10 +190,11 @@ void SimAnnMan::runSimulatedAnnealing(int maxIterations, double coolingFactor)
       err.pop();
       if (getVariane(err) < th)
       {
-        cout << "jump" << endl;
+        // cout << "jump" << endl;
         GridModel active = candidate.addActiveCells();
         storeModelcpy(active, folder, restart);
         restart++;
+        workingModel = generateRandomConfig(workingModel);
         continue;
       }
     }

@@ -66,4 +66,11 @@ CMAKE_EXE_LINKER_FLAGS:STRING=-L../../ipopt/lib -lipopt
 |  |__src files and CMakeLists.txt
 |  |__cmake (dir)
 
-  
+```
+## Simulated Annealing Process
+
+1. Our error is divided into two parts: path accuracy error as a result of deviation from our desired path and a penalty on the degrees of freedom. We calculate our total error as a weighted sum of these two categories.
+2. We save our error during each iteration of the simulated annealing process. If for the past 10 iterations, the variance of the weighted error is less than some threshold (a hyperparameter we can set to adjust the frequeny of the restart), we can restart by generating a random configuration.
+3. During each restart, we will save our configuration before the restart.
+4. After a fixed number of iterations, we will produce an output configuration with the least weighted error.
+
