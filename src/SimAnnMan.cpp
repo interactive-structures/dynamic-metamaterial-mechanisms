@@ -141,6 +141,7 @@ void SimAnnMan::runSimulatedAnnealing(int maxIterations, double coolingFactor)
   std::string folder = outFolder + "simAnn/";
   std::filesystem::create_directory(folder);
 
+  // Get average step length for use in calculating objective
   double objPathNormSum = 0;
   for (int target = 0; target < workingModel.targetPaths.size(); target++)
   {
@@ -154,11 +155,13 @@ void SimAnnMan::runSimulatedAnnealing(int maxIterations, double coolingFactor)
     objPathNormSum += pathNorm / (workingModel.targetPaths[target].size());
   }
 
+  // initialize restart parameters
   queue<double> err;
   int window = 10;
   double th = 0.01;
   int restart = 0;
 
+  // optimization loop
   for (int i = 0; i < maxIterations; i++)
   {
     // Create candidate model
@@ -190,11 +193,35 @@ void SimAnnMan::runSimulatedAnnealing(int maxIterations, double coolingFactor)
       err.pop();
       if (getVariane(err) < th)
       {
-        // cout << "jump" << endl;
+        //cout << "jump" << i << endl;
         GridModel active = candidate.addActiveCells();
         storeModelcpy(active, folder, restart);
         restart++;
-        workingModel = generateRandomConfig(workingModel);
+
+        // Remake random
+        for (auto cell : workingModel.cells)
+        {
+          cell.type = SHEAR;
+        }
+        std::vector<int> toRigid;
+        while (toRigid.size() < sqrt(workingModel.cells.size()))
+        {
+          int candidate = rand() % workingModel.cells.size();
+          bool accept = true;
+          for (int i : toRigid)
+          {
+            if (i == candidate)
+            {
+              accept = false;
+              break;
+            }
+          }
+          if (accept) {toRigid.push_back(candidate);}
+        }
+        for (int i : toRigid)
+        {
+          workingModel.cells[i].type = RIGID;
+        }
         continue;
       }
     }

@@ -28,7 +28,36 @@ public:
 
   SimAnnMan (GridModel gm, std::string folder = "") {
     bestModel = GridModel(gm);
-    workingModel = GridModel(gm);
+
+    // All cells to shear
+    for (auto cell : bestModel.cells)
+    {
+      cell.type = SHEAR;
+    }
+
+    // Change some cells to rigid
+    std::vector<int> toRigid;
+    srand(time(NULL));
+    while (toRigid.size() < sqrt(bestModel.cells.size()))
+    {
+      int candidate = rand() % bestModel.cells.size();
+      bool accept = true;
+      for (int i : toRigid)
+      {
+        if (i == candidate)
+        {
+          accept = false;
+          break;
+        }
+      }
+      if (accept) {toRigid.push_back(candidate);}
+    }
+    for (int i : toRigid)
+    {
+      bestModel.cells[i].type = RIGID;
+    }
+
+    workingModel = GridModel(bestModel);
     minError = DBL_MAX;
     workingError = DBL_MAX;
     outFolder = folder;

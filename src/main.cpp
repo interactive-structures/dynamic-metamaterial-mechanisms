@@ -148,6 +148,7 @@ int main(int argc, char *argv[])
   // verify.animate();
   // abort();
 
+
   SimAnnMan sa(gm, folder);
   sa.runSimulatedAnnealing(100, 0.97);
 
@@ -161,6 +162,7 @@ int main(int argc, char *argv[])
 
   Animation animation(gm_active, active_ret, gm.targetPaths, 2, gm.targets);
   animation.animate();
+  
 
   // Verify everything works by constructing gridmodel and angles from files
   GridModel gmFile;
