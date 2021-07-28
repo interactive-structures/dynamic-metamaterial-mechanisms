@@ -139,6 +139,7 @@ void SimAnnMan::runSimulatedAnnealing(int maxIterations, double coolingFactor)
   }
 
   std::string folder = outFolder + "simAnn/";
+  std::filesystem::remove_all(folder);
   std::filesystem::create_directory(folder);
 
   // Get average step length for use in calculating objective
@@ -195,7 +196,7 @@ void SimAnnMan::runSimulatedAnnealing(int maxIterations, double coolingFactor)
       {
         //cout << "jump" << i << endl;
         GridModel active = candidate.addActiveCells();
-        storeModelcpy(active, folder, restart);
+        storeModelcpy(active, folder, i);
         restart++;
 
         // Remake random
@@ -208,9 +209,9 @@ void SimAnnMan::runSimulatedAnnealing(int maxIterations, double coolingFactor)
         {
           int candidate = rand() % workingModel.cells.size();
           bool accept = true;
-          for (int i : toRigid)
+          for (int ii : toRigid)
           {
-            if (i == candidate)
+            if (ii == candidate)
             {
               accept = false;
               break;
@@ -218,9 +219,9 @@ void SimAnnMan::runSimulatedAnnealing(int maxIterations, double coolingFactor)
           }
           if (accept) {toRigid.push_back(candidate);}
         }
-        for (int i : toRigid)
+        for (int ii : toRigid)
         {
-          workingModel.cells[i].type = RIGID;
+          workingModel.cells[ii].type = RIGID;
         }
         continue;
       }
