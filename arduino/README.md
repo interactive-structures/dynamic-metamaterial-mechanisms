@@ -4,6 +4,7 @@
 - Items used: servos, power supply, jumper wires, Arduino board, breadboard
 - In the example code, servo pins are defined to be 8 and 9-- change this to whatever corresponds to the physical setup
 - If servos "stutter", it may be due to insufficient power-- hooking up the servos to a 5V power supply instead of Arduino's output might be better
+- Depending on servo configuration, may need to subtract the desired angles from 180 instead of directly writing the angle to servo
 
 ## Running code
 - Download Arduino IDE and place sketch in a folder of the same name
