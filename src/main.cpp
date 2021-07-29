@@ -134,8 +134,8 @@ std::vector<std::vector<double> > anglesFromFolder(std::string anglesFolder)
 int main(int argc, char *argv[])
 {
   GridModel gm;
-  gm.loadFromFile("../inputs/cells_7x7_big_line.txt");
-  std::string folder = "../results/big_line/";
+  gm.loadFromFile("../inputs/overview/cells_overview_7x7_large_squiggle.txt");
+  std::string folder = "../results/overview/7x7_large_squiggle/";
   std::string pointsFolder = folder + "points/";
   std::string anglesFolder = folder + "angles/";
 
@@ -170,28 +170,28 @@ int main(int argc, char *argv[])
   auto file_ret = optimizeActive(gmFile, anglesFromFolder(anglesFolder), "", "");
 
   // Write angles of active cells as csv to new file
-  // std::ofstream activeAngleOutFile;
-  // activeAngleOutFile.open(anglesFolder + "active.csv", std::ofstream::out | std::ofstream::trunc);
-  // std::vector<int> activeCells;
-  // std::string delim = "";
-  // for (int i = 0; i < gmFile.cells.size(); i++) {
-  //   if (gmFile.cells[i].type == ACTIVE) {
-  //     activeCells.push_back(i);
-  //     activeAngleOutFile << delim << "Cell " << i;
-  //     delim = ",";
-  //   }
-  // }
-  // activeAngleOutFile << "\n";
-  // auto angles = anglesFromFolder(anglesFolder);
-  // for (auto frame : angles) {
-  //   delim = "";
-  //   for (int cell : activeCells) {
-  //     activeAngleOutFile << delim << frame[cell];
-  //     delim = ",";
-  //   }
-  //   activeAngleOutFile << "\n";
-  // }
-  // activeAngleOutFile.close();
+  std::ofstream activeAngleOutFile;
+  activeAngleOutFile.open(anglesFolder + "active.csv", std::ofstream::out | std::ofstream::trunc);
+  std::vector<int> activeCells;
+  std::string delim = "";
+  for (int i = 0; i < gmFile.cells.size(); i++) {
+    if (gmFile.cells[i].type == ACTIVE) {
+      activeCells.push_back(i);
+      activeAngleOutFile << delim << "Cell " << i;
+      delim = ",";
+    }
+  }
+  activeAngleOutFile << "\n";
+  auto angles = anglesFromFolder(anglesFolder);
+  for (auto frame : angles) {
+    delim = "";
+    for (int cell : activeCells) {
+      activeAngleOutFile << delim << frame[cell];
+      delim = ",";
+    }
+    activeAngleOutFile << "\n";
+  }
+  activeAngleOutFile.close();
 
 
   Animation test(gmFile, file_ret, gm.targetPaths, 2, gm.targets);
