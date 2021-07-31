@@ -134,8 +134,8 @@ std::vector<std::vector<double> > anglesFromFolder(std::string anglesFolder)
 int main(int argc, char *argv[])
 {
   GridModel gm;
-  gm.loadFromFile("../inputs/overview/cells_overview_7x7_large_squiggle.txt"); // Specify input file
-  std::string folder = "../results/overview/7x7_large_squiggle/"; // Specify output folder
+  gm.loadFromFile("../inputs/cells_5x5_loops.txt"); // Specify input file
+  std::string folder = "../results/loops/"; // Specify output folder
   std::string pointsFolder = folder + "points/";
   std::string anglesFolder = folder + "angles/";
 
@@ -163,19 +163,13 @@ int main(int argc, char *argv[])
   Animation animation(gm_active, active_ret, gm.targetPaths, 2, gm.targets); // initialize animation
   animation.animate(); // run animation
   
-
-  // Verify everything works by constructing gridmodel and angles from files
-  GridModel gmFile;
-  gmFile.loadFromFile(folder + "output_model");
-  auto file_ret = optimizeActive(gmFile, anglesFromFolder(anglesFolder), "", "");
-
   // Write angles of active cells as csv to new file
   std::ofstream activeAngleOutFile;
   activeAngleOutFile.open(anglesFolder + "active.csv", std::ofstream::out | std::ofstream::trunc);
   std::vector<int> activeCells;
   std::string delim = "";
-  for (int i = 0; i < gmFile.cells.size(); i++) {
-    if (gmFile.cells[i].type == ACTIVE) {
+  for (int i = 0; i < gm_active.cells.size(); i++) {
+    if (gm_active.cells[i].type == ACTIVE) {
       activeCells.push_back(i);
       activeAngleOutFile << delim << "Cell " << i;
       delim = ",";
@@ -195,6 +189,9 @@ int main(int argc, char *argv[])
 
 
   // Verify everything works by constructing gridmodel and angles from files
+  GridModel gmFile;
+  gmFile.loadFromFile(folder + "output_model");
+  auto file_ret = optimizeActive(gmFile, anglesFromFolder(anglesFolder), "", "");
   Animation test(gmFile, file_ret, gm.targetPaths, 2, gm.targets);
   test.animate();
 }
