@@ -134,8 +134,8 @@ std::vector<std::vector<double> > anglesFromFolder(std::string anglesFolder)
 int main(int argc, char *argv[])
 {
   GridModel gm;
-  gm.loadFromFile("../inputs/overview/cells_overview_7x7_large_squiggle.txt");
-  std::string folder = "../results/overview/7x7_large_squiggle/";
+  gm.loadFromFile("../inputs/overview/cells_overview_7x7_large_squiggle.txt"); // Specify input file
+  std::string folder = "../results/overview/7x7_large_squiggle/"; // Specify output folder
   std::string pointsFolder = folder + "points/";
   std::string anglesFolder = folder + "angles/";
 
@@ -149,19 +149,19 @@ int main(int argc, char *argv[])
   // abort();
 
 
-  SimAnnMan sa(gm, folder);
-  sa.runSimulatedAnnealing(100, 0.97);
+  SimAnnMan sa(gm, folder); // Initialize simulated annealing, specifying output folder
+  sa.runSimulatedAnnealing(100, 0.97); // Run simulated annealing
 
-  gm = sa.bestModel;
-  auto ret = optimize(gm, "");
+  gm = sa.bestModel; // Get best model from simulated annealing
+  auto ret = optimize(gm, ""); // run optimize to get grid position at each frame
 
-  auto cell_angles = get_angles(ret, gm);
-  GridModel gm_active = gm.addActiveCells();
-  auto active_ret = optimizeActive(gm_active, cell_angles, pointsFolder, anglesFolder);
-  storeModel(gm_active, folder);
+  auto cell_angles = get_angles(ret, gm); // get angles for each cell at each frame
+  GridModel gm_active = gm.addActiveCells(); // add active cells
+  auto active_ret = optimizeActive(gm_active, cell_angles, pointsFolder, anglesFolder); // Call optimizeActive to verify results with only control of actuating cells
+  storeModel(gm_active, folder); // Store best model with actuating cells in results folder
 
-  Animation animation(gm_active, active_ret, gm.targetPaths, 2, gm.targets);
-  animation.animate();
+  Animation animation(gm_active, active_ret, gm.targetPaths, 2, gm.targets); // initialize animation
+  animation.animate(); // run animation
   
 
   // Verify everything works by constructing gridmodel and angles from files
@@ -194,6 +194,7 @@ int main(int argc, char *argv[])
   activeAngleOutFile.close();
 
 
+  // Verify everything works by constructing gridmodel and angles from files
   Animation test(gmFile, file_ret, gm.targetPaths, 2, gm.targets);
   test.animate();
 }
