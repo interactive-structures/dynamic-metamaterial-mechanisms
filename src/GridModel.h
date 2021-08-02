@@ -68,6 +68,7 @@ public:
 
 	std::vector<std::vector<Point> > targetPaths;
 	std::vector<int> targets;
+	std::vector<int> pathLength;
 
 	std::vector<std::vector<std::pair<GridCell, std::set<Edge> > > > constraintGraph;
 

@@ -122,8 +122,8 @@ void GridModel::loadFromFile(const std::string fname)
 		file >> npath2;
 	}
 
-	if (constr2 != -1)
-		inputs.push_back(constr2);
+	// if (constr2 != -1)
+	// 	inputs.push_back(constr2);
 	if (constr != -1)
 		targets.push_back(constr);
 
@@ -170,12 +170,13 @@ void GridModel::loadFromFile(const std::string fname)
 		file >> c;
 		file >> d;
 
-		cells.push_back(GridCell(a, b, c, d, t == 's' ? SHEAR : t == 'a' ? ACTIVE : RIGID));
+		cells.push_back(GridCell(a, b, c, d, t == 's' ? SHEAR : t == 'a' ? ACTIVE
+																		 : RIGID));
 	}
 
 	vector<Point> path;
 
-	if (constr != -1) 
+	if (constr != -1)
 	{
 		file.getline(tmp, 1024);
 		file.getline(tmp, 1024);
@@ -194,35 +195,40 @@ void GridModel::loadFromFile(const std::string fname)
 		path.clear();
 	}
 
+	// cout << constr2 << endl;
+
 	if (constr2 != -1)
 	{
 		file.getline(tmp, 1024);
 		file.getline(tmp, 1024);
 		file.getline(tmp, 1024);
+		int total = 0;
 
-		for (int i = 0; i < npath2; ++i)
+		for (int i = 0; i < constr2; ++i)
 		{
-			double x, y;
+			int x;
 			file >> x;
-			file >> y;
+			pathLength.push_back(x);
+			total += x;
 
-			path.push_back(Point(x, y));
+			// path.push_back(Point(x, y));
 		}
+		assert(total == npath);
 
-		inputPaths.push_back(path);
+		// inputPaths.push_back(path);
 	}
 
 	file.close();
 }
 
 // Returns std::vector of all components of the given graph containing an edge also in the given constraint.
-std::vector<std::vector<std::pair<GridCell, std::set<GridModel::Edge>>>> GridModel::findContainingComponents(std::pair<GridCell, std::set<Edge>> constraint, std::vector<std::vector<std::pair<GridCell, std::set<Edge>>>> graph)
+std::vector<std::vector<std::pair<GridCell, std::set<GridModel::Edge> > > > GridModel::findContainingComponents(std::pair<GridCell, std::set<Edge> > constraint, std::vector<std::vector<std::pair<GridCell, std::set<Edge> > > > graph)
 {
-	std::vector<std::vector<std::pair<GridCell, std::set<Edge>>>> containingComponents;
-	for (std::vector<std::pair<GridCell, std::set<Edge>>> graphComponent : graph)
+	std::vector<std::vector<std::pair<GridCell, std::set<Edge> > > > containingComponents;
+	for (std::vector<std::pair<GridCell, std::set<Edge> > > graphComponent : graph)
 	{
 		bool added = false;
-		for (std::pair<GridCell, std::set<Edge>> existingConstraint : graphComponent)
+		for (std::pair<GridCell, std::set<Edge> > existingConstraint : graphComponent)
 		{
 			for (Edge e : constraint.second)
 			{
@@ -237,17 +243,17 @@ std::vector<std::vector<std::pair<GridCell, std::set<GridModel::Edge>>>> GridMod
 	return containingComponents;
 }
 
-void GridModel::addConstraints(std::vector<std::pair<GridCell, std::set<Edge>>> unlinkedConstraints)
+void GridModel::addConstraints(std::vector<std::pair<GridCell, std::set<Edge> > > unlinkedConstraints)
 {
-	std::vector<std::pair<GridCell, std::set<Edge>>> toVisit(unlinkedConstraints); // Initialize constraints to check
+	std::vector<std::pair<GridCell, std::set<Edge> > > toVisit(unlinkedConstraints); // Initialize constraints to check
 
 	while (toVisit.size() > 0) // Do while there remains unassigned constraints
 	{
-		std::pair<GridCell, std::set<Edge>> constraint = toVisit[0]; // Get next constraint
+		std::pair<GridCell, std::set<Edge> > constraint = toVisit[0]; // Get next constraint
 		toVisit.erase(toVisit.begin());
 
-		std::vector<std::pair<GridCell, std::set<Edge>>> component({constraint});																	// Create a new component
-		std::vector<std::vector<std::pair<GridCell, std::set<Edge>>>> containingComponents = findContainingComponents(constraint, constraintGraph); // Find existing components
+		std::vector<std::pair<GridCell, std::set<Edge> > > component({constraint});																	   // Create a new component
+		std::vector<std::vector<std::pair<GridCell, std::set<Edge> > > > containingComponents = findContainingComponents(constraint, constraintGraph); // Find existing components
 
 		// std::cout << containingComponents.size() << " Containing Components" << std::endl;
 		// for (auto test : containingComponents) {
@@ -260,9 +266,9 @@ void GridModel::addConstraints(std::vector<std::pair<GridCell, std::set<Edge>>> 
 
 		if (containingComponents.size() > 0)
 		{ // Join all existing components
-			for (std::vector<std::pair<GridCell, std::set<Edge>>> containingComponent : containingComponents)
+			for (std::vector<std::pair<GridCell, std::set<Edge> > > containingComponent : containingComponents)
 			{
-				for (std::pair<GridCell, std::set<Edge>> existingConstraint : containingComponent)
+				for (std::pair<GridCell, std::set<Edge> > existingConstraint : containingComponent)
 				{ // For each existing constraint
 					if (std::find(component.begin(), component.end(), existingConstraint) == component.end())
 					{
@@ -281,7 +287,7 @@ void GridModel::generateConstraintGraph()
 {
 
 	// Track unassigned constraints
-	std::vector<std::pair<GridCell, std::set<Edge>>> unlinkedConstraints;
+	std::vector<std::pair<GridCell, std::set<Edge> > > unlinkedConstraints;
 	std::vector<GridCell> associatedCells;
 
 	// Collect all constraints
@@ -294,15 +300,15 @@ void GridModel::generateConstraintGraph()
 		if (c.type == RIGID || c.type == ACTIVE)
 		{
 			std::set<Edge> constraintEdges({e1, e2, e3, e4});
-			std::pair<GridCell, std::set<Edge>> rigidConstraint = std::make_pair(c, constraintEdges);
+			std::pair<GridCell, std::set<Edge> > rigidConstraint = std::make_pair(c, constraintEdges);
 			unlinkedConstraints.push_back(rigidConstraint);
 		}
 		else if (c.type == SHEAR)
 		{
 			std::set<Edge> constraintEdges1({e1, e3});
 			std::set<Edge> constraintEdges2({e2, e4});
-			std::pair<GridCell, std::set<Edge>> shearConstraint1 = std::make_pair(c, constraintEdges1);
-			std::pair<GridCell, std::set<Edge>> shearConstraint2 = std::make_pair(c, constraintEdges2);
+			std::pair<GridCell, std::set<Edge> > shearConstraint1 = std::make_pair(c, constraintEdges1);
+			std::pair<GridCell, std::set<Edge> > shearConstraint2 = std::make_pair(c, constraintEdges2);
 			unlinkedConstraints.push_back(shearConstraint1);
 			unlinkedConstraints.push_back(shearConstraint2);
 		}
@@ -387,14 +393,17 @@ void GridModel::mergeComponents(bool toActive)
 
 		GridCell cellToMerge = candidateCells[rand() % candidateCells.size()];
 
-		if (toActive) {
+		if (toActive)
+		{
 			std::find(cells.begin(), cells.end(), cellToMerge)->type = ACTIVE;
 			// std::cout << "New Active (Cell: " << cellToMerge.vertices[0] << ", " << cellToMerge.vertices[1] << ", " << cellToMerge.vertices[2] << ", " << cellToMerge.vertices[3] << ")" << std::endl;
-		} else {
+		}
+		else
+		{
 			std::find(cells.begin(), cells.end(), cellToMerge)->type = RIGID;
 			// std::cout << "Merging with (Cell: " << cellToMerge.vertices[0] << ", " << cellToMerge.vertices[1] << ", " << cellToMerge.vertices[2] << ", " << cellToMerge.vertices[3] << ")" << std::endl;
 		}
-		
+
 		generateConstraintGraph();
 		newDOFs = constraintGraph.size();
 	}
@@ -409,7 +418,7 @@ void GridModel::splitComponents()
 	srand(time(NULL)); // Initialize rng
 
 	// Collect split candidate components
-	std::vector<std::vector<std::pair<GridCell, std::set<GridModel::Edge>>>> splitCandidateComponents;
+	std::vector<std::vector<std::pair<GridCell, std::set<GridModel::Edge> > > > splitCandidateComponents;
 
 	for (auto component : constraintGraph)
 	{
@@ -434,7 +443,7 @@ void GridModel::splitComponents()
 	int comp = rand() % splitCandidateComponents.size();
 
 	// std::cout << "Trying to split " << comp << std::endl;
-	std::vector<std::pair<GridCell, std::set<GridModel::Edge>>> selectedComponent = splitCandidateComponents[comp];
+	std::vector<std::pair<GridCell, std::set<GridModel::Edge> > > selectedComponent = splitCandidateComponents[comp];
 	for (auto constraint : selectedComponent)
 	{
 		if (constraint.second.size() == 4)
@@ -470,7 +479,7 @@ GridModel GridModel::addActiveCells()
 
 	// Remove paths
 	active.targets = std::vector<int>();
-  active.targetPaths = std::vector<std::vector<Eigen::Vector2d>>();
+	active.targetPaths = std::vector<std::vector<Eigen::Vector2d> >();
 
 	// Add active cells until 1 DoF
 	while (active.constraintGraph.size() > 1)
@@ -544,7 +553,7 @@ optimize(const GridModel &model, std::string pointDirectory)
 }
 
 std::vector<GridResult>
-optimizeActive(const GridModel &model, std::vector<std::vector<double>> cell_angles, std::string pointDirectory, std::string angleDirectory)
+optimizeActive(const GridModel &model, std::vector<std::vector<double> > cell_angles, std::string pointDirectory, std::string angleDirectory)
 {
 	using namespace std;
 
@@ -569,7 +578,6 @@ optimizeActive(const GridModel &model, std::vector<std::vector<double>> cell_ang
 	{
 		SmartPtr<MyNLP> mynlp = new MyNLP(grid, cell_angles[i]);
 		mynlp->setStartConfiguration(start);
-
 
 		optimize(mynlp);
 		totError += mynlp->objError;

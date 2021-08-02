@@ -55,61 +55,80 @@ std::vector<std::vector<double> > get_angles(std::vector<GridResult> res, GridMo
   return angles;
 }
 
-void storeModel(GridModel gm, std::string outFolder) {
+void storeModel(GridModel gm, std::string outFolder)
+{
   std::ofstream gridOutFile;
   gridOutFile.open(outFolder + "output_model", std::ofstream::out | std::ofstream::trunc);
 
   gridOutFile << "#num_vertices #num_cells #num_anchors #index_inputvertex #num_inputpoints #index_outputvertex #num_outputpoints\n";
   gridOutFile << gm.points.size() << " " << gm.cells.size() << " " << gm.anchors.size() << " ";
-  if (gm.targets.size() != 0) {
+  if (gm.targets.size() != 0)
+  {
     gridOutFile << gm.targets[0] << " " << gm.targetPaths[0].size() << " ";
-  } else {
+  }
+  else
+  {
     gridOutFile << "-1 0 ";
   }
-  
-  if (gm.inputs.size() != 0) {
+
+  if (gm.inputs.size() != 0)
+  {
     gridOutFile << gm.inputs[0] << " " << gm.inputPaths[0].size() << " \n";
-  } else {
+  }
+  else
+  {
     gridOutFile << "-1 0 \n";
   }
 
   gridOutFile << "\n#vertices\n";
-  for (auto p : gm.points) {
+  for (auto p : gm.points)
+  {
     gridOutFile << p[0] << " " << p[1] << "\n";
   }
 
   gridOutFile << "\n#anchors\n";
-  for (auto a : gm.anchors) {
+  for (auto a : gm.anchors)
+  {
     gridOutFile << a << " ";
   }
   gridOutFile << "\n";
 
   gridOutFile << "\n#cells [type s=shear r=rigid a=actuating]\n";
-  for (auto c : gm.cells) {
-    if (c.type == RIGID) {
+  for (auto c : gm.cells)
+  {
+    if (c.type == RIGID)
+    {
       gridOutFile << "r ";
-    } else if (c.type == SHEAR) {
+    }
+    else if (c.type == SHEAR)
+    {
       gridOutFile << "s ";
-    } else if (c.type == ACTIVE) {
+    }
+    else if (c.type == ACTIVE)
+    {
       gridOutFile << "a ";
     }
     gridOutFile << c.vertices[0] << " " << c.vertices[1] << " " << c.vertices[2] << " " << c.vertices[3] << " \n";
   }
 
-  if (gm.targets.size() != 0) {
+  if (gm.targets.size() != 0)
+  {
     gridOutFile << "\n#input path\n";
-    for (auto p : gm.targetPaths[0]) {
+    for (auto p : gm.targetPaths[0])
+    {
       gridOutFile << p[0] << " " << p[1] << "\n";
     }
   }
 
-  if (gm.inputs.size() != 0) {
+  if (gm.inputs.size() != 0)
+  {
     gridOutFile << "\n#output path\n";
-    for (auto p : gm.inputPaths[0]) {
+    for (auto p : gm.inputPaths[0])
+    {
       gridOutFile << p[0] << " " << p[1] << "\n";
     }
   }
-    
+
   gridOutFile.close();
 }
 
@@ -122,7 +141,8 @@ std::vector<std::vector<double> > anglesFromFolder(std::string anglesFolder)
     std::ifstream frame(anglesFolder + "a" + std::to_string(i));
     std::vector<double> anglesThisFrame;
     std::string line;
-    for (std::getline(frame, line); !line.empty(); std::getline(frame, line)) {
+    for (std::getline(frame, line); !line.empty(); std::getline(frame, line))
+    {
       anglesThisFrame.push_back(std::stod(line));
     }
     angles.push_back(anglesThisFrame);
@@ -134,8 +154,8 @@ std::vector<std::vector<double> > anglesFromFolder(std::string anglesFolder)
 int main(int argc, char *argv[])
 {
   GridModel gm;
-  gm.loadFromFile("../inputs/cells_5x5_loops.txt"); // Specify input file
-  std::string folder = "../results/loops/"; // Specify output folder
+  gm.loadFromFile("../inputs/cells_2x2.txt"); // Specify input file
+  std::string folder = "../results/loops/";   // Specify output folder
   std::string pointsFolder = folder + "points/";
   std::string anglesFolder = folder + "angles/";
 
@@ -148,28 +168,29 @@ int main(int argc, char *argv[])
   // verify.animate();
   // abort();
 
-
-  SimAnnMan sa(gm, folder); // Initialize simulated annealing, specifying output folder
+  SimAnnMan sa(gm, folder);            // Initialize simulated annealing, specifying output folder
   sa.runSimulatedAnnealing(100, 0.97); // Run simulated annealing
 
-  gm = sa.bestModel; // Get best model from simulated annealing
+  gm = sa.bestModel;           // Get best model from simulated annealing
   auto ret = optimize(gm, ""); // run optimize to get grid position at each frame
 
-  auto cell_angles = get_angles(ret, gm); // get angles for each cell at each frame
-  GridModel gm_active = gm.addActiveCells(); // add active cells
+  auto cell_angles = get_angles(ret, gm);                                               // get angles for each cell at each frame
+  GridModel gm_active = gm.addActiveCells();                                            // add active cells
   auto active_ret = optimizeActive(gm_active, cell_angles, pointsFolder, anglesFolder); // Call optimizeActive to verify results with only control of actuating cells
-  storeModel(gm_active, folder); // Store best model with actuating cells in results folder
+  storeModel(gm_active, folder);                                                        // Store best model with actuating cells in results folder
 
   Animation animation(gm_active, active_ret, gm.targetPaths, 2, gm.targets); // initialize animation
-  animation.animate(); // run animation
-  
+  animation.animate();                                                       // run animation
+
   // Write angles of active cells as csv to new file
   std::ofstream activeAngleOutFile;
   activeAngleOutFile.open(anglesFolder + "active.csv", std::ofstream::out | std::ofstream::trunc);
   std::vector<int> activeCells;
   std::string delim = "";
-  for (int i = 0; i < gm_active.cells.size(); i++) {
-    if (gm_active.cells[i].type == ACTIVE) {
+  for (int i = 0; i < gm_active.cells.size(); i++)
+  {
+    if (gm_active.cells[i].type == ACTIVE)
+    {
       activeCells.push_back(i);
       activeAngleOutFile << delim << "Cell " << i;
       delim = ",";
@@ -177,16 +198,17 @@ int main(int argc, char *argv[])
   }
   activeAngleOutFile << "\n";
   auto angles = anglesFromFolder(anglesFolder);
-  for (auto frame : angles) {
+  for (auto frame : angles)
+  {
     delim = "";
-    for (int cell : activeCells) {
+    for (int cell : activeCells)
+    {
       activeAngleOutFile << delim << frame[cell];
       delim = ",";
     }
     activeAngleOutFile << "\n";
   }
   activeAngleOutFile.close();
-
 
   // Verify everything works by constructing gridmodel and angles from files
   GridModel gmFile;
