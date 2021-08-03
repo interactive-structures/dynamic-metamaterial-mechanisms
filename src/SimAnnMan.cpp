@@ -4,6 +4,7 @@
 #include <queue>
 #include "Timer.hpp"
 #include <filesystem>
+#include <unordered_map>
 
 using namespace std;
 
@@ -162,6 +163,11 @@ void SimAnnMan::runSimulatedAnnealing(int maxIterations, double coolingFactor)
   double th = 0.01;
   int restart = 0;
 
+
+  // initialize dictionary of objectives
+  std::unordered_map<std::vector<bool>, double> dict;
+
+
   // optimization loop
   for (int i = 0; i < maxIterations; i++)
   {
@@ -178,8 +184,27 @@ void SimAnnMan::runSimulatedAnnealing(int maxIterations, double coolingFactor)
     }
     candidate.generateConstraintGraph();
 
+    // Generate bitcode for candidate
+    std::vector<bool> bitcode;
+    for (auto c : candidate.cells)
+    {
+      if (c.type == RIGID) {bitcode.push_back(true);}
+      else {bitcode.push_back(false);}
+    }
+
     // Calculate simulated annealing values
-    double newError = calcObj(candidate, objPathNormSum);
+    double newError;
+    if (dict.find(bitcode) != dict.end()) // bitcode in dict
+    {
+      newError = dict[bitcode];
+    }
+    else // bitcode not in dict
+    {
+      newError = calcObj(candidate, objPathNormSum);
+      dict[bitcode] = newError;
+    }
+    std::cout << std::endl;
+    
     double objective = 1.0 / newError;
     double forceAccept = 1.0 / (1.0 + exp(objective / (startTemp * pow(coolingFactor, i))));
 
