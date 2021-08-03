@@ -4,6 +4,7 @@
 #include "GridModel.h"
 #include <float.h>
 #include <map>
+#include <tuple>
 
 #ifdef _WIN32
 #define EIGEN_DONT_ALIGN_STATICALLY
@@ -66,7 +67,7 @@ public:
   void runSimulatedAnnealing (int maxIterations = 100, double coolingFactor = 0.99);
 
 private:
-  double calcObj(GridModel candidate, double pathNormSum);
+  std::tuple<double, double, double> calcObj(GridModel candidate, double pathNormSum);
 };
 
 #endif

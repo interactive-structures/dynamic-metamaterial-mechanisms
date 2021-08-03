@@ -5,6 +5,7 @@
 #include "Timer.hpp"
 #include <filesystem>
 #include <unordered_map>
+#include <tuple>
 
 using namespace std;
 
@@ -165,7 +166,7 @@ void SimAnnMan::runSimulatedAnnealing(int maxIterations, double coolingFactor)
 
 
   // initialize dictionary of objectives
-  std::unordered_map<std::vector<bool>, double> dict;
+  std::unordered_map<std::vector<bool>, std::tuple<double, double, double>> dict;
 
 
   // optimization loop
@@ -196,12 +197,18 @@ void SimAnnMan::runSimulatedAnnealing(int maxIterations, double coolingFactor)
     double newError;
     if (dict.find(bitcode) != dict.end()) // bitcode in dict
     {
-      newError = dict[bitcode];
+      auto objTup = dict[bitcode];
+      std::ofstream objOutFile;
+      objOutFile.open(outFolder + "objectives.csv", std::ios_base::app);
+      objOutFile << std::get<0>(objTup) << "," << std::get<1>(objTup) << "," << std::get<2>(objTup) << "\n";
+      objOutFile.close();
+      newError = std::get<2>(objTup);
     }
     else // bitcode not in dict
     {
-      newError = calcObj(candidate, objPathNormSum);
-      dict[bitcode] = newError;
+      auto objTup = calcObj(candidate, objPathNormSum);
+      dict[bitcode] = objTup;
+      newError = std::get<2>(objTup);
     }
     
     double objective = 1.0 / newError;
@@ -281,7 +288,7 @@ void SimAnnMan::runSimulatedAnnealing(int maxIterations, double coolingFactor)
   std::cout << "Simulated Annealing completed in " << elapsed << " seconds." << std::endl;
 }
 
-double SimAnnMan::calcObj(GridModel candidate, double pathNormSum)
+std::tuple<double, double, double> SimAnnMan::calcObj(GridModel candidate, double pathNormSum)
 {
   double objective = 0;
   double pathObjective = 0;
@@ -327,5 +334,5 @@ double SimAnnMan::calcObj(GridModel candidate, double pathNormSum)
   objective = pathObjective + dofObjective * dofObjective + 0.0 * angleObjective;
   objOutFile << pathObjective << "," << dofObjective << "," << objective << "\n";
   objOutFile.close();
-  return objective;
+  return std::make_tuple(pathObjective, dofObjective, objective);
 }
