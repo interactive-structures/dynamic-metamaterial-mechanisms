@@ -154,8 +154,8 @@ std::vector<std::vector<double> > anglesFromFolder(std::string anglesFolder)
 int main(int argc, char *argv[])
 {
   GridModel gm;
-  gm.loadFromFile("../inputs/cells_6x6_star.txt"); // Specify input file
-  std::string folder = "../results/star/";   // Specify output folder
+  gm.loadFromFile("../inputs/cells_6x6_double_star.txt"); // Specify input file
+  std::string folder = "../results/multi_double_star/";   // Specify output folder
   std::string pointsFolder = folder + "points/";
   std::string anglesFolder = folder + "angles/";
 
