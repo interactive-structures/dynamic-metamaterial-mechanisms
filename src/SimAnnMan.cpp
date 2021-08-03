@@ -203,7 +203,6 @@ void SimAnnMan::runSimulatedAnnealing(int maxIterations, double coolingFactor)
       newError = calcObj(candidate, objPathNormSum);
       dict[bitcode] = newError;
     }
-    std::cout << std::endl;
     
     double objective = 1.0 / newError;
     double forceAccept = 1.0 / (1.0 + exp(objective / (startTemp * pow(coolingFactor, i))));
