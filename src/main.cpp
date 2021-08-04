@@ -154,8 +154,8 @@ std::vector<std::vector<double> > anglesFromFolder(std::string anglesFolder)
 int main(int argc, char *argv[])
 {
   GridModel gm;
-  gm.loadFromFile("../inputs/cells_6x6_double_star.txt"); // Specify input file
-  std::string folder = "../results/multi_double_star/";   // Specify output folder
+  gm.loadFromFile("../inputs/overview/cells_overview_7x7_large_squiggle.txt"); // Specify input file
+  std::string folder = "../results/overview/7x7_large_squiggle/";   // Specify output folder
   std::string pointsFolder = folder + "points/";
   std::string anglesFolder = folder + "angles/";
 
@@ -211,9 +211,9 @@ int main(int argc, char *argv[])
   activeAngleOutFile.close();
 
   // Verify everything works by constructing gridmodel and angles from files
-  GridModel gmFile;
-  gmFile.loadFromFile(folder + "output_model");
-  auto file_ret = optimizeActive(gmFile, anglesFromFolder(anglesFolder), "", "");
-  Animation test(gmFile, file_ret, gm.targetPaths, 2, gm.targets);
-  test.animate();
+  // GridModel gmFile;
+  // gmFile.loadFromFile(folder + "output_model");
+  // auto file_ret = optimizeActive(gmFile, anglesFromFolder(anglesFolder), "", "");
+  // Animation test(gmFile, file_ret, gm.targetPaths, 2, gm.targets);
+  // test.animate();
 }
