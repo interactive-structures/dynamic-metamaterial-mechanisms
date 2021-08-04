@@ -11,6 +11,7 @@
 - Select appropriate board and USB output
 - Verify and upload sketch
 - To change the input file: Arduino unfortunately cannot read files from the computer, so the array in the sketch will have to be manually modified. array.py helps with this-- change the fileName at the top of the file and copy the console print to the sketch to replace the angles.
+- Multiple paths can be loaded and selected using numbers input in the Serial Monitor.
 
 ## 3D parts
 Servo mounts:
