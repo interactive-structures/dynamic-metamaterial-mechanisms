@@ -254,6 +254,9 @@ void SimAnnMan::runSimulatedAnnealing(int maxIterations, double coolingFactor)
         {
           workingModel.cells[ii].type = RIGID;
         }
+
+        // Reset error queue
+        err = std::queue<double>();
         continue;
       }
     }
