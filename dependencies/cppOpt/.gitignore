@@ -1,0 +1,24 @@
+*.layout
+*.depend
+*.cbp
+*.test
+*.swp
+*.user
+*.so
+*.a
+*~
+*.gch
+bin/
+obj/
+build/
+
+#Cmake and Make
+CMakeCache.txt
+CMakeFiles/
+Makefile
+cmake_install.cmake
+cppOpt
+
+#binaries
+example_1
+

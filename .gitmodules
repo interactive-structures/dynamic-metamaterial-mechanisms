@@ -1,0 +1,6 @@
+[submodule "dependencies/libigl"]
+	path = dependencies/libigl
+	url = https://github.com/libigl/libigl.git
+[submodule "dependencies/cppOpt"]
+	path = dependencies/cppOpt
+	url = https://github.com/I3ck/cppOpt.git
