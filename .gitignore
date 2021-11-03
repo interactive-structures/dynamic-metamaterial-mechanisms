@@ -1,3 +1,5 @@
 __build/*
 build/*
 example-data/results/*
+dependencies/libigl/*
+dependencies/cppOpt/*
