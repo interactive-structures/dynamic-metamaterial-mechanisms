@@ -1,5 +1,9 @@
 __build/*
 build/*
+*.DS_Store
 example-data/results/*
 dependencies/libigl/*
 dependencies/cppOpt/*
+dependencies/Ipopt/*
+Ipopt-install/*
+.vscode/*

@@ -107,24 +107,13 @@ void GridModel::loadFromFile(const std::string fname)
 
 	file.getline(tmp, 1024);
 
-	int nv, nc, na, constr, npath, constr2 = -1, npath2;
+	int nv, nc, na, nconstr, npath;
 
 	file >> nv;
 	file >> nc;
 	file >> na;
-	file >> constr;
+	file >> nconstr;
 	file >> npath;
-
-	if (file.peek() != '\n')
-	{
-		file >> constr2;
-		file >> npath2;
-	}
-
-	// if (constr2 != -1)
-	// 	inputs.push_back(constr2);
-	if (constr != -1)
-		targets.push_back(constr);
 
 	file.getline(tmp, 1024);
 	file.getline(tmp, 1024);
@@ -175,11 +164,16 @@ void GridModel::loadFromFile(const std::string fname)
 
 	vector<Point> path;
 
-	if (constr != -1)
+	for (int c = 0; c < nconstr; c++)
 	{
 		file.getline(tmp, 1024);
 		file.getline(tmp, 1024);
 		file.getline(tmp, 1024);
+
+		int constr;
+		file >> constr;
+
+		targets.push_back(constr);
 
 		for (int i = 0; i < npath; ++i)
 		{
@@ -192,29 +186,6 @@ void GridModel::loadFromFile(const std::string fname)
 
 		targetPaths.push_back(path);
 		path.clear();
-	}
-
-	// cout << constr2 << endl;
-
-	if (constr2 != -1)
-	{
-		file.getline(tmp, 1024);
-		file.getline(tmp, 1024);
-		file.getline(tmp, 1024);
-		int total = 0;
-
-		for (int i = 0; i < constr2; ++i)
-		{
-			int x;
-			file >> x;
-			pathLength.push_back(x);
-			total += x;
-
-			// path.push_back(Point(x, y));
-		}
-		assert(total == npath);
-
-		// inputPaths.push_back(path);
 	}
 
 	file.close();
