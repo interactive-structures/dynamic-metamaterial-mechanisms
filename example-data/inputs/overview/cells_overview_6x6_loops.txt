@@ -1,5 +1,5 @@
-#num_vertices #num_cells #num_anchors #index_inputvertex #num_inputpoints #index_outputvertex #num_outputpoints
-49 36 2 48 106 -1 0
+#num_vertices #num_cells #num_anchors #num_inputvertex #num_inputpoints
+49 36 2 1 106
 
 #vertices
 0 0
@@ -94,6 +94,7 @@ s 39 40 47 46
 s 40 41 48 47 
 
 #input path
+48
 5.73999732	5.889458487
 5.766657343	5.899077429
 5.828697956	5.913974457
