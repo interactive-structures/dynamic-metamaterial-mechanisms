@@ -18,6 +18,7 @@ public:
   int rate;
   std::vector<int> to_trace;
   std::vector<std::vector<Eigen::Vector2d>> target_paths;
+  Eigen::Matrix3d last_rotation;
 
   Animation(GridModel model, std::vector<GridResult> results, std::vector<std::vector<Eigen::Vector2d>> targets, int framerate=1, std::vector<int> traces=std::vector<int>())
   {
@@ -28,6 +29,7 @@ public:
     grid_edges = get_edge_matrix();
     to_trace = traces;
     target_paths = targets;
+    last_rotation = Eigen::Matrix3d::Identity(3, 3);
   }
   std::vector<std::vector<double>> get_angles();
   void animate();
