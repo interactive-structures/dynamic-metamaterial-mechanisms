@@ -211,7 +211,7 @@ bool MyNLP::get_bounds_info(Index n, Number *x_l, Number *x_u,
 
     for (int i = 0; i < orientationConstraints.size(); ++i)
     {
-        g_l[offset + i] = 0.0;
+        g_l[offset + i] = sqrt(3) / 2;
         g_u[offset + i] = 1.0e19;
     }
 
