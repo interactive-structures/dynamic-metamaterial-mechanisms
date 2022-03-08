@@ -17,8 +17,8 @@ class EXPORT_DLL_COMMAND SimAnnMan
 {
 
 public:
-  GridModel bestModel;
-  GridModel workingModel;
+  std::vector<GridModel> bestModels;
+  std::vector<GridModel> workingModels;
   double minError;
   double workingError;
   std::string outFolder;
@@ -27,21 +27,35 @@ public:
     std::cout << "Error: No model specified" << std::endl;
   };
 
-  SimAnnMan (GridModel gm, std::string folder = "") {
-    bestModel = GridModel(gm);
+  SimAnnMan (std::vector<GridModel> gms, std::string folder = "") {
+    if (gms.size() == 0) {
+      std::cout << "Error: No models in vector to SimAnnMan" << std::endl;
+      exit(1);
+    }
+
+    int num_cells = gms[0].cells.size();
+
+    bestModels.clear(); // clear best models
+    for (auto gm : gms) // add starting config to list
+    {
+      bestModels.push_back(GridModel(gm));
+    }
 
     // All cells to shear
-    for (auto cell : bestModel.cells)
-    {
-      cell.type = SHEAR;
+    for (auto bgm : bestModels) {
+      for (auto cell : bgm.cells)
+      {
+        cell.type = SHEAR;
+      }
     }
+    
 
     // Change some cells to rigid
     std::vector<int> toRigid;
     srand(time(NULL));
-    while (toRigid.size() < sqrt(bestModel.cells.size()))
+    while (toRigid.size() < sqrt(num_cells))
     {
-      int candidate = rand() % bestModel.cells.size();
+      int candidate = rand() % num_cells;
       bool accept = true;
       for (int i : toRigid)
       {
@@ -53,12 +67,20 @@ public:
       }
       if (accept) {toRigid.push_back(candidate);}
     }
-    for (int i : toRigid)
-    {
-      bestModel.cells[i].type = RIGID;
+    for (auto bgm : bestModels) {
+      for (int i : toRigid)
+      {
+        bgm.cells[i].type = RIGID;
+      }
     }
 
-    workingModel = GridModel(bestModel);
+
+    workingModels.clear(); // clear best models
+    for (auto bgm : bestModels) // add starting config to list
+    {
+      workingModels.push_back(GridModel(bgm));
+    }
+
     minError = DBL_MAX;
     workingError = DBL_MAX;
     outFolder = folder;
@@ -67,7 +89,7 @@ public:
   void runSimulatedAnnealing (int maxIterations = 100, double coolingFactor = 0.99);
 
 private:
-  std::tuple<double, double, double> calcObj(GridModel candidate, double pathNormSum);
+  std::tuple<double, double, double> calcObj(std::vector<GridModel> candidates, std::vector<double> pathNormSums);
 };
 
 #endif

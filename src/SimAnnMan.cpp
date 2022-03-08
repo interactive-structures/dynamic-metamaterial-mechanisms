@@ -145,18 +145,25 @@ void SimAnnMan::runSimulatedAnnealing(int maxIterations, double coolingFactor)
   std::filesystem::create_directory(folder);
 
   // Get average step length for use in calculating objective
-  double objPathNormSum = 0;
-  for (int target = 0; target < workingModel.targetPaths.size(); target++)
+  std::vector<double> objPathNormSums;
+  for (auto functionModel : bestModels)
   {
-    double pathNorm = 0;
-    for (int i = 1; i < workingModel.targetPaths[target].size(); i++)
+    double objPathNormSum = 0;
+    for (int target = 0; target < functionModel.targetPaths.size(); target++)
     {
-      double dx = workingModel.targetPaths[target][i][0] - workingModel.targetPaths[target][i - 1][0];
-      double dy = workingModel.targetPaths[target][i][1] - workingModel.targetPaths[target][i - 1][1];
-      pathNorm += sqrt(dx * dx + dy * dy);
+      double pathNorm = 0;
+      for (int i = 1; i < functionModel.targetPaths[target].size(); i++)
+      {
+        double dx = functionModel.targetPaths[target][i][0] - functionModel.targetPaths[target][i - 1][0];
+        double dy = functionModel.targetPaths[target][i][1] - functionModel.targetPaths[target][i - 1][1];
+        pathNorm += sqrt(dx * dx + dy * dy);
+      }
+      objPathNormSum += pathNorm / (functionModel.targetPaths[target].size());
     }
-    objPathNormSum += pathNorm / (workingModel.targetPaths[target].size());
+    objPathNormSums.push_back(objPathNormSum);
   }
+
+  
 
   // initialize restart parameters
   queue<double> err;
@@ -173,24 +180,34 @@ void SimAnnMan::runSimulatedAnnealing(int maxIterations, double coolingFactor)
   for (int i = 0; i < maxIterations; i++)
   {
     // Create candidate model
-    GridModel candidate = GridModel(workingModel);
-    candidate.generateConstraintGraph();
-    if (candidate.constraintGraph.size() > 1 && rand() % 2 == 0)
+    GridModel candidateBase = GridModel(workingModels[0]);
+    candidateBase.generateConstraintGraph();
+    if (candidateBase.constraintGraph.size() > 1 && rand() % 2 == 0)
     {
-      candidate.mergeComponents();
+      candidateBase.mergeComponents();
     }
     else
     {
-      candidate.splitComponents();
+      candidateBase.splitComponents();
     }
-    candidate.generateConstraintGraph();
+    candidateBase.generateConstraintGraph();
 
     // Generate bitcode for candidate
     std::vector<bool> bitcode;
-    for (auto c : candidate.cells)
+    for (auto c : candidateBase.cells)
     {
       if (c.type == RIGID) {bitcode.push_back(true);}
       else {bitcode.push_back(false);}
+    }
+
+    // push candidate modification to all models
+    std::vector<GridModel> candidates;
+    for (auto wm : workingModels)
+    {
+      GridModel candidate = GridModel(wm);
+      candidate.cells = candidateBase.cells;
+      candidate.generateConstraintGraph();
+      candidates.push_back(candidate);
     }
 
     // Calculate simulated annealing values
@@ -206,7 +223,7 @@ void SimAnnMan::runSimulatedAnnealing(int maxIterations, double coolingFactor)
     }
     else // bitcode not in dict
     {
-      auto objTup = calcObj(candidate, objPathNormSum);
+      auto objTup = calcObj(candidates, objPathNormSums);
       dict[bitcode] = objTup;
       newError = std::get<2>(objTup);
     }
@@ -226,19 +243,22 @@ void SimAnnMan::runSimulatedAnnealing(int maxIterations, double coolingFactor)
       if (getVariane(err) < th)
       {
         //cout << "jump" << i << endl;
-        GridModel active = candidate.addActiveCells();
+        GridModel active = candidateBase.addActiveCells();
         storeModelcpy(active, folder, i);
         restart++;
 
         // Remake random
-        for (auto cell : workingModel.cells)
-        {
-          cell.type = SHEAR;
+        int num_cells = workingModels[0].cells.size();
+        for (auto wm : workingModels) {
+          for (auto cell : wm.cells)
+          {
+            cell.type = SHEAR;
+          }
         }
         std::vector<int> toRigid;
-        while (toRigid.size() < sqrt(workingModel.cells.size()))
+        while (toRigid.size() < num_cells)
         {
-          int candidate = rand() % workingModel.cells.size();
+          int candidate = rand() % num_cells;
           bool accept = true;
           for (int ii : toRigid)
           {
@@ -250,9 +270,11 @@ void SimAnnMan::runSimulatedAnnealing(int maxIterations, double coolingFactor)
           }
           if (accept) {toRigid.push_back(candidate);}
         }
-        for (int ii : toRigid)
-        {
-          workingModel.cells[ii].type = RIGID;
+        for (auto wm : workingModels) {
+          for (int i : toRigid)
+          {
+            wm.cells[i].type = RIGID;
+          }
         }
 
         // Reset error queue
@@ -264,12 +286,16 @@ void SimAnnMan::runSimulatedAnnealing(int maxIterations, double coolingFactor)
     // Update accordingly
     if (newError < workingError)
     {
-      workingModel = candidate;
+      workingModels = candidates;
       workingError = newError;
       // std::cout << "Update Working. ";
       if (newError < minError)
       {
-        bestModel = GridModel(candidate);
+        bestModels.clear();
+        for (auto cand : candidates)
+        {
+          bestModels.push_back(GridModel(cand));
+        }
         minError = newError;
         // std::cout << "New Best.";
       }
@@ -277,7 +303,7 @@ void SimAnnMan::runSimulatedAnnealing(int maxIterations, double coolingFactor)
     }
     else if ((double)rand() / RAND_MAX < forceAccept)
     {
-      workingModel = candidate;
+      workingModels = candidates;
       workingError = newError;
       // std::cout << "Force Accepted: " << forceAccept << std::endl;
     }
@@ -291,51 +317,67 @@ void SimAnnMan::runSimulatedAnnealing(int maxIterations, double coolingFactor)
   std::cout << "Simulated Annealing completed in " << elapsed << " seconds." << std::endl;
 }
 
-std::tuple<double, double, double> SimAnnMan::calcObj(GridModel candidate, double pathNormSum)
+std::tuple<double, double, double> SimAnnMan::calcObj(std::vector<GridModel> candidates, std::vector<double> pathNormSums)
 {
   double objective = 0;
-  double pathObjective = 0;
+  double totalPathObjective = 0;
   double dofObjective = 0;
-  double angleObjective = 0;
-  auto ret = optimize(candidate, "");
+  double totalAngleObjective = 0;
 
-  // from accuracy
-  for (auto re : ret)
+  for (int i = 0; i < candidates.size(); i++)
   {
-    pathObjective += re.objError;
+    GridModel candidate = candidates[i];
+    double pathNormSum = pathNormSums[i];
+
+    double pathObjective = 0;
+    double angleObjective = 0;
+    auto ret = optimize(candidate, "");
+
+    // from accuracy
+    for (auto re : ret)
+    {
+      pathObjective += re.objError;
+    }
+    pathObjective = pathObjective / ret.size();
+    pathObjective = pathObjective / pathNormSum;
+    totalPathObjective += pathObjective;
+
+    // from dof
+    if (i == 0) {
+      dofObjective = candidate.constraintGraph.size() / (2 * sqrt(candidate.cells.size()));
+    }
+    assert(dofObjective - candidate.constraintGraph.size() / (2 * sqrt(candidate.cells.size())) < 0.001);
+    
+
+    // from angles
+    // std::vector<std::vector<double> > angles;
+    // for (auto frame : ret)
+    // {
+    //   std::vector<double> anglesThisFrame;
+    //   for (auto cell : candidate.cells)
+    //   {
+    //     Eigen::Vector2d vec1 = frame.points[cell.vertices[1]] - frame.points[cell.vertices[0]];
+    //     Eigen::Vector2d vec2 = frame.points[cell.vertices[3]] - frame.points[cell.vertices[0]];
+    //     double angle = std::atan2(vec1[0] * vec2[1] - vec1[1] * vec2[0], vec1.dot(vec2));
+    //     anglesThisFrame.push_back(angle);
+    //   }
+    //   angles.push_back(anglesThisFrame);
+    // }
+    // for (int i = 1; i < angles.size(); i++)
+    // {
+    //   for (int j = 0; j < angles[1].size(); j++)
+    //   {
+    //     angleObjective += std::abs(angles[i-1][j] - angles[i][j]);
+    //   }
+    // }
   }
-  pathObjective = pathObjective / ret.size();
-  pathObjective = pathObjective / pathNormSum;
 
-  // from dof
-  dofObjective = candidate.constraintGraph.size() / (2 * sqrt(candidate.cells.size()));
-
-  // from angles
-  // std::vector<std::vector<double> > angles;
-  // for (auto frame : ret)
-  // {
-  //   std::vector<double> anglesThisFrame;
-  //   for (auto cell : candidate.cells)
-  //   {
-  //     Eigen::Vector2d vec1 = frame.points[cell.vertices[1]] - frame.points[cell.vertices[0]];
-  //     Eigen::Vector2d vec2 = frame.points[cell.vertices[3]] - frame.points[cell.vertices[0]];
-  //     double angle = std::atan2(vec1[0] * vec2[1] - vec1[1] * vec2[0], vec1.dot(vec2));
-  //     anglesThisFrame.push_back(angle);
-  //   }
-  //   angles.push_back(anglesThisFrame);
-  // }
-  // for (int i = 1; i < angles.size(); i++)
-  // {
-  //   for (int j = 0; j < angles[1].size(); j++)
-  //   {
-  //     angleObjective += std::abs(angles[i-1][j] - angles[i][j]);
-  //   }
-  // }
+  double avgPathObjective = totalPathObjective / candidates.size();
 
   std::ofstream objOutFile;
   objOutFile.open(outFolder + "objectives.csv", std::ios_base::app);
-  objective = pathObjective + dofObjective * dofObjective + 0.0 * angleObjective;
-  objOutFile << pathObjective << "," << dofObjective << "," << objective << "\n";
+  objective = avgPathObjective + dofObjective * dofObjective + 0.0 * totalAngleObjective;
+  objOutFile << avgPathObjective << "," << dofObjective << "," << objective << "\n";
   objOutFile.close();
-  return std::make_tuple(pathObjective, dofObjective, objective);
+  return std::make_tuple(avgPathObjective, dofObjective, objective);
 }

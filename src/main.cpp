@@ -152,12 +152,26 @@ std::vector<std::vector<double> > anglesFromFolder(std::string anglesFolder)
 }
 
 int main(int argc, char *argv[])
-{
+{ 
   GridModel gm;
-  gm.loadFromFile("../example-data/inputs/overview/cells_overview_7x7_large_squiggle.txt"); // Specify input file
-  std::string folder = "../example-data/results/overview/7x7_large_squiggle/";   // Specify output folder
+  gm.loadFromFile("../example-data/inputs/multi/cells_sync_walk_60_4x4.txt"); // Specify input file
+  // cells_walk_offset_10x10.txt
+  // cells_sync_walk_2_4x4.txt
+  // cells_walk_offset_4x4.txt
+  std::string folder = "../example-data/results/multi/sync_walk_pseudo_60_4x4/";   // Specify output folder
+  // walk_offset_10x10
+  // sync_walk_2_4x4
+  // walk_offset_4x4
   std::string pointsFolder = folder + "points/";
   std::string anglesFolder = folder + "angles/";
+
+  // Uncomment to view existing
+  // GridModel gmFile;
+  // gmFile.loadFromFile(folder + "output_model");
+  // auto file_ret = optimizeActive(gmFile, anglesFromFolder(anglesFolder), "", "");
+  // Animation test(gmFile, file_ret, gm.targetPaths, 5, gm.targets);
+  // test.animate();
+  // abort();
 
   std::filesystem::create_directories(folder);
   std::filesystem::create_directory(pointsFolder);
@@ -168,11 +182,16 @@ int main(int argc, char *argv[])
   // verify.animate();
   // abort();
 
-  SimAnnMan sa(gm, folder);            // Initialize simulated annealing, specifying output folder
-  sa.runSimulatedAnnealing(1, 0.97); // Run simulated annealing
+  std::vector<GridModel> gms; // place into vector
+  gms.push_back(gm);
+  gms.push_back(GridModel(gm)); // pseudo multiple paths
+
+  SimAnnMan sa(gms, folder);            // Initialize simulated annealing, specifying output folder
+  sa.runSimulatedAnnealing(50, 0.97); // Run simulated annealing
   //sa.runSimulatedAnnealing(100, 0.97); // Run simulated annealing
 
-  gm = sa.bestModel;           // Get best model from simulated annealing
+  gms = sa.bestModels;           // Get best model from simulated annealing
+  gm = gms[0];
   auto ret = optimize(gm, ""); // run optimize to get grid position at each frame
 
   auto cell_angles = get_angles(ret, gm);                                               // get angles for each cell at each frame
