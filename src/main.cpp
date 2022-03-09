@@ -153,17 +153,16 @@ std::vector<std::vector<double> > anglesFromFolder(std::string anglesFolder)
 
 int main(int argc, char *argv[])
 { 
-  GridModel gm;
-  gm.loadFromFile("../example-data/inputs/multi/cells_sync_walk_60_4x4.txt"); // Specify input file
+  GridModel gm1, gm2;
+  gm1.loadFromFile("../example-data/inputs/multi/cells_4x4_loops.txt"); // Specify input file
+  gm2.loadFromFile("../example-data/inputs/multi/cells_4x4_spike.txt");
   // cells_walk_offset_10x10.txt
   // cells_sync_walk_2_4x4.txt
   // cells_walk_offset_4x4.txt
-  std::string folder = "../example-data/results/multi/sync_walk_pseudo_60_4x4/";   // Specify output folder
+  std::string folder = "../example-data/results/multi/distinct_loop_spike_4x4/";   // Specify output folder
   // walk_offset_10x10
   // sync_walk_2_4x4
   // walk_offset_4x4
-  std::string pointsFolder = folder + "points/";
-  std::string anglesFolder = folder + "angles/";
 
   // Uncomment to view existing
   // GridModel gmFile;
@@ -174,8 +173,6 @@ int main(int argc, char *argv[])
   // abort();
 
   std::filesystem::create_directories(folder);
-  std::filesystem::create_directory(pointsFolder);
-  std::filesystem::create_directory(anglesFolder);
 
   // auto ret1 = optimize(gm, "");
   // Animation verify(gm, ret1, gm.targetPaths, 2, gm.targets);
@@ -183,52 +180,70 @@ int main(int argc, char *argv[])
   // abort();
 
   std::vector<GridModel> gms; // place into vector
-  gms.push_back(gm);
-  gms.push_back(GridModel(gm)); // pseudo multiple paths
+  gms.push_back(gm1);
+  gms.push_back(gm2); // pseudo multiple paths
 
   SimAnnMan sa(gms, folder);            // Initialize simulated annealing, specifying output folder
   sa.runSimulatedAnnealing(50, 0.97); // Run simulated annealing
   //sa.runSimulatedAnnealing(100, 0.97); // Run simulated annealing
 
   gms = sa.bestModels;           // Get best model from simulated annealing
-  gm = gms[0];
-  auto ret = optimize(gm, ""); // run optimize to get grid position at each frame
 
-  auto cell_angles = get_angles(ret, gm);                                               // get angles for each cell at each frame
-  GridModel gm_active = gm.addActiveCells();                                            // add active cells
-  auto active_ret = optimizeActive(gm_active, cell_angles, pointsFolder, anglesFolder); // Call optimizeActive to verify results with only control of actuating cells
-  storeModel(gm_active, folder);                                                        // Store best model with actuating cells in results folder
+  GridModel gm_active_base = GridModel(gms[0]).addActiveCells(); // add active cells
 
-  Animation animation(gm_active, active_ret, gm.targetPaths, 2, gm.targets); // initialize animation
-  animation.animate();                                                       // run animation
+  for (int i = 0; i < gms.size(); i++) {
+    GridModel gm = GridModel(gms[i]);
 
-  // Write angles of active cells as csv to new file
-  std::ofstream activeAngleOutFile;
-  activeAngleOutFile.open(anglesFolder + "active.csv", std::ofstream::out | std::ofstream::trunc);
-  std::vector<int> activeCells;
-  std::string delim = "";
-  for (int i = 0; i < gm_active.cells.size(); i++)
-  {
-    if (gm_active.cells[i].type == ACTIVE)
+    std::string functionFolder = folder + "function_" + std::to_string(i) + "/";
+    std::string pointsFolder = functionFolder + "points/";
+    std::string anglesFolder = functionFolder + "angles/";
+
+    std::filesystem::create_directory(functionFolder);
+    std::filesystem::create_directory(pointsFolder);
+    std::filesystem::create_directory(anglesFolder);
+
+
+    auto ret = optimize(gm, ""); // run optimize to get grid position at each frame
+
+    auto cell_angles = get_angles(ret, gm);                                               // get angles for each cell at each frame
+    GridModel gm_active = GridModel(gm);
+    gm_active.cells = gm_active_base.cells;                                            // add active cells
+    auto active_ret = optimizeActive(gm_active, cell_angles, pointsFolder, anglesFolder); // Call optimizeActive to verify results with only control of actuating cells
+    storeModel(gm_active, folder);                                                        // Store best model with actuating cells in results folder
+
+    Animation animation(gm_active, active_ret, gm.targetPaths, 2, gm.targets); // initialize animation
+    animation.animate();                                                       // run animation
+
+    // Write angles of active cells as csv to new file
+    std::ofstream activeAngleOutFile;
+    activeAngleOutFile.open(anglesFolder + "active.csv", std::ofstream::out | std::ofstream::trunc);
+    std::vector<int> activeCells;
+    std::string delim = "";
+    for (int i = 0; i < gm_active.cells.size(); i++)
     {
-      activeCells.push_back(i);
-      activeAngleOutFile << delim << "Cell " << i;
-      delim = ",";
-    }
-  }
-  activeAngleOutFile << "\n";
-  auto angles = anglesFromFolder(anglesFolder);
-  for (auto frame : angles)
-  {
-    delim = "";
-    for (int cell : activeCells)
-    {
-      activeAngleOutFile << delim << frame[cell];
-      delim = ",";
+      if (gm_active.cells[i].type == ACTIVE)
+      {
+        activeCells.push_back(i);
+        activeAngleOutFile << delim << "Cell " << i;
+        delim = ",";
+      }
     }
     activeAngleOutFile << "\n";
+    auto angles = anglesFromFolder(anglesFolder);
+    for (auto frame : angles)
+    {
+      delim = "";
+      for (int cell : activeCells)
+      {
+        activeAngleOutFile << delim << frame[cell];
+        delim = ",";
+      }
+      activeAngleOutFile << "\n";
+    }
+    activeAngleOutFile.close();
   }
-  activeAngleOutFile.close();
+
+  
 
   // Verify everything works by constructing gridmodel and angles from files
   // GridModel gmFile;
