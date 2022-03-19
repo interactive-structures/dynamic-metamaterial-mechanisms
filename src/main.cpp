@@ -183,7 +183,7 @@ int main(int argc, char *argv[])
   gms.push_back(gm1);
   gms.push_back(gm2); // pseudo multiple paths
 
-  SimAnnMan sa(gms, folder);            // Initialize simulated annealing, specifying output folder
+  SimAnnMan sa(gms, folder, 1.0, 1.0);            // Initialize simulated annealing, specifying output folder
   sa.runSimulatedAnnealing(50, 0.97); // Run simulated annealing
   //sa.runSimulatedAnnealing(100, 0.97); // Run simulated annealing
 

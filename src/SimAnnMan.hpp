@@ -21,17 +21,22 @@ public:
   std::vector<GridModel> workingModels;
   double minError;
   double workingError;
+  double pathWeight;
+  double dofWeight;
   std::string outFolder;
 
   SimAnnMan () {
     std::cout << "Error: No model specified" << std::endl;
   };
 
-  SimAnnMan (std::vector<GridModel> gms, std::string folder = "") {
+  SimAnnMan (std::vector<GridModel> gms, std::string folder = "", double pw = 1, double dw = 1) {
     if (gms.size() == 0) {
       std::cout << "Error: No models in vector to SimAnnMan" << std::endl;
       exit(1);
     }
+
+    pathWeight = pw;
+    dofWeight = dw;
 
     int num_cells = gms[0].cells.size();
 

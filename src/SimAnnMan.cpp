@@ -376,8 +376,8 @@ std::tuple<double, double, double> SimAnnMan::calcObj(std::vector<GridModel> can
 
   std::ofstream objOutFile;
   objOutFile.open(outFolder + "objectives.csv", std::ios_base::app);
-  objective = avgPathObjective + dofObjective * dofObjective + 0.0 * totalAngleObjective;
-  objOutFile << avgPathObjective << "," << dofObjective << "," << objective << "\n";
+  objective = pathWeight * avgPathObjective + dofWeight * dofObjective * dofObjective + 0.0 * totalAngleObjective;
+  objOutFile << pathWeight * avgPathObjective << "," << dofWeight * dofObjective << "," << objective << "\n";
   objOutFile.close();
   return std::make_tuple(avgPathObjective, dofObjective, objective);
 }
