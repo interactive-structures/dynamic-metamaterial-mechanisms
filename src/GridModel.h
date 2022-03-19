@@ -54,10 +54,11 @@ struct EXPORT_DLL_COMMAND GridResult
 // Class representing a problem instance
 class EXPORT_DLL_COMMAND GridModel
 {
-	typedef Eigen::Vector2d Point;
+	
 	typedef std::pair<int, int> Edge;
 
 public:
+	typedef Eigen::Vector2d Point;
 	std::vector<Point> points;
 	std::vector<GridCell> cells;
 
