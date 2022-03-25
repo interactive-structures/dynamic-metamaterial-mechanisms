@@ -2,8 +2,172 @@
 #include <math.h>
 #include <float.h>
 #include <igl/opengl/glfw/Viewer.h>
+#include <igl/resolve_duplicated_faces.h>
 
 #define PI 3.14159265
+
+int MultiAnimation::ind_to_vtx(GridCell c, int ind) {
+  return c.vertices(ind / 2) * 2 + ind % 2;
+}
+
+Eigen::MatrixXi MultiAnimation::cell_mesh_faces(GridCell c, int offset)
+{
+  // Eigen::Matrix<int, Eigen::Dynamic, 3> all_faces;
+  Eigen::Matrix<int, Eigen::Dynamic, 3> edge_faces;
+  edge_faces.resize(8, Eigen::NoChange);
+  edge_faces << ind_to_vtx(c, 0), ind_to_vtx(c, 1), ind_to_vtx(c, 2),
+                ind_to_vtx(c, 2), ind_to_vtx(c, 1), ind_to_vtx(c, 3),
+                ind_to_vtx(c, 2), ind_to_vtx(c, 3), ind_to_vtx(c, 5),
+                ind_to_vtx(c, 2), ind_to_vtx(c, 5), ind_to_vtx(c, 4),
+                ind_to_vtx(c, 4), ind_to_vtx(c, 5), ind_to_vtx(c, 7),
+                ind_to_vtx(c, 6), ind_to_vtx(c, 4), ind_to_vtx(c, 7),
+                ind_to_vtx(c, 6), ind_to_vtx(c, 7), ind_to_vtx(c, 0),
+                ind_to_vtx(c, 0), ind_to_vtx(c, 7), ind_to_vtx(c, 1);
+  if (c.type == RIGID) {
+    edge_faces.conservativeResize(12, Eigen::NoChange);
+    edge_faces.bottomRows(4) << ind_to_vtx(c, 6), ind_to_vtx(c, 0), ind_to_vtx(c, 4),
+                                ind_to_vtx(c, 4), ind_to_vtx(c, 0), ind_to_vtx(c, 2),
+                                ind_to_vtx(c, 7), ind_to_vtx(c, 5), ind_to_vtx(c, 1),
+                                ind_to_vtx(c, 5), ind_to_vtx(c, 3), ind_to_vtx(c, 1);
+  } else if (c.type == ACTIVE) {
+    edge_faces.conservativeResize(10, Eigen::NoChange);
+    edge_faces.bottomRows(2) << ind_to_vtx(c, 2), ind_to_vtx(c, 6), ind_to_vtx(c, 0),
+                                ind_to_vtx(c, 1), ind_to_vtx(c, 7), ind_to_vtx(c, 3);
+  }
+  
+  edge_faces = (edge_faces.array() + offset).matrix();
+
+  return edge_faces;
+}
+
+Eigen::MatrixXi MultiAnimation::grid_mesh_faces(GridModel gm, int offset) {
+  Eigen::Matrix<int, Eigen::Dynamic, 3> grid_faces;
+  for (auto c : gm.cells) {
+    Eigen::MatrixXi cell_faces = cell_mesh_faces(c, offset);
+    grid_faces.conservativeResize(grid_faces.rows() + cell_faces.rows(), Eigen::NoChange);
+    grid_faces.bottomRows(cell_faces.rows()) = cell_faces;
+  }
+  return grid_faces;
+}
+
+Eigen::MatrixXi MultiAnimation::full_mesh_faces() {
+  int offset = 0;
+  Eigen::Matrix<int, Eigen::Dynamic, 3> F;
+  for (auto gm : gms) {
+    Eigen::MatrixXi grid_faces = grid_mesh_faces(gm, offset);
+    F.conservativeResize(F.rows() + grid_faces.rows(), Eigen::NoChange);
+    F.bottomRows(grid_faces.rows()) = grid_faces;
+    offset += 2 * gm.points.size();
+  }
+
+  // Floor mesh
+  F.conservativeResize(F.rows() + 2, Eigen::NoChange);
+  F.bottomRows(2) << offset, offset + 1, offset + 2,
+                     offset, offset + 2, offset + 3;
+
+  return F;
+}
+
+Eigen::MatrixXd MultiAnimation::full_mesh_vertices() {
+  frame = frame % ress[0].size(); // properly bound current frame
+
+  int num_vertices = 0;
+  for (auto gm : gms) {
+    num_vertices += gm.points.size();
+  }
+  num_vertices *= 2;
+
+  Eigen::MatrixXd V = Eigen::Matrix<double, Eigen::Dynamic, 3>::Zero(num_vertices, 3);
+
+  Eigen::MatrixXd tmp = Eigen::MatrixXd::Zero(1, 3);
+  Eigen::MatrixXd bases = Eigen::MatrixXd::Zero(2, 3);
+  bases(0,1) = DBL_MAX;
+  Eigen::MatrixXd cog = Eigen::MatrixXd::Zero(1, 3);
+
+  int layer = 0;
+  int offset = 0;
+  for (auto res : ress) {
+    for (int i = 0; i < res[frame].points.size(); i++)
+    {
+      tmp(0, 0) = res[frame].points[i](0);
+      tmp(0, 1) = res[frame].points[i](1);
+      tmp(0, 2) = layer + 0.25;
+      tmp = tmp * last_rotation;
+      V.row(2 * offset + 2 * i) = tmp; // Apply rotation
+
+      tmp(0, 0) = res[frame].points[i](0);
+      tmp(0, 1) = res[frame].points[i](1);
+      tmp(0, 2) = layer - 0.25;
+      tmp = tmp * last_rotation;
+      V.row(2 * offset + 2 * i + 1) = tmp;
+
+      cog = cog + tmp; // Sum to find center of gravity
+      if (tmp(0, 1) < bases(0, 1)) { // find lowest point
+        bases.row(0) = tmp;
+      }
+    }
+    offset += res[frame].points.size();
+    layer += 1;
+  }
+  
+  cog = cog / offset; // Average
+
+  // find candidate rotations
+  double rot_angle;
+  if (cog(0, 0) > bases(0, 0)) { // falls to right, find min angle
+    rot_angle = PI;
+    for (int i = 0; i < offset; i++) {
+      if (bases.row(0) == V.row(2 * i + 1)) {continue;}
+      double curr_rot = atan2(V(2 * i + 1, 1) - bases(0, 1), V(2 * i + 1, 0) - bases(0, 0));
+      if (curr_rot < rot_angle) {
+        rot_angle = curr_rot;
+        bases.row(1) = V.row(2 * i + 1);
+      }
+    }
+    rot_angle = -rot_angle;
+  } else { // falls to left, find max angle
+    rot_angle = 0;
+    for (int i = 0; i < offset; i++) {
+      if (bases.row(0) == V.row(2 * i + 1)) {continue;}
+      double curr_rot = atan2(V(2 * i + 1, 1) - bases(0, 1), V(2 * i + 1, 0) - bases(0, 0));
+      if (curr_rot > rot_angle) {
+        rot_angle = curr_rot;
+        bases.row(1) = V.row(2 * i + 1);
+      }
+    }
+    rot_angle = PI - rot_angle;
+  }
+
+  Eigen::Matrix3d rotation = Eigen::Matrix3d::Identity(3, 3); // construct rotation matrix
+  rotation(0, 0) = cos(rot_angle);
+  rotation(0, 1) = sin(rot_angle);
+  rotation(1, 0) = -sin(rot_angle);
+  rotation(1, 1) = cos(rot_angle);
+
+  bases = bases * rotation; // rotate base
+
+  assert(abs(bases(0,1) - bases(1,1)) < 0.001); // extract translation
+  double translate_base = bases(0, 1);
+
+  Eigen::MatrixXd translation = Eigen::MatrixXd::Zero(num_vertices, 3); // translation for all points
+  translation.col(1).setOnes();
+  translation = translation * (-translate_base);
+
+  last_rotation *= rotation; // update rotation
+
+  frame = (frame + 1) % ress[0].size(); // Increment frame
+
+  V = (V * rotation) + translation;
+
+  // Floor vertices
+  V.conservativeResize(V.rows() + 4, Eigen::NoChange);
+  V.bottomRows(4) << -100, 0, 100,
+                     100, 0, 100,
+                     100, 0, -100,
+                     -100, 0, -100;
+
+  return V;
+}
 
 Eigen::MatrixXi MultiAnimation::get_edge_matrix()
 {
@@ -239,6 +403,8 @@ std::tuple<Eigen::MatrixXd, Eigen::MatrixXi, Eigen::MatrixXd, Eigen::MatrixXd> M
 
   last_rotation *= rotation; // update last rotation
 
+  std::cout << frame << ": " << rot_angle << std::endl;
+
   return std::make_tuple((P * rotation) + translation, E, PC, EC);
 }
 
@@ -280,6 +446,38 @@ void MultiAnimation::animate()
       viewer.data().set_edges(points, edges, edgeColors);
       // draw ground
       viewer.data().add_edges(ground.row(0), ground.row(1), base_color);
+      curr_in_frame = 0;
+    }
+
+    return false;
+  };
+
+  viewer.launch();
+}
+
+void MultiAnimation::animate_mesh()
+{
+  // Initialize viewer
+  igl::opengl::glfw::Viewer viewer;
+  viewer.data().point_size = 20;
+  viewer.data().set_face_based(true);
+  viewer.core().orthographic = true;
+  viewer.core().toggle(viewer.data().show_lines);
+  viewer.core().is_animating = true;
+  viewer.core().background_color.setOnes();
+
+  int curr_in_frame = 0;
+
+  // Animation Callback
+  viewer.callback_pre_draw = [&](igl::opengl::glfw::Viewer &) -> bool
+  {
+    curr_in_frame++;
+    if (curr_in_frame == rate)
+    { // slow controls frame rate
+      // Get mesh
+      auto V = full_mesh_vertices();
+      // draw mesh
+      viewer.data().set_mesh(V, F);
       curr_in_frame = 0;
     }
 

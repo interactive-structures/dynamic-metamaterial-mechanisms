@@ -27,18 +27,26 @@ public:
     gms = models;
     ress = results;
     grid_edges = get_edge_matrix();
+    F = full_mesh_faces();
     to_trace = traces;
     target_paths = targets;
     last_rotation = Eigen::Matrix3d::Identity(3, 3);
   }
   std::vector<std::vector<double>> get_angles();
   void animate();
+  void animate_mesh();
 private:
   std::vector<GridModel> gms;
   std::vector<std::vector<GridResult>> ress;
   Eigen::MatrixXi grid_edges;
+  Eigen::MatrixXi F;
 
+  int ind_to_vtx(GridCell c, int ind);
+  Eigen::MatrixXi cell_mesh_faces(GridCell c, int offset);
+  Eigen::MatrixXi grid_mesh_faces(GridModel gm, int offset);
   Eigen::MatrixXi get_edge_matrix();
+  Eigen::MatrixXi full_mesh_faces();
+  Eigen::MatrixXd full_mesh_vertices();
   std::tuple<Eigen::MatrixXd, Eigen::MatrixXi, Eigen::MatrixXd, Eigen::MatrixXd> animate_path();
 };
 
