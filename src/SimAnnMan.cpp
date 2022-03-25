@@ -346,7 +346,7 @@ std::tuple<double, double, double> SimAnnMan::calcObj(std::vector<GridModel> can
     if (i == 0) {
       dofObjective = candidate.constraintGraph.size() / (2 * sqrt(candidate.cells.size()));
     }
-    assert(dofObjective - candidate.constraintGraph.size() / (2 * sqrt(candidate.cells.size())) < 0.001);
+    // assert(dofObjective - candidate.constraintGraph.size() / (2 * sqrt(candidate.cells.size())) < 0.001);
     
 
     // from angles
