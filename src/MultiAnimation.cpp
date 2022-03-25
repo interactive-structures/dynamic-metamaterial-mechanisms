@@ -7,32 +7,90 @@
 #define PI 3.14159265
 
 int MultiAnimation::ind_to_vtx(GridCell c, int ind) {
-  return c.vertices(ind / 2) * 2 + ind % 2;
+  return c.vertices(ind / 24) * 24 + ind % 24;
 }
 
 Eigen::MatrixXi MultiAnimation::cell_mesh_faces(GridCell c, int offset)
 {
-  // Eigen::Matrix<int, Eigen::Dynamic, 3> all_faces;
   Eigen::Matrix<int, Eigen::Dynamic, 3> edge_faces;
-  edge_faces.resize(8, Eigen::NoChange);
-  edge_faces << ind_to_vtx(c, 0), ind_to_vtx(c, 1), ind_to_vtx(c, 2),
-                ind_to_vtx(c, 2), ind_to_vtx(c, 1), ind_to_vtx(c, 3),
-                ind_to_vtx(c, 2), ind_to_vtx(c, 3), ind_to_vtx(c, 5),
-                ind_to_vtx(c, 2), ind_to_vtx(c, 5), ind_to_vtx(c, 4),
-                ind_to_vtx(c, 4), ind_to_vtx(c, 5), ind_to_vtx(c, 7),
-                ind_to_vtx(c, 6), ind_to_vtx(c, 4), ind_to_vtx(c, 7),
-                ind_to_vtx(c, 6), ind_to_vtx(c, 7), ind_to_vtx(c, 0),
-                ind_to_vtx(c, 0), ind_to_vtx(c, 7), ind_to_vtx(c, 1);
+  edge_faces.resize(32, Eigen::NoChange);
+  edge_faces << ind_to_vtx(c, 1), ind_to_vtx(c, 24), ind_to_vtx(c, 27),
+                ind_to_vtx(c, 1), ind_to_vtx(c, 27), ind_to_vtx(c, 2),
+                ind_to_vtx(c, 2), ind_to_vtx(c, 27), ind_to_vtx(c, 31),
+                ind_to_vtx(c, 2), ind_to_vtx(c, 31), ind_to_vtx(c, 6),
+                ind_to_vtx(c, 5), ind_to_vtx(c, 6), ind_to_vtx(c, 31),
+                ind_to_vtx(c, 5), ind_to_vtx(c, 31), ind_to_vtx(c, 28),
+                ind_to_vtx(c, 1), ind_to_vtx(c, 5), ind_to_vtx(c, 28),
+                ind_to_vtx(c, 1), ind_to_vtx(c, 28), ind_to_vtx(c, 24), // edge 1 end
+
+                ind_to_vtx(c, 26), ind_to_vtx(c, 49), ind_to_vtx(c, 48),
+                ind_to_vtx(c, 26), ind_to_vtx(c, 48), ind_to_vtx(c, 27),
+                ind_to_vtx(c, 27), ind_to_vtx(c, 48), ind_to_vtx(c, 52),
+                ind_to_vtx(c, 27), ind_to_vtx(c, 52), ind_to_vtx(c, 31),
+                ind_to_vtx(c, 31), ind_to_vtx(c, 52), ind_to_vtx(c, 53),
+                ind_to_vtx(c, 31), ind_to_vtx(c, 53), ind_to_vtx(c, 30),
+                ind_to_vtx(c, 26), ind_to_vtx(c, 53), ind_to_vtx(c, 49),
+                ind_to_vtx(c, 26), ind_to_vtx(c, 30), ind_to_vtx(c, 53), // edge 2 end
+
+                ind_to_vtx(c, 73), ind_to_vtx(c, 48), ind_to_vtx(c, 51),
+                ind_to_vtx(c, 73), ind_to_vtx(c, 51), ind_to_vtx(c, 74),
+                ind_to_vtx(c, 74), ind_to_vtx(c, 51), ind_to_vtx(c, 55),
+                ind_to_vtx(c, 74), ind_to_vtx(c, 55), ind_to_vtx(c, 78),
+                ind_to_vtx(c, 78), ind_to_vtx(c, 55), ind_to_vtx(c, 52),
+                ind_to_vtx(c, 78), ind_to_vtx(c, 52), ind_to_vtx(c, 77),
+                ind_to_vtx(c, 73), ind_to_vtx(c, 77), ind_to_vtx(c, 52),
+                ind_to_vtx(c, 73), ind_to_vtx(c, 52), ind_to_vtx(c, 48), // edge 3 end
+
+                ind_to_vtx(c, 2), ind_to_vtx(c, 73), ind_to_vtx(c, 72),
+                ind_to_vtx(c, 2), ind_to_vtx(c, 72), ind_to_vtx(c, 3),
+                ind_to_vtx(c, 3), ind_to_vtx(c, 76), ind_to_vtx(c, 7),
+                ind_to_vtx(c, 3), ind_to_vtx(c, 72), ind_to_vtx(c, 76),
+                ind_to_vtx(c, 7), ind_to_vtx(c, 76), ind_to_vtx(c, 77),
+                ind_to_vtx(c, 7), ind_to_vtx(c, 77), ind_to_vtx(c, 6),
+                ind_to_vtx(c, 2), ind_to_vtx(c, 77), ind_to_vtx(c, 73),
+                ind_to_vtx(c, 2), ind_to_vtx(c, 6), ind_to_vtx(c, 77); // edge 4 end
   if (c.type == RIGID) {
-    edge_faces.conservativeResize(12, Eigen::NoChange);
-    edge_faces.bottomRows(4) << ind_to_vtx(c, 6), ind_to_vtx(c, 0), ind_to_vtx(c, 4),
-                                ind_to_vtx(c, 4), ind_to_vtx(c, 0), ind_to_vtx(c, 2),
-                                ind_to_vtx(c, 7), ind_to_vtx(c, 5), ind_to_vtx(c, 1),
-                                ind_to_vtx(c, 5), ind_to_vtx(c, 3), ind_to_vtx(c, 1);
+    edge_faces.conservativeResize(56, Eigen::NoChange);
+    edge_faces.bottomRows(24) << ind_to_vtx(c, 81), ind_to_vtx(c, 38), ind_to_vtx(c, 27),
+                                 ind_to_vtx(c, 27), ind_to_vtx(c, 73), ind_to_vtx(c, 81),
+                                 ind_to_vtx(c, 73), ind_to_vtx(c, 27), ind_to_vtx(c, 37),
+                                 ind_to_vtx(c, 37), ind_to_vtx(c, 82), ind_to_vtx(c, 73), // top
+                                 ind_to_vtx(c, 82), ind_to_vtx(c, 37), ind_to_vtx(c, 45),
+                                 ind_to_vtx(c, 45), ind_to_vtx(c, 90), ind_to_vtx(c, 82), // upper side
+                                 ind_to_vtx(c, 89), ind_to_vtx(c, 31), ind_to_vtx(c, 46),
+                                 ind_to_vtx(c, 89), ind_to_vtx(c, 77), ind_to_vtx(c, 31), 
+                                 ind_to_vtx(c, 77), ind_to_vtx(c, 45), ind_to_vtx(c, 31),
+                                 ind_to_vtx(c, 77), ind_to_vtx(c, 90), ind_to_vtx(c, 45), // bottom
+                                 ind_to_vtx(c, 38), ind_to_vtx(c, 81), ind_to_vtx(c, 89),
+                                 ind_to_vtx(c, 38), ind_to_vtx(c, 89), ind_to_vtx(c, 46), // lower side
+                                 // TL-BR end
+                                 ind_to_vtx(c, 2), ind_to_vtx(c, 11), ind_to_vtx(c, 56),
+                                 ind_to_vtx(c, 56), ind_to_vtx(c, 48), ind_to_vtx(c, 2),
+                                 ind_to_vtx(c, 2), ind_to_vtx(c, 48), ind_to_vtx(c, 12),
+                                 ind_to_vtx(c, 12), ind_to_vtx(c, 48), ind_to_vtx(c, 63), // top
+                                 ind_to_vtx(c, 12), ind_to_vtx(c, 63), ind_to_vtx(c, 71),
+                                 ind_to_vtx(c, 71), ind_to_vtx(c, 20), ind_to_vtx(c, 12), // upper side
+                                 ind_to_vtx(c, 20), ind_to_vtx(c, 71), ind_to_vtx(c, 52),
+                                 ind_to_vtx(c, 52), ind_to_vtx(c, 6), ind_to_vtx(c, 20), 
+                                 ind_to_vtx(c, 6), ind_to_vtx(c, 52), ind_to_vtx(c, 64),
+                                 ind_to_vtx(c, 64), ind_to_vtx(c, 19), ind_to_vtx(c, 6), // bottom
+                                 ind_to_vtx(c, 11), ind_to_vtx(c, 19), ind_to_vtx(c, 64),
+                                 ind_to_vtx(c, 64), ind_to_vtx(c, 56), ind_to_vtx(c, 11); // lower side
+                                 // BL-TR end
   } else if (c.type == ACTIVE) {
-    edge_faces.conservativeResize(10, Eigen::NoChange);
-    edge_faces.bottomRows(2) << ind_to_vtx(c, 2), ind_to_vtx(c, 6), ind_to_vtx(c, 0),
-                                ind_to_vtx(c, 1), ind_to_vtx(c, 7), ind_to_vtx(c, 3);
+    edge_faces.conservativeResize(44, Eigen::NoChange);
+    edge_faces.bottomRows(12) << ind_to_vtx(c, 81), ind_to_vtx(c, 38), ind_to_vtx(c, 27),
+                                 ind_to_vtx(c, 27), ind_to_vtx(c, 73), ind_to_vtx(c, 81),
+                                 ind_to_vtx(c, 73), ind_to_vtx(c, 27), ind_to_vtx(c, 37),
+                                 ind_to_vtx(c, 37), ind_to_vtx(c, 82), ind_to_vtx(c, 73), // top
+                                 ind_to_vtx(c, 82), ind_to_vtx(c, 37), ind_to_vtx(c, 45),
+                                 ind_to_vtx(c, 45), ind_to_vtx(c, 90), ind_to_vtx(c, 82), // upper side
+                                 ind_to_vtx(c, 89), ind_to_vtx(c, 31), ind_to_vtx(c, 46),
+                                 ind_to_vtx(c, 89), ind_to_vtx(c, 77), ind_to_vtx(c, 31), 
+                                 ind_to_vtx(c, 77), ind_to_vtx(c, 45), ind_to_vtx(c, 31),
+                                 ind_to_vtx(c, 77), ind_to_vtx(c, 90), ind_to_vtx(c, 45), // bottom
+                                 ind_to_vtx(c, 38), ind_to_vtx(c, 81), ind_to_vtx(c, 89),
+                                 ind_to_vtx(c, 38), ind_to_vtx(c, 89), ind_to_vtx(c, 46); // lower side
   }
   
   edge_faces = (edge_faces.array() + offset).matrix();
@@ -57,13 +115,23 @@ Eigen::MatrixXi MultiAnimation::full_mesh_faces() {
     Eigen::MatrixXi grid_faces = grid_mesh_faces(gm, offset);
     F.conservativeResize(F.rows() + grid_faces.rows(), Eigen::NoChange);
     F.bottomRows(grid_faces.rows()) = grid_faces;
-    offset += 2 * gm.points.size();
+    offset += 24 * gm.points.size();
   }
 
   // Floor mesh
-  F.conservativeResize(F.rows() + 2, Eigen::NoChange);
-  F.bottomRows(2) << offset, offset + 1, offset + 2,
-                     offset, offset + 2, offset + 3;
+  F.conservativeResize(F.rows() + 12, Eigen::NoChange);
+  F.bottomRows(12) << offset, offset + 1, offset + 2,
+                      offset, offset + 2, offset + 3, // top
+                      offset + 4, offset + 1, offset, 
+                      offset + 4, offset + 5, offset + 1, // front
+                      offset + 3, offset + 2, offset + 6, 
+                      offset + 3, offset + 6, offset + 7, // back
+                      offset, offset + 3, offset + 7, 
+                      offset, offset + 7, offset + 4, // left
+                      offset + 2, offset + 1, offset + 5, 
+                      offset + 2, offset + 5, offset + 6, // right
+                      offset + 4, offset + 7, offset + 5,
+                      offset + 5, offset + 7, offset + 6; // bottom
 
   return F;
 }
@@ -71,13 +139,17 @@ Eigen::MatrixXi MultiAnimation::full_mesh_faces() {
 Eigen::MatrixXd MultiAnimation::full_mesh_vertices() {
   frame = frame % ress[0].size(); // properly bound current frame
 
+  int v_per_p = 24;
   int num_vertices = 0;
   for (auto gm : gms) {
     num_vertices += gm.points.size();
   }
-  num_vertices *= 2;
 
-  Eigen::MatrixXd V = Eigen::Matrix<double, Eigen::Dynamic, 3>::Zero(num_vertices, 3);
+  Eigen::MatrixXd P = Eigen::MatrixXd::Zero(num_vertices, 3);
+
+  num_vertices *= v_per_p;
+
+  Eigen::MatrixXd V = Eigen::MatrixXd::Zero(num_vertices, 3);
 
   Eigen::MatrixXd tmp = Eigen::MatrixXd::Zero(1, 3);
   Eigen::MatrixXd bases = Eigen::MatrixXd::Zero(2, 3);
@@ -89,22 +161,166 @@ Eigen::MatrixXd MultiAnimation::full_mesh_vertices() {
   for (auto res : ress) {
     for (int i = 0; i < res[frame].points.size(); i++)
     {
+      // cog and rotation calculations
       tmp(0, 0) = res[frame].points[i](0);
       tmp(0, 1) = res[frame].points[i](1);
-      tmp(0, 2) = layer + 0.25;
+      tmp(0, 2) = 0;
       tmp = tmp * last_rotation;
-      V.row(2 * offset + 2 * i) = tmp; // Apply rotation
-
-      tmp(0, 0) = res[frame].points[i](0);
-      tmp(0, 1) = res[frame].points[i](1);
-      tmp(0, 2) = layer - 0.25;
-      tmp = tmp * last_rotation;
-      V.row(2 * offset + 2 * i + 1) = tmp;
-
+      P.row(offset + i) = tmp;
       cog = cog + tmp; // Sum to find center of gravity
-      if (tmp(0, 1) < bases(0, 1)) { // find lowest point
+      if (tmp(0, 1) < bases(0, 1)) { // track lowest point
         bases.row(0) = tmp;
       }
+
+      // actually create the points
+
+      // 4 upper layer points
+      tmp(0, 0) = res[frame].points[i](0) - 0.01;
+      tmp(0, 1) = res[frame].points[i](1) - 0.01;
+      tmp(0, 2) = layer + 0.25;
+      tmp = tmp * last_rotation;
+      V.row(v_per_p * offset + v_per_p * i) = tmp;
+
+      tmp(0, 0) = res[frame].points[i](0) + 0.01;
+      tmp(0, 1) = res[frame].points[i](1) - 0.01;
+      tmp(0, 2) = layer + 0.25;
+      tmp = tmp * last_rotation;
+      V.row(v_per_p * offset + v_per_p * i + 1) = tmp;
+
+      tmp(0, 0) = res[frame].points[i](0) + 0.01;
+      tmp(0, 1) = res[frame].points[i](1) + 0.01;
+      tmp(0, 2) = layer + 0.25;
+      tmp = tmp * last_rotation;
+      V.row(v_per_p * offset + v_per_p * i + 2) = tmp;
+
+      tmp(0, 0) = res[frame].points[i](0) - 0.01;
+      tmp(0, 1) = res[frame].points[i](1) + 0.01;
+      tmp(0, 2) = layer + 0.25;
+      tmp = tmp * last_rotation;
+      V.row(v_per_p * offset + v_per_p * i + 3) = tmp;
+
+      // 4 lower layer points
+      tmp(0, 0) = res[frame].points[i](0) - 0.01;
+      tmp(0, 1) = res[frame].points[i](1) - 0.01;
+      tmp(0, 2) = layer - 0.25;
+      tmp = tmp * last_rotation;
+      V.row(v_per_p * offset + v_per_p * i + 4) = tmp;
+
+      tmp(0, 0) = res[frame].points[i](0) + 0.01;
+      tmp(0, 1) = res[frame].points[i](1) - 0.01;
+      tmp(0, 2) = layer - 0.25;
+      tmp = tmp * last_rotation;
+      V.row(v_per_p * offset + v_per_p * i + 5) = tmp;
+
+      tmp(0, 0) = res[frame].points[i](0) + 0.01;
+      tmp(0, 1) = res[frame].points[i](1) + 0.01;
+      tmp(0, 2) = layer - 0.25;
+      tmp = tmp * last_rotation;
+      V.row(v_per_p * offset + v_per_p * i + 6) = tmp;
+
+      tmp(0, 0) = res[frame].points[i](0) - 0.01;
+      tmp(0, 1) = res[frame].points[i](1) + 0.01;
+      tmp(0, 2) = layer - 0.25;
+      tmp = tmp * last_rotation;
+      V.row(v_per_p * offset + v_per_p * i + 7) = tmp;
+
+      // 8 upper layer crosses
+      tmp(0, 0) = res[frame].points[i](0) - 0.01;
+      tmp(0, 1) = res[frame].points[i](1) - 0.02;
+      tmp(0, 2) = layer + 0.25;
+      tmp = tmp * last_rotation;
+      V.row(v_per_p * offset + v_per_p * i + 8) = tmp;
+
+      tmp(0, 0) = res[frame].points[i](0) + 0.01;
+      tmp(0, 1) = res[frame].points[i](1) - 0.02;
+      tmp(0, 2) = layer + 0.25;
+      tmp = tmp * last_rotation;
+      V.row(v_per_p * offset + v_per_p * i + 9) = tmp;
+
+      tmp(0, 0) = res[frame].points[i](0) + 0.02;
+      tmp(0, 1) = res[frame].points[i](1) - 0.01;
+      tmp(0, 2) = layer + 0.25;
+      tmp = tmp * last_rotation;
+      V.row(v_per_p * offset + v_per_p * i + 10) = tmp;
+
+      tmp(0, 0) = res[frame].points[i](0) + 0.02;
+      tmp(0, 1) = res[frame].points[i](1) + 0.01;
+      tmp(0, 2) = layer + 0.25;
+      tmp = tmp * last_rotation;
+      V.row(v_per_p * offset + v_per_p * i + 11) = tmp;
+
+      tmp(0, 0) = res[frame].points[i](0) + 0.01;
+      tmp(0, 1) = res[frame].points[i](1) + 0.02;
+      tmp(0, 2) = layer + 0.25;
+      tmp = tmp * last_rotation;
+      V.row(v_per_p * offset + v_per_p * i + 12) = tmp;
+
+      tmp(0, 0) = res[frame].points[i](0) - 0.01;
+      tmp(0, 1) = res[frame].points[i](1) + 0.02;
+      tmp(0, 2) = layer + 0.25;
+      tmp = tmp * last_rotation;
+      V.row(v_per_p * offset + v_per_p * i + 13) = tmp;
+
+      tmp(0, 0) = res[frame].points[i](0) - 0.02;
+      tmp(0, 1) = res[frame].points[i](1) + 0.01;
+      tmp(0, 2) = layer + 0.25;
+      tmp = tmp * last_rotation;
+      V.row(v_per_p * offset + v_per_p * i + 14) = tmp;
+
+      tmp(0, 0) = res[frame].points[i](0) - 0.02;
+      tmp(0, 1) = res[frame].points[i](1) - 0.01;
+      tmp(0, 2) = layer + 0.25;
+      tmp = tmp * last_rotation;
+      V.row(v_per_p * offset + v_per_p * i + 15) = tmp;
+
+      // 8 lower layer crosses
+      tmp(0, 0) = res[frame].points[i](0) - 0.01;
+      tmp(0, 1) = res[frame].points[i](1) - 0.02;
+      tmp(0, 2) = layer - 0.25;
+      tmp = tmp * last_rotation;
+      V.row(v_per_p * offset + v_per_p * i + 16) = tmp;
+
+      tmp(0, 0) = res[frame].points[i](0) + 0.01;
+      tmp(0, 1) = res[frame].points[i](1) - 0.02;
+      tmp(0, 2) = layer - 0.25;
+      tmp = tmp * last_rotation;
+      V.row(v_per_p * offset + v_per_p * i + 17) = tmp;
+
+      tmp(0, 0) = res[frame].points[i](0) + 0.02;
+      tmp(0, 1) = res[frame].points[i](1) - 0.01;
+      tmp(0, 2) = layer - 0.25;
+      tmp = tmp * last_rotation;
+      V.row(v_per_p * offset + v_per_p * i + 18) = tmp;
+
+      tmp(0, 0) = res[frame].points[i](0) + 0.02;
+      tmp(0, 1) = res[frame].points[i](1) + 0.01;
+      tmp(0, 2) = layer - 0.25;
+      tmp = tmp * last_rotation;
+      V.row(v_per_p * offset + v_per_p * i + 19) = tmp;
+
+      tmp(0, 0) = res[frame].points[i](0) + 0.01;
+      tmp(0, 1) = res[frame].points[i](1) + 0.02;
+      tmp(0, 2) = layer - 0.25;
+      tmp = tmp * last_rotation;
+      V.row(v_per_p * offset + v_per_p * i + 20) = tmp;
+
+      tmp(0, 0) = res[frame].points[i](0) - 0.01;
+      tmp(0, 1) = res[frame].points[i](1) + 0.02;
+      tmp(0, 2) = layer - 0.25;
+      tmp = tmp * last_rotation;
+      V.row(v_per_p * offset + v_per_p * i + 21) = tmp;
+
+      tmp(0, 0) = res[frame].points[i](0) - 0.02;
+      tmp(0, 1) = res[frame].points[i](1) + 0.01;
+      tmp(0, 2) = layer - 0.25;
+      tmp = tmp * last_rotation;
+      V.row(v_per_p * offset + v_per_p * i + 22) = tmp;
+
+      tmp(0, 0) = res[frame].points[i](0) - 0.02;
+      tmp(0, 1) = res[frame].points[i](1) - 0.01;
+      tmp(0, 2) = layer - 0.25;
+      tmp = tmp * last_rotation;
+      V.row(v_per_p * offset + v_per_p * i + 23) = tmp;
     }
     offset += res[frame].points.size();
     layer += 1;
@@ -117,22 +333,22 @@ Eigen::MatrixXd MultiAnimation::full_mesh_vertices() {
   if (cog(0, 0) > bases(0, 0)) { // falls to right, find min angle
     rot_angle = PI;
     for (int i = 0; i < offset; i++) {
-      if (bases.row(0) == V.row(2 * i + 1)) {continue;}
-      double curr_rot = atan2(V(2 * i + 1, 1) - bases(0, 1), V(2 * i + 1, 0) - bases(0, 0));
+      if (bases.row(0) == P.row(i)) {continue;}
+      double curr_rot = atan2(P(i, 1) - bases(0, 1), P(i, 0) - bases(0, 0));
       if (curr_rot < rot_angle) {
         rot_angle = curr_rot;
-        bases.row(1) = V.row(2 * i + 1);
+        bases.row(1) = P.row(i);
       }
     }
     rot_angle = -rot_angle;
   } else { // falls to left, find max angle
     rot_angle = 0;
     for (int i = 0; i < offset; i++) {
-      if (bases.row(0) == V.row(2 * i + 1)) {continue;}
-      double curr_rot = atan2(V(2 * i + 1, 1) - bases(0, 1), V(2 * i + 1, 0) - bases(0, 0));
+      if (bases.row(0) == P.row(i)) {continue;}
+      double curr_rot = atan2(P(i, 1) - bases(0, 1), P(i, 0) - bases(0, 0));
       if (curr_rot > rot_angle) {
         rot_angle = curr_rot;
-        bases.row(1) = V.row(2 * i + 1);
+        bases.row(1) = P.row(i);
       }
     }
     rot_angle = PI - rot_angle;
@@ -160,11 +376,15 @@ Eigen::MatrixXd MultiAnimation::full_mesh_vertices() {
   V = (V * rotation) + translation;
 
   // Floor vertices
-  V.conservativeResize(V.rows() + 4, Eigen::NoChange);
-  V.bottomRows(4) << -100, 0, 100,
-                     100, 0, 100,
-                     100, 0, -100,
-                     -100, 0, -100;
+  V.conservativeResize(V.rows() + 8, Eigen::NoChange);
+  V.bottomRows(8) << -100, 0, layer + 1,
+                     100, 0, layer + 1,
+                     100, 0, -1,
+                     -100, 0, -1,
+                     -100, -0.2, layer + 1,
+                     100, -0.2, layer + 1,
+                     100, -0.2, -1,
+                     -100, -0.2, -1;
 
   return V;
 }
