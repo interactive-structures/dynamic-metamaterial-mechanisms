@@ -370,6 +370,7 @@ Eigen::MatrixXd MultiAnimation::full_mesh_vertices() {
   translation = translation * (-translate_base);
 
   last_rotation *= rotation; // update rotation
+  last_translation = -translate_base;
 
   frame = (frame + 1) % ress[0].size(); // Increment frame
 
@@ -675,6 +676,80 @@ void MultiAnimation::animate()
   viewer.launch();
 }
 
+void MultiAnimation::set_targets() {
+  int points_set = 0;
+  int edges_set = 0;
+  int layer = 0;
+
+  Eigen::Matrix<double, 1, 3> tmp;
+
+  target_edges = Eigen::Matrix<int, Eigen::Dynamic, 2>();
+  target_colors = Eigen::Matrix<double, Eigen::Dynamic, 3>();
+  target_points = Eigen::Matrix<double, Eigen::Dynamic, 3>();
+
+  // Traced Paths
+  for (int ind = 0; ind < ress.size(); ind++) { // by layer
+    std::vector<GridResult> res = ress[ind];
+    std::vector<int> res_traces = to_trace[ind];
+    
+    for (int i = 0; i < res_traces.size(); i++)
+    { // ith traced path
+      target_edges.conservativeResize(target_edges.rows() + res.size() - 1, Eigen::NoChange);
+      target_colors.conservativeResize(target_colors.rows() + res.size() - 1, Eigen::NoChange);
+      target_points.conservativeResize(target_points.rows() + res.size(), Eigen::NoChange);
+
+      for (int j = 0; j < res.size(); j++)
+      { // at time j
+        tmp(0, 0) = res[j].points[res_traces[i]](0);
+        tmp(0, 1) = res[j].points[res_traces[i]](1);
+        tmp(0, 2) = layer;
+        target_points.row(points_set) = tmp; // Apply rotation
+        if (j > 0) {
+          target_edges(edges_set, 0) = points_set - 1;
+          target_edges(edges_set, 1) = points_set;
+          target_colors(edges_set, 0) = 0;
+          target_colors(edges_set, 1) = 0;
+          target_colors(edges_set, 2) = 1;
+          edges_set++;
+        }
+        points_set++;
+      }
+    }
+    layer += 1;
+  }
+
+  // Target paths
+  layer = 0;
+  for (auto res_target_paths : target_paths) {
+    for (auto path : res_target_paths)
+    {
+      bool first = true;
+      target_edges.conservativeResize(target_edges.rows() + path.size() - 1, Eigen::NoChange);
+      target_colors.conservativeResize(target_colors.rows() + path.size() - 1, Eigen::NoChange);
+      target_points.conservativeResize(target_points.rows() + path.size(), Eigen::NoChange);
+      for (auto point : path)
+      {
+        tmp(0, 0) = point[0];
+        tmp(0, 1) = point[1];
+        tmp(0, 2) = layer;
+        target_points.row(points_set) = tmp; // Apply rotation
+        if (!first) {
+          target_edges(edges_set, 0) = points_set - 1;
+          target_edges(edges_set, 1) = points_set;
+          target_colors(edges_set, 0) = 1;
+          target_colors(edges_set, 1) = 0;
+          target_colors(edges_set, 2) = 0;
+          edges_set++;
+        } else {
+          first = false;
+        }
+        points_set++;
+      }
+    }
+    layer += 1;
+  } 
+}
+
 void MultiAnimation::animate_mesh()
 {
   // Initialize viewer
@@ -686,6 +761,9 @@ void MultiAnimation::animate_mesh()
   viewer.core().is_animating = true;
   viewer.core().background_color.setOnes();
 
+  Eigen::MatrixXd translation = Eigen::MatrixXd::Zero(target_points.rows(), 3); // translation for target points
+  translation.col(1).setOnes();
+
   int curr_in_frame = 0;
 
   // Animation Callback
@@ -696,8 +774,10 @@ void MultiAnimation::animate_mesh()
     { // slow controls frame rate
       // Get mesh
       auto V = full_mesh_vertices();
+
       // draw mesh
       viewer.data().set_mesh(V, F);
+      viewer.data().set_edges(target_points * last_rotation + translation * last_translation, target_edges, target_colors);
       curr_in_frame = 0;
     }
 

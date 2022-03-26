@@ -19,6 +19,7 @@ public:
   std::vector<std::vector<int>> to_trace;
   std::vector<std::vector<std::vector<Eigen::Vector2d>>> target_paths;
   Eigen::Matrix3d last_rotation;
+  double last_translation;
 
   MultiAnimation(std::vector<GridModel> models, std::vector<std::vector<GridResult>> results, std::vector<std::vector<std::vector<Eigen::Vector2d>>> targets, int framerate=1, std::vector<std::vector<int>> traces=std::vector<std::vector<int>>())
   {
@@ -31,6 +32,8 @@ public:
     to_trace = traces;
     target_paths = targets;
     last_rotation = Eigen::Matrix3d::Identity(3, 3);
+    last_translation = 0;
+    set_targets();
   }
   std::vector<std::vector<double>> get_angles();
   void animate();
@@ -39,6 +42,9 @@ private:
   std::vector<GridModel> gms;
   std::vector<std::vector<GridResult>> ress;
   Eigen::MatrixXi grid_edges;
+  Eigen::MatrixXi target_edges;
+  Eigen::MatrixXd target_points;
+  Eigen::MatrixXd target_colors;
   Eigen::MatrixXi F;
 
   int ind_to_vtx(GridCell c, int ind);
@@ -47,6 +53,7 @@ private:
   Eigen::MatrixXi get_edge_matrix();
   Eigen::MatrixXi full_mesh_faces();
   Eigen::MatrixXd full_mesh_vertices();
+  void set_targets();
   std::tuple<Eigen::MatrixXd, Eigen::MatrixXi, Eigen::MatrixXd, Eigen::MatrixXd> animate_path();
 };
 
