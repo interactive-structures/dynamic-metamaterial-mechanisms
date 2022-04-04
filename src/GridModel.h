@@ -110,7 +110,7 @@ public:
 	{
 	}
 
-	void loadFromFile(std::string fname);
+	bool loadFromFile(std::string fname);
 	void generateConstraintGraph();
 	void mergeComponents(bool toActive = false);
 	void splitComponents();

@@ -93,7 +93,7 @@ GridCell::GridCell(const GridCell &other)
 	vertices = Eigen::Vector4i(other.vertices);
 }
 
-void GridModel::loadFromFile(const std::string fname)
+bool GridModel::loadFromFile(const std::string fname)
 {
 	using namespace std;
 	ifstream file(fname);
@@ -101,7 +101,7 @@ void GridModel::loadFromFile(const std::string fname)
 	if (!file.good())
 	{
 		cout << "file " << fname << " not found!" << endl;
-		return;
+		return false;
 	}
 	char tmp[1024];
 
@@ -189,6 +189,8 @@ void GridModel::loadFromFile(const std::string fname)
 	}
 
 	file.close();
+
+	return true;
 }
 
 // Returns std::vector of all components of the given graph containing an edge also in the given constraint.
