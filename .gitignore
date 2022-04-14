@@ -7,3 +7,4 @@ dependencies/cppOpt/*
 dependencies/Ipopt/*
 Ipopt-install/*
 .vscode/*
+example-data/inputs/ignore/*
