@@ -153,116 +153,120 @@ std::vector<std::vector<double> > anglesFromFolder(std::string anglesFolder)
   return angles;
 }
 
+// Some simulation debug code
 void helper() {
-  // Some debug code
-  GridModel anim_gm1, anim_gm2, anim_gm_file1, anim_gm_file2;
+  // recreate multilayer animation
 
-  // anim_gm1.loadFromFile("../example-data/inputs/layers/cells_layers_4x4_60.txt");
-  // anim_gm2.loadFromFile("../example-data/inputs/layers/cells_layers_3x3_60.txt");
+  // GridModel anim_gm1, anim_gm2, anim_gm_file1, anim_gm_file2;
 
-  anim_gm1.loadFromFile("../example-data/inputs/cells_large_notifier_poke.txt");
-  std::string animFolder1 = "../example-data/results/large_notifier/";
+  // // anim_gm1.loadFromFile("../example-data/inputs/layers/cells_layers_4x4_60.txt");
+  // // anim_gm2.loadFromFile("../example-data/inputs/layers/cells_layers_3x3_60.txt");
 
-  anim_gm2.loadFromFile("../example-data/inputs/cells_large_notifier_move_hori.txt");
-  std::string animFolder2 = "../example-data/results/large_notifier/";
+  // anim_gm1.loadFromFile("../example-data/inputs/cells_quad_complexity.txt");
+  // std::string animFolder1 = "../example-data/results/quad_low_complexity/";
 
-  // std::string animFolder1 = "../example-data/results/layers/layer_4x4/";
-  std::string anglesFolder1 = animFolder1 + "function_0/angles/";
+  // // anim_gm2.loadFromFile("../example-data/inputs/cells_large_notifier_move_hori.txt");
+  // // std::string animFolder2 = "../example-data/results/large_notifier/";
 
-  // std::string animFolder2 = "../example-data/results/layers/layer_3x3/";
-  std::string anglesFolder2 = animFolder2 + "function_1/angles/";
+  // // std::string animFolder1 = "../example-data/results/layers/layer_4x4/";
+  // std::string anglesFolder1 = animFolder1 + "function_0/angles/";
 
-  anim_gm_file1.loadFromFile(animFolder1 + "output_model");
-  anim_gm_file2.loadFromFile(animFolder2 + "output_model");
+  // // std::string animFolder2 = "../example-data/results/layers/layer_3x3/";
+  // // std::string anglesFolder2 = animFolder2 + "function_1/angles/";
 
-  auto file_ret1 = optimizeActive(anim_gm_file1, anglesFromFolder(anglesFolder1), "", "");
-  auto file_ret2 = optimizeActive(anim_gm_file2, anglesFromFolder(anglesFolder2), "", "");
+  // anim_gm_file1.loadFromFile(animFolder1 + "output_model");
+  // // anim_gm_file2.loadFromFile(animFolder2 + "output_model");
 
-  std::vector<GridModel> animation_gms;
-  std::vector<std::vector<GridResult>> animation_results;
-  std::vector<std::vector<std::vector<GridModel::Point>>> animation_target_paths;
-  std::vector<std::vector<int>> animation_targets;
+  // auto file_ret1 = optimizeActive(anim_gm_file1, anglesFromFolder(anglesFolder1), "", "");
+  // // auto file_ret2 = optimizeActive(anim_gm_file2, anglesFromFolder(anglesFolder2), "", "");
+
+  // std::vector<GridModel> animation_gms;
+  // std::vector<std::vector<GridResult>> animation_results;
+  // std::vector<std::vector<std::vector<GridModel::Point>>> animation_target_paths;
+  // std::vector<std::vector<int>> animation_targets;
 
   // animation_gms.push_back(anim_gm_file1);
-  animation_gms.push_back(anim_gm_file2);
+  // // animation_gms.push_back(anim_gm_file2);
 
   // animation_results.push_back(file_ret1);
-  animation_results.push_back(file_ret2);
+  // // animation_results.push_back(file_ret2);
 
   // animation_target_paths.push_back(anim_gm1.targetPaths);
-  animation_target_paths.push_back(anim_gm2.targetPaths);
+  // // animation_target_paths.push_back(anim_gm2.targetPaths);
 
   // animation_targets.push_back(anim_gm1.targets);
-  animation_targets.push_back(anim_gm2.targets);
+  // // animation_targets.push_back(anim_gm2.targets);
 
-  MultiAnimation test(animation_gms, animation_results, animation_target_paths, 2, animation_targets);
-  test.animate_mesh();
-  abort();
-
-  // std::string functionFolder = "../example-data/results/cells_crawl_application_2x8_actual_modified/function_0/";
-  // std::string pointsFolder = functionFolder + "points/";
-  // std::string anglesFolder = functionFolder + "angles/";
-
-  // GridModel gm;
-  // gm.loadFromFile("../example-data/results/cells_crawl_application_2x8_actual_modified/output_model.txt");
-  // auto ret = optimize(gm, ""); // run optimize to get grid position at each frame
-
-  // GridModel gm_active = GridModel(gm).addActiveCells();
-
-  // auto cell_angles = get_angles(ret, gm);                                               // get angles for each cell at each frame                                             // add active cells
-  // auto active_ret = optimizeActive(gm_active, cell_angles, pointsFolder, anglesFolder); // Call optimizeActive to verify results with only control of actuating cells
-
-  // // set up animation: pass in as vector
-  // std::vector<GridModel> animation_gms;
-  // animation_gms.push_back(gm_active);
-
-  // std::vector<std::vector<GridResult>> animation_results;
-  // animation_results.push_back(active_ret);
-
-  // std::vector<std::vector<std::vector<GridModel::Point>>> animation_target_paths;
-  // animation_target_paths.push_back(gm.targetPaths);
-
-  // std::vector<std::vector<int>> animation_targets;
-  // animation_targets.push_back(gm.targets);
-
-  // // run animation
-  // MultiAnimation animation(animation_gms, animation_results, animation_target_paths, 2, animation_targets); 
-  // animation.animate_mesh();                                                     
-
-  // // Write angles of active cells as csv to new file
-  // std::ofstream activeAngleOutFile;
-  // activeAngleOutFile.open(anglesFolder + "active.csv", std::ofstream::out | std::ofstream::trunc);
-  // std::vector<int> activeCells;
-  // std::string delim = "";
-  // for (int i = 0; i < gm_active.cells.size(); i++)
-  // {
-  //   if (gm_active.cells[i].type == ACTIVE)
-  //   {
-  //     activeCells.push_back(i);
-  //     activeAngleOutFile << delim << "Cell " << i;
-  //     delim = ",";
-  //   }
-  // }
-  // activeAngleOutFile << "\n";
-  // auto angles = anglesFromFolder(anglesFolder);
-  // for (auto frame : angles)
-  // {
-  //   delim = "";
-  //   for (int cell : activeCells)
-  //   {
-  //     activeAngleOutFile << delim << frame[cell];
-  //     delim = ",";
-  //   }
-  //   activeAngleOutFile << "\n";
-  // }
-  // activeAngleOutFile.close();
-
+  // MultiAnimation test(animation_gms, animation_results, animation_target_paths, 2, animation_targets, false);
+  // test.animate_mesh();
   // abort();
+
+  // Using known configuration of gm_active, simulate path given in gm
+
+  std::string functionFolder = "../example-data/results/rev_eng/water/";
+  std::string pointsFolder = functionFolder + "points/";
+  std::string anglesFolder = functionFolder + "angles/";
+
+  GridModel gm, gm_active;
+  gm.loadFromFile("../example-data/inputs/rev_eng/water_clean.txt");
+  gm_active.loadFromFile("../example-data/inputs/rev_eng/water.txt");
+
+  auto ret = optimize(gm, "");
+
+  auto cell_angles = get_angles(ret, gm);
+  auto active_ret = optimizeActive(gm_active, cell_angles, pointsFolder, anglesFolder);
+
+  // set up animation: pass in as vector
+  std::vector<GridModel> animation_gms;
+  animation_gms.push_back(gm_active);
+
+  std::vector<std::vector<GridResult>> animation_results;
+  animation_results.push_back(active_ret);
+
+  std::vector<std::vector<std::vector<GridModel::Point>>> animation_target_paths;
+  animation_target_paths.push_back(gm.targetPaths);
+
+  std::vector<std::vector<int>> animation_targets;
+  animation_targets.push_back(gm.targets);
+
+  // run animation
+  MultiAnimation animation(animation_gms, animation_results, animation_target_paths, 2, animation_targets, false); 
+  animation.animate_mesh();                                                     
+
+  // Write angles of active cells as csv to new file
+  std::ofstream activeAngleOutFile;
+  activeAngleOutFile.open(anglesFolder + "active.csv", std::ofstream::out | std::ofstream::trunc);
+  std::vector<int> activeCells;
+  std::string delim = "";
+  for (int i = 0; i < gm_active.cells.size(); i++)
+  {
+    if (gm_active.cells[i].type == ACTIVE)
+    {
+      activeCells.push_back(i);
+      activeAngleOutFile << delim << "Cell " << i;
+      delim = ",";
+    }
+  }
+  activeAngleOutFile << "\n";
+  auto angles = anglesFromFolder(anglesFolder);
+  for (auto frame : angles)
+  {
+    delim = "";
+    for (int cell : activeCells)
+    {
+      activeAngleOutFile << delim << frame[cell];
+      delim = ",";
+    }
+    activeAngleOutFile << "\n";
+  }
+  activeAngleOutFile.close();
+
+  abort();
 }
 
 int main(int argc, char *argv[])
 { 
-  // helper();
+  // helper(); uncomment to run helper
 
   // command line interface
   std::string strInput, folder;
