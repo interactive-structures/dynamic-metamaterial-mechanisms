@@ -41,6 +41,7 @@ public:
     int num_cells = gms[0].cells.size();
 
     bestModels.clear(); // clear best models
+    workingModels.clear(); // clear working models
     for (auto gm : gms) // add starting config to list
     {
       bestModels.push_back(GridModel(gm));
@@ -72,17 +73,15 @@ public:
       }
       if (accept) {toRigid.push_back(candidate);}
     }
+
     for (auto bgm : bestModels) {
       for (int i : toRigid)
       {
-        bgm.cells[i].type = RIGID;
+        //std::cout << i << std::endl;
+
+        // uncomment to add rigid cells to start: can lead to lower path accuracy
+        // bgm.cells[i].type = RIGID;
       }
-    }
-
-
-    workingModels.clear(); // clear best models
-    for (auto bgm : bestModels) // add starting config to list
-    {
       workingModels.push_back(GridModel(bgm));
     }
 
