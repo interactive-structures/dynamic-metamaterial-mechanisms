@@ -28,6 +28,16 @@ To compile on Unix-systems, additionally call
 make
 ```
 
+## Running the CLI
+
+To run the CLI, run 
+```
+./robotic-mm-optimization
+```
+and follow the prompts given.
+
+You will need to specify the number of different functions the configuration should be optimized for, the paths to input files specifying those functions, a path to a folder to store the outputs, parameters for the optimization, and whether or not you'd like to enable pseudogravity in the visualization.
+
 
 [](##OS-specific-instructions)
 ## OS specific instructions
