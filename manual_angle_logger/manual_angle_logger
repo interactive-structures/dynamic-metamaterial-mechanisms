@@ -1,0 +1,120 @@
+#include <Wire.h> //this is used to communication with the multiplexer
+#include "Adafruit_MPR121.h" // this is the capacitive sensor board library
+#define TCAADDR 0x70 //this is the multiplexer
+#include <Adafruit_Sensor.h> //the is used for the capacitive sensor
+
+const uint8_t NUM_CELLS = 1;
+const int ARRAY_SIZE = 2;
+int sensor_pairs[6][2] = {{0,1}, {2,3}, {4,5}, {6,7}, {8,9}, {10,11}};
+
+int CAP=0; int k_left=1; int k_right=1; int b_left=2; int b_right=2;
+double dic[NUM_CELLS][7];
+
+//sensor constants from spreadsheet.
+//With the sensor oriented like this: |∩|, list the constants for the left sensor, then the right.
+//constants will be paired (k0, k1), (k2, k3), etc.
+double k0 = 1.54; double b0 = 3.74;
+double k1 = 1.51; double b1 = 5.5;
+
+//arrays of sensor constants and valve pins (matched by index).
+//pair the left and right sensor of each cell (when sensor is oriented like this : |∩|)
+double ks[][2] =      {{k0, k1}};
+double bs[][2] =      {{b0, b1}};
+
+// object for cap touch sensor board
+Adafruit_MPR121 cap = Adafruit_MPR121();
+
+// extra time we will delay after each read and report
+const uint8_t SENSE_DELAY_MS = 10;
+
+// buffers for past values from each sensor
+const uint16_t BUFFER_SIZE = 100; 
+uint16_t buffer[NUM_CELLS][BUFFER_SIZE];
+static int buffer_next = 0;
+static int buffer_cur = 0;
+static uint32_t buffer_sum[NUM_CELLS];
+
+// number of sensor values to read and discard at start
+const uint8_t STARTING_IGNORE = 50;
+
+void TCA9548A(uint8_t bus) {
+  Wire.beginTransmission(TCAADDR);  // TCA9548A address
+  Wire.write(1 << bus);          // send byte to select bus
+  Wire.endTransmission();  
+}
+
+void setup() {
+  Serial.begin(115200);
+  Wire.begin();
+  
+  //populate dic with sensor constants, valve pins, default currDiff
+  for (int s = 0; s < NUM_CELLS; s++){
+        dic[s][k_left] = ks[s][0];
+        dic[s][k_right] = ks[s][1];
+        dic[s][b_left] = bs[s][0];
+        dic[s][b_right] = bs[s][1];
+  }
+  TCA9548A(0);
+
+  //checks to see if capacitive sensor board is connected
+  // Default I2C addr is 0x5A
+  if (!cap.begin(0x5A)) {
+    Serial.println("MPR121 not found, check wiring?");
+    while (1);
+  }
+
+  //I don't know why the values are 2 and 1
+  cap.setThresholds(2, 1);
+}
+
+void loop() {
+  uint16_t val, old_val;
+
+  TCA9548A(0);
+  // read a few values to get past any early anomalies
+  for (uint8_t cnt=0; cnt<STARTING_IGNORE; cnt++) {
+    for (uint8_t s=0; s<NUM_CELLS; s++) {
+      buffer[s][0] = val = cap.filteredData(s);
+    }
+  }
+  
+  // fill the buffers with the last of those values
+  for (uint8_t s=0; s<NUM_CELLS; s++) {
+    //haven't we done this already?
+    val = buffer[s][0];
+    buffer_sum[s] = val;
+    for (uint8_t i=1; i<BUFFER_SIZE; i++) {
+      buffer[s][i] = val;
+      buffer_sum[s] += val;
+    }
+  }
+   
+  for (;;) {
+    TCA9548A(0);
+    
+    // read each sensor and put the value in its buffer
+    for (uint8_t s=0; s<NUM_CELLS; s++) {
+      old_val = buffer[s][buffer_next];
+      val = cap.filteredData(sensor_pairs[s][crossover(s, sensor_pairs)]); 
+      buffer[s][buffer_next] = val;
+      
+      buffer_sum[s] -= old_val;
+      buffer_sum[s] += val;
+    }
+
+    // advance position in buffers
+    buffer_cur = buffer_next;
+    buffer_next++;
+    if (buffer_next >= BUFFER_SIZE) buffer_next = 0;
+
+    for (uint8_t s=0; s<NUM_CELLS; s++) {
+      dic[s][CAP] = buffer_sum[s] / BUFFER_SIZE;
+      unsigned long now = millis();
+      double currAngle = getAngle(dic[s][CAP],s);
+      Serial.print(s); Serial.print(","); Serial.print(now); Serial.print(","); Serial.println(currAngle);
+    }
+
+    // put a delay so it isn't overwhelming
+    delay(SENSE_DELAY_MS);
+  }
+}
