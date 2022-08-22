@@ -1,0 +1,4 @@
+This is a simple program that logs the current milliseconds and current angle for each sensor as comma-separated values.
+The data format is: index of sensor, current time, current angle.
+
+These data can be copied and pasted into a separate program that will read them back ("manual_angle_repeater")
