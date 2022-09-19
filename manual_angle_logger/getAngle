@@ -1,9 +1,0 @@
-float getAngle(float input, int s){
-  int sensor_side = crossover(s, sensor_pairs);
-  switch(sensor_side){
-    case 0:
-      return (input-dic[s][b_left])/dic[s][k_left];
-    case 1:
-      return (180 - (input-dic[s][b_right])/dic[s][k_right]);
-  }
-}
