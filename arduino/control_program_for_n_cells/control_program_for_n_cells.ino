@@ -3,34 +3,48 @@
 #include <Adafruit_Sensor.h>
 #define TCAADDR 0x70
 
-const int NUM_CELLS = 1;
+const int NUM_CELLS = 6;
 
-int sensors[NUM_CELLS][2] = {{0,1}};
+int sensors[NUM_CELLS][2] = {{0,1}, {2, 3}, {4, 5}, {6, 7}, {8, 9}, {10, 11}};
 const int ARRAY_SIZE = 2;
 
-float angleLog[NUM_CELLS][ARRAY_SIZE] = {{70, 100}};
+float angleLog[NUM_CELLS][ARRAY_SIZE] = {{70, 100}, {70, 100}, {70, 100}, {70, 100}, {70, 100}, {70, 100}};
 
 int k_left=0; int k_right=1; int b_left=2; int b_right=3; int supplyValveA=4; int exhaustValveA=5; int supplyValveB=6; int exhaustValveB=7; int targetReached=8;
 double dic[NUM_CELLS][9];
 
+//cell 1 (confirm that this is cell #7)
 double k0 = -1.72; double b0 = 281;
 double k1 = 1.82; double b1 = -36.8;
-//double k2 = -1.72; double b2 = 281;
-//double k3 = 1.82; double b3 = -36.8;
+//cell 2 (uncalibrated, using generic values)
+double k2 = -2.0; double b2 = 310;
+double k3 = 2; double b3 = -52;
+//cell 3 (uncalibrated, using generic values)
+double k4 = -2.0; double b4 = 310;
+double k5 = 2; double b5 = -52;
+//cell 4 (uncalibrated, using generic values)
+double k6 = -2.0; double b6 = 310;
+double k7 = 2; double b7 = -52;
+//cell 5 (uncalibrated, using generic values)
+double k8 = -2.0; double b8 = 310;
+double k9 = 2; double b9 = -52;
+//cell 6 (cell "C")
+double k10 = -2.42; double b10 = 353;
+double k11 = 2.25; double b11 = -68.9;
 
 double tolerance = 4.0;
-int pulseLength[] = {25, 25};
+int pulseLength[] = {25, 25, 25, 25, 25, 25};
 
-long pulseCounter[] = {0, 0};
-long cycleCounter[] = {0, 0};
+long pulseCounter[] = {0, 0, 0, 0, 0, 0};
+long cycleCounter[] = {0, 0, 0, 0, 0, 0};
 long attemptCycles = 100;
 
-double ks[][2] =      {{k0, k1}};
-double bs[][2] =      {{b0, b1}};
-double supplyValveAs[] = {3, 7};
-double exhaustValveAs[] = {4, 8};
-double supplyValveBs[] = {5, 9};
-double exhaustValveBs[] = {6, 9};
+double ks[][2] =      {{k0, k1}, {k2, k3}, {k4, k5}, {k6, k7}, {k8, k9}, {k10, k11}};
+double bs[][2] =      {{b0, b1}, {b2, b3}, {b4, b5}, {b6, b7}, {b8, b9}, {b10, b11}};
+double supplyValveAs[] = {2, 6, 10, 14, 18, 24};
+double exhaustValveAs[] = {3, 7, 11, 15, 19, 25};
+double supplyValveBs[] = {4, 8, 12, 16, 22, 26};
+double exhaustValveBs[] = {5, 9, 13, 17, 23, 27};
 
 Adafruit_MPR121 cap = Adafruit_MPR121();
 
@@ -118,14 +132,15 @@ void loop() {
     else {;
       currAngle = getAngle(right, 1, i);
     }
-    Serial.print("\tCell #"); Serial.print(i); Serial.print("-->");
-    Serial.print("\tcurrTarget = "); Serial.print(currTarget);
-    Serial.print("\tcurrAngle = "); Serial.print(currAngle); 
+   
     double currDiff = currAngle - currTarget;
   //  Serial.print("\tcurrDiff = "); Serial.println(currDiff);
   
     //see if we have achieved target
     if (!dic[i][targetReached]){
+      Serial.print("\t#"); Serial.print(i); Serial.print("->");
+      Serial.print("\tTarget= "); Serial.print(currTarget);
+      Serial.print("\tAngle= "); Serial.print(currAngle); 
       //if we have not achieved target, see if we are close to target
       if(abs(currDiff) < (tolerance * 2)){
         //if we are close to target, do two things: 1. shorten the length of each pulse and 2. lock the inactive bag
@@ -171,6 +186,7 @@ void loop() {
       } else{
         Serial.print("\n\t\tCell #"); Serial.print(i); Serial.println(" has failed to reach its target\n>");
         dic[i][targetReached] = 1;
+        cycleCounter[i] = 0;
         }
       }
       else {
@@ -212,9 +228,9 @@ void loop() {
       //delay(
       delay(400*(1/pulseLength[i])); 
     } else {
-      Serial.print("\tCell #"); Serial.print(i);
-      Serial.print(" has achieved its target ");
-      Serial.print("\tcurrAngle = "); Serial.print(currAngle); 
+      Serial.print("\t\tCell #"); Serial.print(i);
+      Serial.print(" target achieved\t");
+//      Serial.print("\tcurrAngle = "); Serial.print(currAngle); 
       digitalWrite(dic[i][supplyValveA], LOW);
       digitalWrite(dic[i][exhaustValveA], LOW);
       digitalWrite(dic[i][supplyValveB], LOW);
@@ -222,7 +238,7 @@ void loop() {
     }
     if (abs(currDiff) <= tolerance){
       dic[i][targetReached] = 1;
-      Serial.print("\n\t\tCell #"); Serial.print(i); Serial.println(" has reached its target\n>");
+//      Serial.print("\n\t\tCell #"); Serial.print(i); Serial.println(" has reached its target\n>");
     }
   }
   Serial.println();
