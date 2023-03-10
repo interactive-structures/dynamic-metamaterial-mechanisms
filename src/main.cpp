@@ -11,6 +11,45 @@
 
 #define PI 3.14159265
 
+
+std::string get_folder_path(std::string file)
+{
+    auto index = file.find_last_of("/\\");
+    auto path = file.substr(0, index + 1);
+    return path;
+}
+
+std::string get_this_folder_path()
+{
+    return get_folder_path(__FILE__);
+}
+
+std::string parse_string(std::string content)
+{
+    std::string variable = content;
+    //write_log(3) << content << ": " << variable << endl;
+
+    return variable;
+}
+
+bool parse_bool(std::string content)
+{
+    int variable = atoi(content.c_str());
+    //write_log(3) << content << ": " << boolalpha << variable << endl;
+
+    return variable;
+}
+
+int parse_int(std::string content)
+{
+    int variable = atoi(content.c_str());
+    //write_log(3) << content << ": " << variable << endl;
+
+    return variable;
+}
+
+
+
 void printConstraintGraph(GridModel gm)
 {
   auto cG = gm.constraintGraph;
@@ -203,13 +242,94 @@ void helper() {
 
   // Using known configuration of gm_active, simulate path given in gm
 
-  std::string functionFolder = "../example-data/results/rev_eng/water/";
+  //std::string functionFolder = "../example-data/results/rev_eng/water/";
+  //std::string pointsFolder = functionFolder + "points/";
+  //std::string anglesFolder = functionFolder + "angles/";
+
+  //GridModel gm, gm_active;
+  //gm.loadFromFile("../example-data/inputs/rev_eng/water_clean.txt");
+  //gm_active.loadFromFile("../example-data/inputs/rev_eng/water.txt");
+
+
+
+    // -------------- WORKING VERSION
+    //std::string currentFolder = get_this_folder_path();
+
+    //std::string functionFolder = "../example-data/results/rev_eng/water/";
+    //std::string pointsFolder = functionFolder + "points/";
+    //std::string anglesFolder = functionFolder + "angles/";
+
+    //GridModel gm, gm_active;
+    //gm.loadFromFile("../example-data/inputs/UIST2022 (reject)/from_config_and_path/water_clean.txt");
+    //gm_active.loadFromFile("../example-data/inputs/UIST2022 (reject)/from_config_and_path/water.txt");
+
+    //auto ret = optimize(gm, "");
+
+    //auto cell_angles = get_angles(ret, gm);
+    //auto active_ret = optimizeActive(gm_active, cell_angles, pointsFolder, anglesFolder);
+
+    //// set up animation: pass in as vector
+    //std::vector<GridModel> animation_gms;
+    //animation_gms.push_back(gm_active);
+
+    //std::vector<std::vector<GridResult>> animation_results;
+    //animation_results.push_back(active_ret);
+
+    //std::vector<std::vector<std::vector<GridModel::Point>>> animation_target_paths;
+    //animation_target_paths.push_back(gm.targetPaths);
+
+    //std::vector<std::vector<int>> animation_targets;
+    //animation_targets.push_back(gm.targets);
+
+    //// run animation
+    //MultiAnimation animation(animation_gms, animation_results, animation_target_paths, 2, animation_targets, false);
+    //animation.animate_mesh();
+
+    //// Write angles of active cells as csv to new file
+    //std::ofstream activeAngleOutFile;
+    //activeAngleOutFile.open(anglesFolder + "active.csv", std::ofstream::out | std::ofstream::trunc);
+    //std::vector<int> activeCells;
+    //std::string delim = "";
+    //for (int i = 0; i < gm_active.cells.size(); i++)
+    //{
+    //    if (gm_active.cells[i].type == ACTIVE)
+    //    {
+    //        activeCells.push_back(i);
+    //        activeAngleOutFile << delim << "Cell " << i;
+    //        delim = ",";
+    //    }
+    //}
+    //activeAngleOutFile << "\n";
+    //auto angles = anglesFromFolder(anglesFolder);
+    //for (auto frame : angles)
+    //{
+    //    delim = "";
+    //    for (int cell : activeCells)
+    //    {
+    //        activeAngleOutFile << delim << frame[cell];
+    //        delim = ",";
+    //    }
+    //    activeAngleOutFile << "\n";
+    //}
+    //activeAngleOutFile.close();
+
+    //abort();
+    // -------------- end WORKING VERSION
+
+
+
+
+
+
+
+  std::string currentFolder = get_this_folder_path();
+  std::string functionFolder = "../example-data/results_local/2022-09-13 (good) 8x8, 3f, 5a - envelope, quarifolium, heart/function_0";
   std::string pointsFolder = functionFolder + "points/";
   std::string anglesFolder = functionFolder + "angles/";
 
   GridModel gm, gm_active;
-  gm.loadFromFile("../example-data/inputs/rev_eng/water_clean.txt");
-  gm_active.loadFromFile("../example-data/inputs/rev_eng/water.txt");
+  gm.loadFromFile("../example-data/results_local/2022-09-13 (good) 8x8, 3f, 5a - envelope, quarifolium, heart/output_model--passive_for_playback");
+  gm_active.loadFromFile("../example-data/results_local/2022-09-13 (good) 8x8, 3f, 5a - envelope, quarifolium, heart/output_model");
 
   auto ret = optimize(gm, "");
 
@@ -266,10 +386,11 @@ void helper() {
 
 int main(int argc, char *argv[])
 { 
-  // helper(); uncomment to run helper
+   //helper(); //uncomment to run helper
 
+    /*
   // command line interface
-  std::string strInput, folder;
+  std::string strInput, output_folder;
   int num_layers, num_iters;
   double path_weight, dof_weight;
   bool ground;
@@ -305,8 +426,8 @@ int main(int argc, char *argv[])
 
   // get output folder
   std::cout << "Please specify output folder, with trailing \"\\\": ";
-  std::getline (std::cin, folder);
-  std::filesystem::create_directories(folder);
+  std::getline (std::cin, output_folder);
+  std::filesystem::create_directories(output_folder);
 
   // get simulated annealing parameters
 
@@ -358,8 +479,126 @@ int main(int argc, char *argv[])
     }
     std::cout << "Invalid input, y/n only." << std::endl;
   }
+  */
 
-  SimAnnMan sa(gms, folder, path_weight, dof_weight);            // Initialize simulated annealing, specifying output folder
+  // command line interface
+    //std::string strInput;
+    std::vector<std::string> layer_configs;
+    std::string output_folder;
+    //int num_layers;
+    int num_iters;
+    double path_weight, dof_weight;
+    bool ground;
+
+
+
+    // Open the File
+    std::string config_filepath = get_this_folder_path() + "../example-data/config.txt";
+    std::ifstream in(config_filepath.c_str());
+
+    // Check if object is valid
+    if (!in)
+    {
+        std::cerr << "Cannot open the STARTUP config file : " << config_filepath << std::endl;
+        exit(1);
+    }
+
+    std::string line;
+    // Read the next line from File untill it reaches the end.
+    while (std::getline(in, line))
+    {
+        if (line.find('#') == 0)
+            continue;
+        if (line.empty())
+            continue;
+
+        auto colon_index = line.find_first_of(":");
+        std::string qualifier = line.substr(0, colon_index);
+        std::string content = line.substr(colon_index + 2, line.length() - colon_index + 2);
+
+        if (content.empty())
+            continue;
+
+        //if (qualifier == "number_functions")
+        //{
+        //    num_layers = parse_int(content);
+        //    std::cout << "num_layers: " << num_layers << std::endl;
+        //}
+        //else 
+        if(qualifier == "function")
+        {
+            //std::string function = parse_string(content);
+            //layer_configs.push_back(function);
+
+            layer_configs.push_back(content);
+            std::cout << "function: " << content << std::endl;
+        }
+        else if (qualifier == "output_folder")
+        {
+            output_folder = content;
+            std::cout << "output_folder: " << content << std::endl;
+        }
+        else if (qualifier == "number_iterations")
+        {
+            num_iters = parse_int(content);
+            std::cout << "num_iters: " << num_iters << std::endl;
+        }
+        else if (qualifier == "accuracy_weight")
+        {
+            path_weight = parse_int(content);
+            std::cout << "path_weight: " << path_weight << std::endl;
+        }
+        else if (qualifier == "complexity_weight")
+        {
+            dof_weight = parse_int(content);
+            std::cout << "dof_weight: " << dof_weight << std::endl;
+        }
+        else if (qualifier == "show_ground")
+        {
+            ground = parse_bool(content);
+            std::cout << "ground: " << ground << std::endl;
+        }
+    }
+
+    //Close The File
+    in.close();
+
+
+
+
+  // get grids
+    std::vector<GridModel> gms;
+
+    //std::cout << "Note: all functions must have same dimension." << std::endl;
+    //
+    //for (int i = 0; i < num_layers; i++)
+    //{
+    //    GridModel gm;
+    //    //while (true)
+    //    //{
+    //    //    std::cout << "Please input path to function " << i << "'s file: ";
+    //    //    std::getline(std::cin, strInput);
+    //
+    //    //    if (gm.loadFromFile(strInput)) { break; }
+    //    //}
+    //
+    //}
+
+    for (int i = 0; i < layer_configs.size(); i++)
+    {
+        GridModel gm;
+
+        bool success = gm.loadFromFile(layer_configs[i]);
+        if (!success) 
+            break; 
+
+        gms.push_back(gm);
+    }
+
+    if (!std::filesystem::exists(output_folder))
+        std::filesystem::create_directory(output_folder);
+
+  SimAnnMan sa(gms, output_folder, path_weight, dof_weight);            // Initialize simulated annealing, specifying output folder
   sa.runSimulatedAnnealing(num_iters, 0.97); // Run simulated annealing
   //sa.runSimulatedAnnealing(100, 0.97); // Run simulated annealing
 
@@ -374,7 +613,7 @@ int main(int argc, char *argv[])
   for (int i = 0; i < gms.size(); i++) {
     GridModel gm = GridModel(gms[i]);
 
-    std::string functionFolder = folder + "function_" + std::to_string(i) + "/";
+    std::string functionFolder = output_folder + "function_" + std::to_string(i) + "/";
     std::string pointsFolder = functionFolder + "points/";
     std::string anglesFolder = functionFolder + "angles/";
 
@@ -389,7 +628,7 @@ int main(int argc, char *argv[])
     GridModel gm_active = GridModel(gm);
     gm_active.cells = gm_active_base.cells;                                               // add active cells
     auto active_ret = optimizeActive(gm_active, cell_angles, pointsFolder, anglesFolder); // Call optimizeActive to verify results with only control of actuating cells
-    storeModel(gm_active, folder);                                                        // Store best model with actuating cells in results folder
+    storeModel(gm_active, output_folder);                                                        // Store best model with actuating cells in results folder
 
     // set up animation: pass in as vector
     std::vector<GridModel> animation_gms;

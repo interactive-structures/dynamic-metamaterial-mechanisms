@@ -496,8 +496,9 @@ MetaGrid::propagateDOFsActive(const vector<pair<int, Vector2d> > &dofs, vector<d
 vector<Point>
 MetaGrid::setDOFs(const vector<int> &dofs, const vector<double> &values)
 {
-    //cout << dofs.size() << " " << values.size() << endl;
+    cout << "setDOFs: " << dofs.size() << " " << values.size() << endl;
     assert(dofs.size() * 2 == values.size());
+    assert(values.size() > 0);
     vector<pair<int, Vector2d> > dofValues;
 
     auto it = values.begin();
@@ -514,8 +515,10 @@ MetaGrid::setDOFs(const vector<int> &dofs, const vector<double> &values)
 vector<Point>
 MetaGrid::setDOFsActive(const vector<int> &dofs, const vector<double> &values, vector<double> angles)
 {
-    //cout << dofs.size() << " " << values.size() << endl;
+    cout << "setDOFsActive: " << dofs.size() << " " << values.size() << endl;
     assert(dofs.size() * 2 == values.size());
+    assert(values.size() > 0);
+
     vector<pair<int, Vector2d> > dofValues;
 
     auto it = values.begin();

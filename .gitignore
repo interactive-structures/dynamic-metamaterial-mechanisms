@@ -1,7 +1,9 @@
 __build/*
 build/*
+__build*
 *.DS_Store
 example-data/results/*
+example-data/results*
 dependencies/libigl/*
 dependencies/cppOpt/*
 dependencies/Ipopt/*
