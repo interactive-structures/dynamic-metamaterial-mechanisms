@@ -1,4 +1,3 @@
-__build/*
 build/*
 __build*
 *.DS_Store
@@ -7,6 +6,7 @@ example-data/results*
 dependencies/libigl/*
 dependencies/cppOpt/*
 dependencies/Ipopt/*
+external/Chipmunk2D/*
 Ipopt-install/*
 .vscode/*
 example-data/inputs/ignore/*
