@@ -14,6 +14,7 @@ MMGrid::MMGrid(int rows, int cols, cpFloat linkMass, cpFloat bevel, vector<int> 
     edgeColors = MatrixXd::Zero(edges.rows(), 3);
     setupSimStructures();
     updateVertices();
+    updateMesh();
     updateEdges();
     changingStructure = false;
 }
@@ -29,6 +30,7 @@ void MMGrid::setCells(int rows, int cols, vector<int> cells)
     edges = MatrixXi::Zero(numColLinks() + numCrossLinks() + numRowLinks(), 2);
     setupSimStructures();
     updateVertices();
+    updateMesh();
     updateEdges();
     changingStructure = false;
 }
@@ -45,6 +47,8 @@ void MMGrid::setupSimStructures()
     constraints.reserve(numConstraints());
 
     cpVect rowBevOffset = cpv(bevel * SQRT_2, 0), colBevOffset = cpv(0, bevel * SQRT_2);
+    rowBevOffset = rowBevOffset * shrink_factor;
+    colBevOffset = colBevOffset * shrink_factor;
     cpVect bl = cpv(0, bevel * 2);
 
     // rowlinks
@@ -107,7 +111,7 @@ void MMGrid::setupSimStructures()
             // crossLinkShapes[i] = s;
         }
 
-    // make constraints
+    // make pivot constraints
     // first row
     for (int i = 0; i < cols; i++)
     {
@@ -167,10 +171,71 @@ void MMGrid::setupSimStructures()
         constraints.push_back(pivot3);
         constraints.push_back(pivot4);
     }
+    // make dampedRotarySpring constraints
+    // first row
+    for (int i = 0; i < cols; i++)
+    {
+        cpBody *row_current = rowLinks[i];
+        cpBody *prev_col = colLinks[i];
+        cpBody *next_col = colLinks[i + 1];
+        cpConstraint *dampedRotarySpring1 = cpDampedRotarySpringNew(prev_col, row_current, 0, 4, 0.04);
+        cpConstraint *dampedRotarySpring2 = cpDampedRotarySpringNew(next_col, row_current, 0, 4, 0.04);
+        cpSpaceAddConstraint(space, dampedRotarySpring1);
+        cpSpaceAddConstraint(space, dampedRotarySpring2);
+        constraints.push_back(dampedRotarySpring1);
+        constraints.push_back(dampedRotarySpring2);
+    }
+    // top row
+    for (int i = rows * cols; i < (jointRows()) * cols; i++)
+    {
+        int row_i = i / cols;
+        int col_i = i % cols;
+        int col_prev_idx = (row_i - 1) * (jointCols()) + col_i;
+        int col_next_idx = col_prev_idx + 1;
+        int joint_idx = i / cols * (jointCols()) + (i % cols);
+        cpBody *row_current = rowLinks[i];
+        cpBody *prev_col = colLinks[col_prev_idx];
+        cpBody *next_col = colLinks[col_next_idx];
+        cpConstraint *dampedRotarySpring1 = cpDampedRotarySpringNew(prev_col, row_current, 0, 4, 0.04);
+        cpConstraint *dampedRotarySpring2 = cpDampedRotarySpringNew(next_col, row_current, 0, 4, 0.04);
+        cpSpaceAddConstraint(space, dampedRotarySpring1);
+        cpSpaceAddConstraint(space, dampedRotarySpring2);
+        constraints.push_back(dampedRotarySpring1);
+        constraints.push_back(dampedRotarySpring2);
+    }
+    // interior rows
+    for (int i = cols; i < rows * cols; i++)
+    {
+        int row_i = i / (cols);
+        int col_i = i % (cols);
+        int b_col_prev_idx = (row_i - 1) * (cols + 1) + col_i;
+        int b_col_next_idx = b_col_prev_idx + 1;
+        int a_col_prev_idx = (row_i) * (cols + 1) + col_i;
+        int joint_idx = i / (cols) * (cols + 1) + (i % (cols));
+        int a_col_next_idx = a_col_prev_idx + 1;
+        cpBody *row_current = rowLinks[i];
+        cpBody *b_prev_col = colLinks[b_col_prev_idx];
+        cpBody *b_next_col = colLinks[b_col_next_idx];
+        cpBody *a_prev_col = colLinks[a_col_prev_idx];
+        cpBody *a_next_col = colLinks[a_col_next_idx];
+        cpConstraint *dampedRotarySpring1 = cpDampedRotarySpringNew(a_prev_col, row_current, 0, 4, 0.04);
+        cpConstraint *dampedRotarySpring2 = cpDampedRotarySpringNew(a_next_col, row_current, 0, 4, 0.04);
+        cpConstraint *dampedRotarySpring3 = cpDampedRotarySpringNew(b_prev_col, row_current, 0, 4, 0.04);
+        cpConstraint *dampedRotarySpring4 = cpDampedRotarySpringNew(b_next_col, row_current, 0, 4, 0.04);
+        cpSpaceAddConstraint(space, dampedRotarySpring1);
+        cpSpaceAddConstraint(space, dampedRotarySpring2);
+        cpSpaceAddConstraint(space, dampedRotarySpring3);
+        cpSpaceAddConstraint(space, dampedRotarySpring4);
+        constraints.push_back(dampedRotarySpring1);
+        constraints.push_back(dampedRotarySpring2);
+        constraints.push_back(dampedRotarySpring3);
+        constraints.push_back(dampedRotarySpring4);
+    }
 }
 
 void MMGrid::updateVertices() {
     cpVect rowBevOffset = cpv(bevel * SQRT_2, 0);
+    rowBevOffset = rowBevOffset * shrink_factor;
 
     for (int i = 0; i < numRowLinks(); i++)
     {
@@ -188,6 +253,44 @@ void MMGrid::updateVertices() {
             vertices.row(i + row_offset + 1) = (Vector2d() << posB.x, posB.y).finished();
         }
     }
+}
+
+void MMGrid::updateMesh() {
+
+    cpVect rowBevOffset = cpv(bevel * SQRT_2, 0);
+    rowBevOffset = rowBevOffset * shrink_factor;
+
+    std::vector<std::pair<MatrixX3d, MatrixX3i>> meshes;
+
+    MatrixX3d groundV = MatrixX3d::Zero(4, 3);
+    groundV << -10, 0, -10,
+               -10, 0, 10,
+               10, 0, -10,
+               10, 0, 10;
+    MatrixX3i groundF = MatrixX3i::Zero(2,3);
+    groundF << 0, 1, 2,
+               2, 1, 3;
+    meshes.push_back(std::make_pair(groundV, groundF));
+
+    for (int i = 0; i < numRowLinks(); i++)
+    {
+        cpVect pos = cpBodyGetPosition(rowLinks[i]);
+        cpVect rot = cpBodyGetRotation(rowLinks[i]);
+        double rotation = cpvtoangle(rot);
+        Vector3d base((double)pos.x, (double)pos.y, 0);
+        std::pair<MatrixX3d, MatrixX3i> link = generateCapsule(base, bevel, 1 - 2 * (double)rowBevOffset.x, resolution, rotation - M_PI_2);
+        meshes.push_back(link);
+    }
+    for (int i = 0; i < numColLinks(); i++)
+    {
+        cpVect pos = cpBodyGetPosition(colLinks[i]);
+        cpVect rot = cpBodyGetRotation(colLinks[i]);
+        double rotation = cpvtoangle(rot);
+        Vector3d base((double)pos.x, (double)pos.y, 0);
+        std::pair<MatrixX3d, MatrixX3i> link = generateCapsule(base, bevel, 1 - 2 * (double)rowBevOffset.x, resolution, rotation);
+        meshes.push_back(link);
+    }
+    mesh = combineMeshes(meshes);
 }
 
 void MMGrid::updateEdges() {
@@ -286,6 +389,7 @@ void MMGrid::render(igl::opengl::glfw::Viewer *viewer, int selected_cell)
     viewer->data().clear();
     viewer->data().set_points(points, pointColors);
     viewer->data().set_edges(points, edges, edgeColors);
+    viewer->data().set_mesh(mesh.first, mesh.second);
 }
 
 void MMGrid::update(cpFloat dt)
@@ -293,6 +397,7 @@ void MMGrid::update(cpFloat dt)
     changingStructure = true;
     cpSpaceStep(space, dt);
     updateVertices();
+    updateMesh();
     changingStructure = false;
 }
 MMGrid::~MMGrid()

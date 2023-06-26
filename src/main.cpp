@@ -1,7 +1,10 @@
 #define _CRT_SECURE_NO_WARNINGS
 #include <iostream>
 #include <igl/opengl/glfw/Viewer.h>
-#include "external/Chipmunk2D/include/chipmunk/chipmunk.h"
+#include <igl/opengl/glfw/imgui/ImGuiPlugin.h>
+#include <igl/opengl/glfw/imgui/ImGuiMenu.h>
+#include <igl/opengl/glfw/imgui/ImGuiHelpers.h>
+#include "chipmunk/chipmunk.h"
 #include "MMGrid.hpp"
 
 using namespace std;
@@ -9,7 +12,7 @@ using namespace Eigen;
 
 int main()
 {
-	int rows = 4;
+	int rows = 2;
 	int cols = 2;
 
 	vector<int> cells(rows * cols);
@@ -30,6 +33,18 @@ int main()
 	viewer.core().toggle(viewer.data().show_lines);
 	viewer.core().is_animating = true;
 	viewer.core().background_color.setOnes();
+
+    // Eigen::Vector3d b(0,0,0);
+    // std::pair a = generateCapsule(b, .1, 1, 10, 0);
+    // std::pair c = generateCapsule(b, .1, 1, 10, M_PI / 2);
+    // std::vector v = {c, a};
+    // std::pair d = combineMeshes(v);
+    // viewer.data().set_mesh(d.first, d.second);
+
+	igl::opengl::glfw::imgui::ImGuiPlugin plugin;
+	viewer.plugins.push_back(&plugin);
+	igl::opengl::glfw::imgui::ImGuiMenu menu;
+	plugin.widgets.push_back(&menu);
 
 	int selected_cell = 0;
 	viewer.callback_pre_draw = [&](igl::opengl::glfw::Viewer &v) -> bool
@@ -125,22 +140,27 @@ int main()
 		}
 		else if (key == '9')
 		{
+			cout << "New bevel " << myGrid.getBevel() + .01 << endl;
 			myGrid.setBevel(myGrid.getBevel() + .01);
 		}
 		else if (key == '7')
 		{
+			cout << "New bevel " << myGrid.getBevel() - .01 << endl;
 			myGrid.setBevel(myGrid.getBevel() - .01);
 		}
 		else if (key == '3')
 		{
+			cout << "New mass " << myGrid.getLinkMass() + .01 << endl;
 			myGrid.setLinkMass(myGrid.getLinkMass() + .01);
 		}
 		else if (key == '1')
 		{
+			cout << "New mass " << myGrid.getLinkMass() - .01 << endl;
 			myGrid.setLinkMass(myGrid.getLinkMass() - .01);
 		}
 		return false;
 	};
 	// viewer.data().set_edges(points, edges, ec);
 	viewer.launch();
+    return 0;
 }

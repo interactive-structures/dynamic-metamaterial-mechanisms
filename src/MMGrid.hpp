@@ -3,7 +3,8 @@
 #include <iostream>
 
 #include <igl/opengl/glfw/Viewer.h>
-#include "external/Chipmunk2D/include/chipmunk/chipmunk.h"
+#include "chipmunk/chipmunk.h"
+#include "rendering.hpp"
 
 #define SQRT_2 1.4142135623730950488016887242
 
@@ -26,6 +27,9 @@ private:
     MatrixX2i edges;
     MatrixX3d pointColors;
     MatrixX3d edgeColors;
+    int resolution = 6;
+    int shrink_factor = 2;
+    std::pair<MatrixX3d, MatrixX3i> mesh;
     int jointRows() { return rows + 1; };
     int jointCols() { return cols + 1; };
     int numRowLinks() { return jointRows() * cols; };
@@ -63,8 +67,8 @@ private:
         cpVect a = cpvzero;
         cpVect b = posB - posA;
         cpShape *shape = cpSpaceAddShape(space, cpSegmentShapeNew(body, a, b, bevel));
-        cpShapeSetFriction(shape, 0.8);
-        cpShapeSetElasticity(shape, 0.01);
+        cpShapeSetFriction(shape, 0.999);
+        cpShapeSetElasticity(shape, 0.00001);
         return shape;
     }
 
@@ -76,11 +80,12 @@ private:
         cpSpaceSetGravity(space, gravity);
 
         cpShape *ground = cpSegmentShapeNew(cpSpaceGetStaticBody(space), cpv(-10, 0), cpv(10, 0), 0);
-        cpShapeSetElasticity(ground, 1);
+        cpShapeSetElasticity(ground, .05);
         cpShapeSetFriction(ground, 1);
         cpSpaceAddShape(space, ground);
     }
     void updateVertices();
+    void updateMesh();
     void updateEdges();
 
 public:
@@ -98,7 +103,7 @@ public:
         setCells(rows, cols, cells);
     };
     cpFloat getBevel() {return bevel;};
-    void setBevel(cpFloat linkMass) {
+    void setBevel(cpFloat bevel) {
         this->bevel = bevel;
         setCells(rows, cols, cells);
     };
