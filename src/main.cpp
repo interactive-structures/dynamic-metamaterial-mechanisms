@@ -14,14 +14,19 @@ int main()
 {
 	int rows = 2;
 	int cols = 2;
+	int updatesPerRender = 5;
 
 	vector<int> cells(rows * cols);
 
-	const double bevel = 0.06;
-	const double cellsize = 1;
-	const cpFloat linkMass = .1;
 
-	MMGrid myGrid(rows, cols, linkMass, bevel, cells);
+	const double cellsize = 1;
+
+
+	MMGrid myGrid(rows, cols, cells);
+	float stiffness = myGrid.getStiffness();
+	float bevel = myGrid.getBevel();
+	float damping = myGrid.getDamping();
+	float linkMass = myGrid.getLinkMass();
 
 	cpFloat timeStep = 1.0 / 60.0;
 	// timeStep *= .5;
@@ -46,11 +51,46 @@ int main()
 	igl::opengl::glfw::imgui::ImGuiMenu menu;
 	plugin.widgets.push_back(&menu);
 
+	menu.callback_draw_custom_window = [&]()
+	{
+	// Define next window position + size
+	ImGui::SetNextWindowPos(ImVec2(180.f * menu.menu_scaling(), 10), ImGuiCond_FirstUseEver);
+	ImGui::SetNextWindowSize(ImVec2(200, 160), ImGuiCond_FirstUseEver);
+	ImGui::Begin(
+		"Cell Config", nullptr,
+		ImGuiWindowFlags_NoSavedSettings
+	);
+
+	// Expose the same variable directly ...
+	ImGui::PushItemWidth(-80);
+	if(ImGui::SliderFloat("Stiffness", &stiffness, 0.01, 10.0))
+		myGrid.setStiffness(stiffness);
+	ImGui::PopItemWidth();
+
+	ImGui::PushItemWidth(-80);
+	if(ImGui::SliderFloat("Damping", &damping, 0.01, 2.0))
+		myGrid.setDamping(damping);
+	ImGui::PopItemWidth();
+
+	ImGui::PushItemWidth(-80);
+	if(ImGui::SliderFloat("Linkmass", &linkMass, 0.01, 10.0))
+		myGrid.setLinkMass(linkMass);
+	ImGui::PopItemWidth();
+
+	ImGui::PushItemWidth(-80);
+	if(ImGui::SliderFloat("Bevel", &bevel, 0.01, 0.5))
+		myGrid.setBevel(bevel);
+	ImGui::PopItemWidth();
+
+	ImGui::End();
+	};
+
 	int selected_cell = 0;
 	viewer.callback_pre_draw = [&](igl::opengl::glfw::Viewer &v) -> bool
 	{
 		myGrid.render(&v, selected_cell);
-		myGrid.update(timeStep);
+		for(int i = 0; i < updatesPerRender; i++)
+			myGrid.update(timeStep / updatesPerRender);
 		return false;
 	};
 	char editMode = 'r';
@@ -137,26 +177,6 @@ int main()
 		{
 			cout << "apply downward force on right link" << endl;
 			myGrid.applyForce(3, selected_cell);
-		}
-		else if (key == '9')
-		{
-			cout << "New bevel " << myGrid.getBevel() + .01 << endl;
-			myGrid.setBevel(myGrid.getBevel() + .01);
-		}
-		else if (key == '7')
-		{
-			cout << "New bevel " << myGrid.getBevel() - .01 << endl;
-			myGrid.setBevel(myGrid.getBevel() - .01);
-		}
-		else if (key == '3')
-		{
-			cout << "New mass " << myGrid.getLinkMass() + .01 << endl;
-			myGrid.setLinkMass(myGrid.getLinkMass() + .01);
-		}
-		else if (key == '1')
-		{
-			cout << "New mass " << myGrid.getLinkMass() - .01 << endl;
-			myGrid.setLinkMass(myGrid.getLinkMass() - .01);
 		}
 		return false;
 	};

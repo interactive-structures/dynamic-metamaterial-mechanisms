@@ -1,12 +1,10 @@
 #include "MMGrid.hpp"
 
-MMGrid::MMGrid(int rows, int cols, cpFloat linkMass, cpFloat bevel, vector<int> cells)
+MMGrid::MMGrid(int rows, int cols, vector<int> cells)
 {
     changingStructure = true;
     this->rows = rows;
     this->cols = cols;
-    this->linkMass = linkMass;
-    this->bevel = bevel;
     this->cells = cells;
     vertices = MatrixXd::Zero(jointCols() * jointRows(), 2);
     edges = MatrixXi::Zero(numColLinks() + numCrossLinks() + numRowLinks(), 2);
@@ -178,8 +176,8 @@ void MMGrid::setupSimStructures()
         cpBody *row_current = rowLinks[i];
         cpBody *prev_col = colLinks[i];
         cpBody *next_col = colLinks[i + 1];
-        cpConstraint *dampedRotarySpring1 = cpDampedRotarySpringNew(prev_col, row_current, 0, 4, 0.04);
-        cpConstraint *dampedRotarySpring2 = cpDampedRotarySpringNew(next_col, row_current, 0, 4, 0.04);
+        cpConstraint *dampedRotarySpring1 = cpDampedRotarySpringNew(prev_col, row_current, 0, stiffness, damping);
+        cpConstraint *dampedRotarySpring2 = cpDampedRotarySpringNew(next_col, row_current, 0, stiffness, damping);
         cpSpaceAddConstraint(space, dampedRotarySpring1);
         cpSpaceAddConstraint(space, dampedRotarySpring2);
         constraints.push_back(dampedRotarySpring1);
@@ -196,8 +194,8 @@ void MMGrid::setupSimStructures()
         cpBody *row_current = rowLinks[i];
         cpBody *prev_col = colLinks[col_prev_idx];
         cpBody *next_col = colLinks[col_next_idx];
-        cpConstraint *dampedRotarySpring1 = cpDampedRotarySpringNew(prev_col, row_current, 0, 4, 0.04);
-        cpConstraint *dampedRotarySpring2 = cpDampedRotarySpringNew(next_col, row_current, 0, 4, 0.04);
+        cpConstraint *dampedRotarySpring1 = cpDampedRotarySpringNew(prev_col, row_current, 0, stiffness, damping);
+        cpConstraint *dampedRotarySpring2 = cpDampedRotarySpringNew(next_col, row_current, 0, stiffness, damping);
         cpSpaceAddConstraint(space, dampedRotarySpring1);
         cpSpaceAddConstraint(space, dampedRotarySpring2);
         constraints.push_back(dampedRotarySpring1);
@@ -218,10 +216,10 @@ void MMGrid::setupSimStructures()
         cpBody *b_next_col = colLinks[b_col_next_idx];
         cpBody *a_prev_col = colLinks[a_col_prev_idx];
         cpBody *a_next_col = colLinks[a_col_next_idx];
-        cpConstraint *dampedRotarySpring1 = cpDampedRotarySpringNew(a_prev_col, row_current, 0, 4, 0.04);
-        cpConstraint *dampedRotarySpring2 = cpDampedRotarySpringNew(a_next_col, row_current, 0, 4, 0.04);
-        cpConstraint *dampedRotarySpring3 = cpDampedRotarySpringNew(b_prev_col, row_current, 0, 4, 0.04);
-        cpConstraint *dampedRotarySpring4 = cpDampedRotarySpringNew(b_next_col, row_current, 0, 4, 0.04);
+        cpConstraint *dampedRotarySpring1 = cpDampedRotarySpringNew(a_prev_col, row_current, 0, stiffness, damping);
+        cpConstraint *dampedRotarySpring2 = cpDampedRotarySpringNew(a_next_col, row_current, 0, stiffness, damping);
+        cpConstraint *dampedRotarySpring3 = cpDampedRotarySpringNew(b_prev_col, row_current, 0, stiffness, damping);
+        cpConstraint *dampedRotarySpring4 = cpDampedRotarySpringNew(b_next_col, row_current, 0, stiffness, damping);
         cpSpaceAddConstraint(space, dampedRotarySpring1);
         cpSpaceAddConstraint(space, dampedRotarySpring2);
         cpSpaceAddConstraint(space, dampedRotarySpring3);
@@ -233,7 +231,8 @@ void MMGrid::setupSimStructures()
     }
 }
 
-void MMGrid::updateVertices() {
+void MMGrid::updateVertices()
+{
     cpVect rowBevOffset = cpv(bevel * SQRT_2, 0);
     rowBevOffset = rowBevOffset * shrink_factor;
 
@@ -255,7 +254,8 @@ void MMGrid::updateVertices() {
     }
 }
 
-void MMGrid::updateMesh() {
+void MMGrid::updateMesh()
+{
 
     cpVect rowBevOffset = cpv(bevel * SQRT_2, 0);
     rowBevOffset = rowBevOffset * shrink_factor;
@@ -264,12 +264,12 @@ void MMGrid::updateMesh() {
 
     MatrixX3d groundV = MatrixX3d::Zero(4, 3);
     groundV << -10, 0, -10,
-               -10, 0, 10,
-               10, 0, -10,
-               10, 0, 10;
-    MatrixX3i groundF = MatrixX3i::Zero(2,3);
+        -10, 0, 10,
+        10, 0, -10,
+        10, 0, 10;
+    MatrixX3i groundF = MatrixX3i::Zero(2, 3);
     groundF << 0, 1, 2,
-               2, 1, 3;
+        2, 1, 3;
     meshes.push_back(std::make_pair(groundV, groundF));
 
     for (int i = 0; i < numRowLinks(); i++)
@@ -293,7 +293,8 @@ void MMGrid::updateMesh() {
     mesh = combineMeshes(meshes);
 }
 
-void MMGrid::updateEdges() {
+void MMGrid::updateEdges()
+{
     // add edges to cells
     int edge_index = 0;
     for (int i = 0; i < rows * cols; i++)
@@ -328,7 +329,8 @@ void MMGrid::updateEdges() {
 
 void MMGrid::render(igl::opengl::glfw::Viewer *viewer, int selected_cell)
 {
-    while(changingStructure) {
+    while (changingStructure)
+    {
         cout << "Waiting for finish changing structure..." << endl;
     }
     pointColors = MatrixXd::Zero(vertices.rows(), 3);
@@ -470,7 +472,8 @@ void MMGrid::removeSimStructures()
     constraints.clear();
 }
 
-void MMGrid::applyForce(int direction, int selected_cell) {
+void MMGrid::applyForce(int direction, int selected_cell)
+{
     int i = selected_cell;
     int row_i = i / (cols);
     int col_i = i % (cols);
@@ -481,21 +484,25 @@ void MMGrid::applyForce(int direction, int selected_cell) {
     cpBody *row_current = rowLinks[i];
     cpBody *row_next = rowLinks[i + cols];
     cpBody *a_prev_col = colLinks[a_col_prev_idx];
-    cpBody* toApply;
+    cpBody *toApply;
     cpVect f;
-    if(direction == 0) {
+    if (direction == 0)
+    {
         toApply = row_next;
         f = cpv(1, 0);
     }
-    else if(direction == 1) {
+    else if (direction == 1)
+    {
         toApply = row_next;
         f = cpv(-1, 0);
     }
-    else if(direction == 2) {
+    else if (direction == 2)
+    {
         toApply = a_prev_col;
         f = cpv(0, 1);
     }
-    else if(direction == 3) {
+    else if (direction == 3)
+    {
         toApply = a_prev_col;
         f = cpv(0, -1);
     }

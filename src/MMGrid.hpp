@@ -18,8 +18,10 @@ private:
     int cols;
     vector<int> cells;
     cpSpace *space;
-    cpFloat linkMass;
-    cpFloat bevel;
+    cpFloat linkMass = .1;
+    cpFloat bevel = .06;
+    cpFloat stiffness = 4;
+    cpFloat damping = 0.04;
     vector<cpBody *> rowLinks, colLinks, crossLinks;
     vector<cpShape *> rowLinkShapes, colLinkShapes, crossLinkShapes;
     vector<cpConstraint *> constraints;
@@ -79,7 +81,7 @@ private:
         cpVect gravity = cpv(0, -9.8);
         cpSpaceSetGravity(space, gravity);
 
-        cpShape *ground = cpSegmentShapeNew(cpSpaceGetStaticBody(space), cpv(-10, 0), cpv(10, 0), 0);
+        cpShape *ground = cpSegmentShapeNew(cpSpaceGetStaticBody(space), cpv(-10, 0), cpv(10, 0), 0.05);
         cpShapeSetElasticity(ground, .05);
         cpShapeSetFriction(ground, 1);
         cpSpaceAddShape(space, ground);
@@ -90,7 +92,7 @@ private:
 
 public:
     bool changingStructure = false;
-    MMGrid(int rows, int cols, cpFloat linkMass, cpFloat bevel, vector<int> cells);
+    MMGrid(int rows, int cols, vector<int> cells);
     ~MMGrid();
     void render(igl::opengl::glfw::Viewer *viewer, int selected_cell);
     void render(igl::opengl::glfw::Viewer viewer, int selected_cell);
@@ -105,6 +107,16 @@ public:
     cpFloat getBevel() {return bevel;};
     void setBevel(cpFloat bevel) {
         this->bevel = bevel;
+        setCells(rows, cols, cells);
+    };
+    cpFloat getStiffness() {return stiffness;};
+    void setStiffness(cpFloat stiffness) {
+        this->stiffness = stiffness;
+        setCells(rows, cols, cells);
+    };
+    cpFloat getDamping() {return damping;};
+    void setDamping(cpFloat damping) {
+        this->damping = damping;
         setCells(rows, cols, cells);
     };
 };
