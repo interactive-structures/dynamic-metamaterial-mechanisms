@@ -22,9 +22,11 @@ private:
     cpFloat bevel = .06;
     cpFloat stiffness = 4;
     cpFloat damping = 0.04;
-    vector<cpBody *> rowLinks, colLinks, crossLinks;
+    vector<cpBody *> rowLinks, colLinks, crossLinks, joints, controllers;
     vector<cpShape *> rowLinkShapes, colLinkShapes, crossLinkShapes;
+    vector<int> constrainedJoints;
     vector<cpConstraint *> constraints;
+    vector<cpConstraint *> controllerConstraints;
     MatrixX2d vertices;
     MatrixX2i edges;
     MatrixX3d pointColors;
@@ -64,6 +66,18 @@ private:
         return body;
     };
 
+    cpBody *makeJointBody(cpVect pos) {
+        cpBody *body = cpSpaceAddBody(space, cpBodyNew(linkMass / 10, INFINITY));
+        cpBodySetPosition(body, pos);
+        return body;
+    }
+
+    cpBody *makeControllerBody(cpVect pos) {
+        cpBody *body = cpSpaceAddBody(space, cpBodyNewKinematic());
+        cpBodySetPosition(body, pos);
+        return body;
+    }
+
     cpShape *makeLinkShape(cpBody *body, cpVect posA, cpVect posB)
     {
         cpVect a = cpvzero;
@@ -94,7 +108,7 @@ public:
     bool changingStructure = false;
     MMGrid(int rows, int cols, vector<int> cells);
     ~MMGrid();
-    void render(igl::opengl::glfw::Viewer *viewer, int selected_cell);
+    void render(igl::opengl::glfw::Viewer *viewer, int selected_cell, int selected_joint);
     void render(igl::opengl::glfw::Viewer viewer, int selected_cell);
     void update(cpFloat dt);
     void setCells(int rows, int cols, vector<int> cells);
@@ -119,4 +133,15 @@ public:
         this->damping = damping;
         setCells(rows, cols, cells);
     };
+    int getShrinkFactor() {return shrink_factor;};
+    void setShrinkFactor(int shrink_factor) {
+        this->shrink_factor = shrink_factor;
+        setCells(rows, cols, cells);
+    };
+    void addJointController(int jointIndex);
+    void removeJointController(int jointIndex);
+    cpVect getPos(int jointIndex);
+    void moveController(int jointIndex, cpVect pos);
+    bool isConstrained(int jointIndex);
+    void setJointMaxForce(int jointIndex, cpFloat force);
 };
