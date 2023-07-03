@@ -56,13 +56,13 @@ void MMGrid::setupSimStructures()
     cpVect rowBevOffset = cpv(bevel * SQRT_2, 0), colBevOffset = cpv(0, bevel * SQRT_2);
     rowBevOffset = rowBevOffset * shrink_factor;
     colBevOffset = colBevOffset * shrink_factor;
-    cpVect bl = cpv(0, bevel * 2);
+    bottomLeft = cpv(0, bevel * 2);
 
     // rowlinks
     for (int i = 0; i < numRowLinks(); i++)
     {
         int joint_index = (i / cols) * (jointCols()) + (i % cols);
-        cpVect posA = bl + getJointOffset(joint_index) + rowBevOffset, posB = bl + getJointOffset(joint_index + 1) - rowBevOffset;
+        cpVect posA = bottomLeft + getJointOffset(joint_index) + rowBevOffset, posB = bottomLeft + getJointOffset(joint_index + 1) - rowBevOffset;
         cpBody *b = makeLinkBody(posA, posB);
         cpShape *s = makeLinkShape(b, posA, posB);
         rowLinks[i] = b;
@@ -72,7 +72,7 @@ void MMGrid::setupSimStructures()
     for (int i = 0; i < numColLinks(); i++)
     {
         int joint_index = i;
-        cpVect posA = bl + getJointOffset(joint_index) + colBevOffset, posB = bl + getJointOffset(joint_index + jointCols()) - colBevOffset;
+        cpVect posA = bottomLeft + getJointOffset(joint_index) + colBevOffset, posB = bottomLeft + getJointOffset(joint_index + jointCols()) - colBevOffset;
         cpBody *b = makeLinkBody(posA, posB);
         cpShape *s = makeLinkShape(b, posA, posB);
         colLinks[i] = b;
@@ -85,8 +85,8 @@ void MMGrid::setupSimStructures()
         {
             int joint_index = (i / cols) * (jointCols()) + (i % cols);
             int a_joint_index = (i / cols) * (jointCols() + 1) + (i % cols);
-            cpVect posA1 = bl + getJointOffset(joint_index), posB1 = bl + getJointOffset(a_joint_index + 1);
-            cpVect posA2 = bl + getJointOffset(joint_index + 1), posB2 = bl + getJointOffset(a_joint_index);
+            cpVect posA1 = bottomLeft + getJointOffset(joint_index), posB1 = bottomLeft + getJointOffset(a_joint_index + 1);
+            cpVect posA2 = bottomLeft + getJointOffset(joint_index + 1), posB2 = bottomLeft + getJointOffset(a_joint_index);
             cpBody *b1 = makeLinkBody(posA1, posB1), *b2 = makeLinkBody(posA2, posB2);
             crossLinks[crossLinkIndex] = b1;
             crossLinkIndex++;
@@ -103,10 +103,10 @@ void MMGrid::setupSimStructures()
             cpBody *row_next = rowLinks[i + cols];
             cpBody *a_prev_col = colLinks[a_col_prev_idx];
             cpBody *a_next_col = colLinks[a_col_next_idx];
-            cpConstraint *pivot1 = cpPivotJointNew(a_prev_col, b1, bl + getJointOffset(joint_index));
-            cpConstraint *pivot2 = cpPivotJointNew(a_next_col, b1, bl + getJointOffset(a_joint_index + 1));
-            cpConstraint *pivot3 = cpPivotJointNew(row_current, b2, bl + getJointOffset(joint_index + 1));
-            cpConstraint *pivot4 = cpPivotJointNew(row_next, b2, bl + getJointOffset(a_joint_index));
+            cpConstraint *pivot1 = cpPivotJointNew(a_prev_col, b1, bottomLeft + getJointOffset(joint_index));
+            cpConstraint *pivot2 = cpPivotJointNew(a_next_col, b1, bottomLeft + getJointOffset(a_joint_index + 1));
+            cpConstraint *pivot3 = cpPivotJointNew(row_current, b2, bottomLeft + getJointOffset(joint_index + 1));
+            cpConstraint *pivot4 = cpPivotJointNew(row_next, b2, bottomLeft + getJointOffset(a_joint_index));
             cpSpaceAddConstraint(space, pivot1);
             cpSpaceAddConstraint(space, pivot2);
             cpSpaceAddConstraint(space, pivot3);
@@ -125,8 +125,8 @@ void MMGrid::setupSimStructures()
         cpBody *row_current = rowLinks[i];
         cpBody *prev_col = colLinks[i];
         cpBody *next_col = colLinks[i + 1];
-        cpConstraint *pivot1 = cpPivotJointNew(prev_col, row_current, bl + getJointOffset(i));
-        cpConstraint *pivot2 = cpPivotJointNew(next_col, row_current, bl + getJointOffset(i + 1));
+        cpConstraint *pivot1 = cpPivotJointNew(prev_col, row_current, bottomLeft + getJointOffset(i));
+        cpConstraint *pivot2 = cpPivotJointNew(next_col, row_current, bottomLeft + getJointOffset(i + 1));
         cpSpaceAddConstraint(space, pivot1);
         cpSpaceAddConstraint(space, pivot2);
         constraints.push_back(pivot1);
@@ -143,8 +143,8 @@ void MMGrid::setupSimStructures()
         cpBody *row_current = rowLinks[i];
         cpBody *prev_col = colLinks[col_prev_idx];
         cpBody *next_col = colLinks[col_next_idx];
-        cpConstraint *pivot1 = cpPivotJointNew(prev_col, row_current, bl + getJointOffset(joint_idx));
-        cpConstraint *pivot2 = cpPivotJointNew(next_col, row_current, bl + getJointOffset(joint_idx + 1));
+        cpConstraint *pivot1 = cpPivotJointNew(prev_col, row_current, bottomLeft + getJointOffset(joint_idx));
+        cpConstraint *pivot2 = cpPivotJointNew(next_col, row_current, bottomLeft + getJointOffset(joint_idx + 1));
         cpSpaceAddConstraint(space, pivot1);
         cpSpaceAddConstraint(space, pivot2);
         constraints.push_back(pivot1);
@@ -165,10 +165,10 @@ void MMGrid::setupSimStructures()
         cpBody *b_next_col = colLinks[b_col_next_idx];
         cpBody *a_prev_col = colLinks[a_col_prev_idx];
         cpBody *a_next_col = colLinks[a_col_next_idx];
-        cpConstraint *pivot1 = cpPivotJointNew(a_prev_col, row_current, bl + getJointOffset(joint_idx));
-        cpConstraint *pivot2 = cpPivotJointNew(a_next_col, row_current, bl + getJointOffset(joint_idx + 1));
-        cpConstraint *pivot3 = cpPivotJointNew(b_prev_col, row_current, bl + getJointOffset(joint_idx));
-        cpConstraint *pivot4 = cpPivotJointNew(b_next_col, row_current, bl + getJointOffset(joint_idx + 1));
+        cpConstraint *pivot1 = cpPivotJointNew(a_prev_col, row_current, bottomLeft + getJointOffset(joint_idx));
+        cpConstraint *pivot2 = cpPivotJointNew(a_next_col, row_current, bottomLeft + getJointOffset(joint_idx + 1));
+        cpConstraint *pivot3 = cpPivotJointNew(b_prev_col, row_current, bottomLeft + getJointOffset(joint_idx));
+        cpConstraint *pivot4 = cpPivotJointNew(b_next_col, row_current, bottomLeft + getJointOffset(joint_idx + 1));
         cpSpaceAddConstraint(space, pivot1);
         cpSpaceAddConstraint(space, pivot2);
         cpSpaceAddConstraint(space, pivot3);
@@ -178,7 +178,7 @@ void MMGrid::setupSimStructures()
         constraints.push_back(pivot3);
         constraints.push_back(pivot4);
     }
-    
+
     // make dampedRotarySpring constraints
     // first row
     for (int i = 0; i < cols; i++)
@@ -247,13 +247,13 @@ void MMGrid::setupSimStructures()
         cpBody *row_current = rowLinks[i];
         cpBody *prev_col = colLinks[i];
         cpBody *next_col = colLinks[i + 1];
-        cpBody* joint = makeJointBody(bl + getJointOffset(i));
-        cpBody* controller = makeControllerBody(bl + getJointOffset(i));
+        cpBody *joint = makeJointBody(bottomLeft + getJointOffset(i));
+        cpBody *controller = makeControllerBody(bottomLeft + getJointOffset(i));
         joints.push_back(joint);
         controllers.push_back(controller);
-        cpConstraint *pivot1 = cpPivotJointNew(joint, row_current, bl + getJointOffset(i));
-        cpConstraint *pivot2 = cpPivotJointNew(joint, prev_col, bl + getJointOffset(i));
-        cpConstraint *controlPivot = cpPivotJointNew(joint, controller, bl + getJointOffset(i));
+        cpConstraint *pivot1 = cpPivotJointNew(joint, row_current, bottomLeft + getJointOffset(i));
+        cpConstraint *pivot2 = cpPivotJointNew(joint, prev_col, bottomLeft + getJointOffset(i));
+        cpConstraint *controlPivot = cpPivotJointNew(joint, controller, bottomLeft + getJointOffset(i));
         cpSpaceAddConstraint(space, pivot1);
         cpSpaceAddConstraint(space, pivot2);
         // cpSpaceAddConstraint(space, controlPivot);
@@ -261,15 +261,16 @@ void MMGrid::setupSimStructures()
         constraints.push_back(pivot2);
         constraints.push_back(controlPivot);
         controllerConstraints.push_back(controlPivot);
-        //cpConstraintSetMaxForce(controlPivot, 20);
-        if(i == cols - 1) {
-            cpBody* joint = makeJointBody(bl + getJointOffset(i + 1));
-            cpBody* controller = makeControllerBody(bl + getJointOffset(i + 1));
+        // cpConstraintSetMaxForce(controlPivot, 20);
+        if (i == cols - 1)
+        {
+            cpBody *joint = makeJointBody(bottomLeft + getJointOffset(i + 1));
+            cpBody *controller = makeControllerBody(bottomLeft + getJointOffset(i + 1));
             joints.push_back(joint);
             controllers.push_back(controller);
-            cpConstraint *pivot1 = cpPivotJointNew(joint, row_current, bl + getJointOffset(i + 1));
-            cpConstraint *pivot2 = cpPivotJointNew(joint, next_col, bl + getJointOffset(i + 1));
-            cpConstraint *controlPivot = cpPivotJointNew(joint, controller, bl + getJointOffset(i + 1));
+            cpConstraint *pivot1 = cpPivotJointNew(joint, row_current, bottomLeft + getJointOffset(i + 1));
+            cpConstraint *pivot2 = cpPivotJointNew(joint, next_col, bottomLeft + getJointOffset(i + 1));
+            cpConstraint *controlPivot = cpPivotJointNew(joint, controller, bottomLeft + getJointOffset(i + 1));
             cpSpaceAddConstraint(space, pivot1);
             cpSpaceAddConstraint(space, pivot2);
             // cpSpaceAddConstraint(space, controlPivot);
@@ -277,10 +278,10 @@ void MMGrid::setupSimStructures()
             constraints.push_back(pivot2);
             constraints.push_back(controlPivot);
             controllerConstraints.push_back(controlPivot);
-        //cpConstraintSetMaxForce(controlPivot, 20);
+            // cpConstraintSetMaxForce(controlPivot, 20);
         }
     }
-    
+
     // interior rows
     for (int i = cols; i < rows * cols; i++)
     {
@@ -296,15 +297,15 @@ void MMGrid::setupSimStructures()
         cpBody *b_next_col = colLinks[b_col_next_idx];
         cpBody *a_prev_col = colLinks[a_col_prev_idx];
         cpBody *a_next_col = colLinks[a_col_next_idx];
-        cpBody* joint = makeJointBody(bl + getJointOffset(joint_idx));
-        cpBody* controller = makeControllerBody(bl + getJointOffset(joint_idx));
+        cpBody *joint = makeJointBody(bottomLeft + getJointOffset(joint_idx));
+        cpBody *controller = makeControllerBody(bottomLeft + getJointOffset(joint_idx));
         joints.push_back(joint);
         controllers.push_back(controller);
-        cpConstraint *pivot1 = cpPivotJointNew(a_prev_col, joint, bl + getJointOffset(joint_idx));
-        cpConstraint *pivot2 = cpPivotJointNew(joint, row_current, bl + getJointOffset(joint_idx));
-        cpConstraint *pivot3 = cpPivotJointNew(b_prev_col, joint, bl + getJointOffset(joint_idx));
-        cpConstraint *pivot4 = cpPivotJointNew(joint, row_current, bl + getJointOffset(joint_idx));
-        cpConstraint *controlPivot = cpPivotJointNew(joint, controller, bl + getJointOffset(joint_idx));
+        cpConstraint *pivot1 = cpPivotJointNew(a_prev_col, joint, bottomLeft + getJointOffset(joint_idx));
+        cpConstraint *pivot2 = cpPivotJointNew(joint, row_current, bottomLeft + getJointOffset(joint_idx));
+        cpConstraint *pivot3 = cpPivotJointNew(b_prev_col, joint, bottomLeft + getJointOffset(joint_idx));
+        cpConstraint *pivot4 = cpPivotJointNew(joint, row_current, bottomLeft + getJointOffset(joint_idx));
+        cpConstraint *controlPivot = cpPivotJointNew(joint, controller, bottomLeft + getJointOffset(joint_idx));
         cpSpaceAddConstraint(space, pivot1);
         cpSpaceAddConstraint(space, pivot2);
         cpSpaceAddConstraint(space, pivot3);
@@ -316,17 +317,18 @@ void MMGrid::setupSimStructures()
         constraints.push_back(pivot4);
         constraints.push_back(controlPivot);
         controllerConstraints.push_back(controlPivot);
-        //cpConstraintSetMaxForce(controlPivot, 20);
-        if((i + 1) % cols == 0) {
-            cpBody* joint = makeJointBody(bl + getJointOffset(joint_idx + 1));
-            cpBody* controller = makeControllerBody(bl + getJointOffset(joint_idx + 1));
+        // cpConstraintSetMaxForce(controlPivot, 20);
+        if ((i + 1) % cols == 0)
+        {
+            cpBody *joint = makeJointBody(bottomLeft + getJointOffset(joint_idx + 1));
+            cpBody *controller = makeControllerBody(bottomLeft + getJointOffset(joint_idx + 1));
             joints.push_back(joint);
             controllers.push_back(controller);
-            cpConstraint *pivot1 = cpPivotJointNew(a_next_col, joint, bl + getJointOffset(joint_idx + 1));
-            cpConstraint *pivot2 = cpPivotJointNew(joint, row_current, bl + getJointOffset(joint_idx + 1));
-            cpConstraint *pivot3 = cpPivotJointNew(b_next_col, joint, bl + getJointOffset(joint_idx + 1));
-            cpConstraint *pivot4 = cpPivotJointNew(joint, row_current, bl + getJointOffset(joint_idx + 1));
-            cpConstraint *controlPivot = cpPivotJointNew(joint, controller, bl + getJointOffset(joint_idx + 1));
+            cpConstraint *pivot1 = cpPivotJointNew(a_next_col, joint, bottomLeft + getJointOffset(joint_idx + 1));
+            cpConstraint *pivot2 = cpPivotJointNew(joint, row_current, bottomLeft + getJointOffset(joint_idx + 1));
+            cpConstraint *pivot3 = cpPivotJointNew(b_next_col, joint, bottomLeft + getJointOffset(joint_idx + 1));
+            cpConstraint *pivot4 = cpPivotJointNew(joint, row_current, bottomLeft + getJointOffset(joint_idx + 1));
+            cpConstraint *controlPivot = cpPivotJointNew(joint, controller, bottomLeft + getJointOffset(joint_idx + 1));
             cpSpaceAddConstraint(space, pivot1);
             cpSpaceAddConstraint(space, pivot2);
             cpSpaceAddConstraint(space, pivot3);
@@ -338,7 +340,7 @@ void MMGrid::setupSimStructures()
             constraints.push_back(pivot4);
             constraints.push_back(controlPivot);
             controllerConstraints.push_back(controlPivot);
-        //cpConstraintSetMaxForce(controlPivot, 20);
+            // cpConstraintSetMaxForce(controlPivot, 20);
         }
     }
 
@@ -353,13 +355,13 @@ void MMGrid::setupSimStructures()
         cpBody *row_current = rowLinks[i];
         cpBody *prev_col = colLinks[col_prev_idx];
         cpBody *next_col = colLinks[col_next_idx];
-        cpBody* joint = makeJointBody(bl + getJointOffset(joint_idx));
-        cpBody* controller = makeControllerBody(bl + getJointOffset(joint_idx));
+        cpBody *joint = makeJointBody(bottomLeft + getJointOffset(joint_idx));
+        cpBody *controller = makeControllerBody(bottomLeft + getJointOffset(joint_idx));
         joints.push_back(joint);
         controllers.push_back(controller);
-        cpConstraint *pivot1 = cpPivotJointNew(joint, row_current, bl + getJointOffset(joint_idx));
-        cpConstraint *pivot2 = cpPivotJointNew(joint, prev_col, bl + getJointOffset(joint_idx));
-        cpConstraint *controlPivot = cpPivotJointNew(joint, controller, bl + getJointOffset(joint_idx));
+        cpConstraint *pivot1 = cpPivotJointNew(joint, row_current, bottomLeft + getJointOffset(joint_idx));
+        cpConstraint *pivot2 = cpPivotJointNew(joint, prev_col, bottomLeft + getJointOffset(joint_idx));
+        cpConstraint *controlPivot = cpPivotJointNew(joint, controller, bottomLeft + getJointOffset(joint_idx));
         cpSpaceAddConstraint(space, pivot1);
         cpSpaceAddConstraint(space, pivot2);
         // cpSpaceAddConstraint(space, controlPivot);
@@ -367,15 +369,16 @@ void MMGrid::setupSimStructures()
         constraints.push_back(pivot2);
         constraints.push_back(controlPivot);
         controllerConstraints.push_back(controlPivot);
-        //cpConstraintSetMaxForce(controlPivot, 20);
-        if(i == (jointRows()) * cols - 1) {
-            cpBody* joint = makeJointBody(bl + getJointOffset(joint_idx + 1));
-            cpBody* controller = makeControllerBody(bl + getJointOffset(joint_idx + 1));
+        // cpConstraintSetMaxForce(controlPivot, 20);
+        if (i == (jointRows()) * cols - 1)
+        {
+            cpBody *joint = makeJointBody(bottomLeft + getJointOffset(joint_idx + 1));
+            cpBody *controller = makeControllerBody(bottomLeft + getJointOffset(joint_idx + 1));
             joints.push_back(joint);
             controllers.push_back(controller);
-            cpConstraint *pivot1 = cpPivotJointNew(joint, row_current, bl + getJointOffset(joint_idx + 1));
-            cpConstraint *pivot2 = cpPivotJointNew(joint, next_col, bl + getJointOffset(joint_idx + 1));
-            cpConstraint *controlPivot = cpPivotJointNew(joint, controller, bl + getJointOffset(joint_idx + 1));
+            cpConstraint *pivot1 = cpPivotJointNew(joint, row_current, bottomLeft + getJointOffset(joint_idx + 1));
+            cpConstraint *pivot2 = cpPivotJointNew(joint, next_col, bottomLeft + getJointOffset(joint_idx + 1));
+            cpConstraint *controlPivot = cpPivotJointNew(joint, controller, bottomLeft + getJointOffset(joint_idx + 1));
             cpSpaceAddConstraint(space, pivot1);
             cpSpaceAddConstraint(space, pivot2);
             // cpSpaceAddConstraint(space, controlPivot);
@@ -383,12 +386,13 @@ void MMGrid::setupSimStructures()
             constraints.push_back(pivot2);
             constraints.push_back(controlPivot);
             controllerConstraints.push_back(controlPivot);
-        //cpConstraintSetMaxForce(controlPivot, 20);
+            // cpConstraintSetMaxForce(controlPivot, 20);
         }
     }
 }
 
-bool MMGrid::isConstrained(int jointIndex) {
+bool MMGrid::isConstrained(int jointIndex)
+{
     return find(constrainedJoints.begin(), constrainedJoints.end(), jointIndex) != constrainedJoints.end();
 }
 
@@ -398,18 +402,20 @@ void MMGrid::updateVertices()
     rowBevOffset = rowBevOffset * shrink_factor;
     // cout << "r * c: " << jointRows() * jointCols() << ", js: " << joints.size() << ", cs: " << controllers.size() << ", vs: " << vertices.rows() << endl;
 
-    for (int i = 0; i < jointRows() * jointCols(); i ++) {
+    for (int i = 0; i < jointRows() * jointCols(); i++)
+    {
         cpVect pos = cpBodyGetPosition(joints[i]);
-        if(isConstrained(i)) {
+        if (isConstrained(i))
+        {
             cpVect posC = cpBodyGetPosition(controllers[i]);
             vertices.row(i) = (Vector2d() << posC.x, posC.y).finished();
         }
-        else {
+        else
+        {
             vertices.row(i) = (Vector2d() << pos.x, pos.y).finished();
-            cpBody * controller = controllers[i];
+            cpBody *controller = controllers[i];
             cpBodySetPosition(controller, pos);
         }
-        
     }
 
     // for (int i = 0; i < numRowLinks(); i++)
@@ -513,7 +519,8 @@ void MMGrid::render(igl::opengl::glfw::Viewer *viewer, int selected_cell, int se
     edgeColors = MatrixXd::Zero(edges.rows(), 3);
 
     pointColors.row(selected_joint) += (Vector3d() << 1, 0, 0).finished();
-    for(int index : constrainedJoints) {
+    for (int index : constrainedJoints)
+    {
         pointColors.row(index) += (Vector3d() << 0, 0, 1).finished();
     }
 
@@ -690,32 +697,190 @@ void MMGrid::applyForce(int direction, int selected_cell)
     cpBodyApplyImpulseAtLocalPoint(toApply, f, cpvzero);
 }
 
-void MMGrid::addJointController(int jointIndex) {
-    if(isConstrained(jointIndex)) return;
+void MMGrid::addJointController(int jointIndex)
+{
+    if (isConstrained(jointIndex))
+        return;
     constrainedJoints.push_back(jointIndex);
     cpSpaceAddConstraint(space, controllerConstraints[jointIndex]);
 }
-void MMGrid::removeJointController(int jointIndex) {
+void MMGrid::removeJointController(int jointIndex)
+{
     int pos = -1;
-    for(int i = 0; i < constrainedJoints.size(); i++) {
-        if(jointIndex == constrainedJoints[i]) {
+    for (int i = 0; i < constrainedJoints.size(); i++)
+    {
+        if (jointIndex == constrainedJoints[i])
+        {
             cpSpaceRemoveConstraint(space, controllerConstraints[jointIndex]);
             pos = i;
         }
     }
-    if(pos != -1) {
+    if (pos != -1)
+    {
         constrainedJoints.erase(constrainedJoints.begin() + pos);
     }
 }
 
-cpVect MMGrid::getPos(int jointIndex) {
+cpVect MMGrid::getPos(int jointIndex)
+{
     return cpBodyGetPosition(controllers[jointIndex]);
 }
 
-void MMGrid::setJointMaxForce(int jointIndex, cpFloat force) {
+void MMGrid::setJointMaxForce(int jointIndex, cpFloat force)
+{
     cpConstraintSetMaxForce(controllerConstraints[jointIndex], force);
 }
 
-void MMGrid::moveController(int jointIndex, cpVect pos) {
+void MMGrid::moveController(int jointIndex, cpVect pos)
+{
     cpBodySetPosition(controllers[jointIndex], pos);
+}
+
+void MMGrid::update_follow_path(cpFloat dt, int points_per_second)
+{
+    cpFloat pps = 1.0 / (cpFloat)points_per_second;
+    frameTime += dt;
+    for (int anchorIndex : anchors)
+    {
+        addJointController(anchorIndex);
+    }
+    for (int i = 0; i < targetPaths.size(); i++)
+    {
+        int targetIndex = targets[i];
+        vector<cpVect> targetPath = targetPaths[i];
+        addJointController(targetIndex);
+        setJointMaxForce(targetIndex, 100);
+        moveController(targetIndex, targetPath[pointIndex]);
+    }
+    update(dt);
+    if (targetPaths.size() > 0)
+    {
+        if (frameTime > pps)
+        {
+            pointIndex++;
+            pointIndex %= targetPaths[0].size();
+            frameTime = 0;
+        }
+    }
+    else
+    {
+        // cout << "No target paths" << endl;
+    }
+}
+
+void MMGrid::loadFromFile(const std::string fname)
+{
+    ifstream file(fname);
+
+    if (!file.good())
+    {
+        cout << "file " << fname << " not found!" << endl;
+        return;
+    }
+    char tmp[1024];
+
+    file.getline(tmp, 1024);
+
+    int nv, nc, na, nconstr, npath;
+
+    file >> nv;
+    file >> nc;
+    file >> na;
+    file >> nconstr;
+    file >> npath;
+
+    file.getline(tmp, 1024);
+    file.getline(tmp, 1024);
+    file.getline(tmp, 1024);
+
+    cpFloat min_x = DBL_MIN, min_y = DBL_MIN;
+
+    for (int i = 0; i < nv; ++i)
+    {
+        double x, y;
+        file >> x;
+        file >> y;
+
+        if (x < min_x)
+            min_x = x;
+        if (y < min_y)
+            min_y = y;
+    }
+
+    bottomLeft = cpv(min_x, min_y);
+
+    file.getline(tmp, 1024);
+    file.getline(tmp, 1024);
+    file.getline(tmp, 1024);
+
+    for (int i = 0; i < na; ++i)
+    {
+        int x;
+        file >> x;
+
+        anchors.push_back(x);
+    }
+
+    // shift = vertices[anchors.front()];
+    //  anchors.pop_back();
+
+    file.getline(tmp, 1024);
+    file.getline(tmp, 1024);
+    file.getline(tmp, 1024);
+
+    int l_rows = -1, l_cols = -1;
+    int prev_bottomleft = 0;
+    vector<int> l_cells;
+
+    for (int i = 0; i < nc; ++i)
+    {
+        char t;
+        file >> t;
+
+        int a, b, c, d;
+        file >> a;
+        file >> b;
+        file >> c;
+        file >> d;
+        if (a - prev_bottomleft > 1 && l_cols == -1)
+        {
+            l_cols = a - 1;
+        }
+        prev_bottomleft = a;
+
+        l_cells.push_back(t == 's' ? 0 : t == 'a' ? 2
+                                                  : 1);
+    }
+
+    l_rows = prev_bottomleft / (l_cols + 1) + 1;
+
+    cout << "READ IN " << l_rows << ", " << l_cols << endl;
+
+    setCells(l_rows, l_cols, l_cells);
+
+    for (int c = 0; c < nconstr; c++)
+    {
+        file.getline(tmp, 1024);
+        file.getline(tmp, 1024);
+        file.getline(tmp, 1024);
+
+        int constr;
+        file >> constr;
+
+        targets.push_back(constr);
+
+        for (int i = 0; i < npath; ++i)
+        {
+            double x, y;
+            file >> x;
+            file >> y;
+
+            path.push_back(cpv(x, y));
+        }
+
+        targetPaths.push_back(path);
+        path.clear();
+    }
+
+    file.close();
 }
