@@ -50,6 +50,7 @@ void MMGrid::setupSimStructures()
     controllers.clear();
     controllers.reserve(jointRows() * jointCols());
     constrainedJoints.clear();
+    removeAllJointControllers();
     controllerConstraints.clear();
     controllerConstraints.reserve(jointRows() * jointCols());
 
@@ -576,9 +577,27 @@ void MMGrid::render(igl::opengl::glfw::Viewer *viewer, int selected_cell, int se
 
     MatrixX3d points = MatrixXd::Zero(vertices.rows(), 3);
     points << vertices, MatrixXd::Zero(vertices.rows(), 1);
+
+    MatrixX3d edgePoints = MatrixXd::Zero(vertices.rows(), 3);
+    MatrixX3d edgeColors2 = MatrixXd::Zero(edgeColors.rows(), 3);
+    MatrixX2i edges2 = MatrixXi::Zero(edges.rows(), 2);
+    if(targetVerts.rows() == 0) {
+        edgePoints << points;
+        edges2 << edges;
+        edgeColors2 << edgeColors;
+    } else {
+        MatrixX2d intermediate = MatrixXd::Zero(vertices.rows() + targetVerts.rows(), 2);
+        intermediate << vertices, targetVerts;
+        edgePoints = MatrixXd::Zero(intermediate.rows(), 3);
+        edgePoints << intermediate,  MatrixXd::Zero(intermediate.rows(), 1);
+        edges2 = MatrixXi::Zero(edges.rows() + targetEdges.rows(), 2);
+        edges2 << edges, targetEdges + MatrixXi::Constant(targetEdges.rows(), 2, vertices.rows());
+        edgeColors2 = MatrixXd::Zero(edges.rows() + targetEdges.rows(), 3);
+        edgeColors2 << edgeColors, MatrixXd::Zero(targetEdges.rows(), 3);
+    }
     viewer->data().clear();
     viewer->data().set_points(points, pointColors);
-    viewer->data().set_edges(points, edges, edgeColors);
+    viewer->data().set_edges(edgePoints, edges2, edgeColors2);
     viewer->data().set_mesh(mesh.first, mesh.second);
 }
 
@@ -720,6 +739,12 @@ void MMGrid::removeJointController(int jointIndex)
         constrainedJoints.erase(constrainedJoints.begin() + pos);
     }
 }
+void MMGrid::removeAllJointControllers() {
+    for(int jointIndex : constrainedJoints) {
+        cpSpaceRemoveConstraint(space, controllerConstraints[jointIndex]);
+    }
+    controllerConstraints.clear();
+}
 
 cpVect MMGrid::getPos(int jointIndex)
 {
@@ -858,6 +883,9 @@ void MMGrid::loadFromFile(const std::string fname)
 
     setCells(l_rows, l_cols, l_cells);
 
+    int numVertRows = 0;
+    int numEdgeRows = 0;
+
     for (int c = 0; c < nconstr; c++)
     {
         file.getline(tmp, 1024);
@@ -876,11 +904,30 @@ void MMGrid::loadFromFile(const std::string fname)
             file >> y;
 
             path.push_back(cpv(x, y));
+
+            numVertRows++;
+            numEdgeRows++;
         }
 
         targetPaths.push_back(path);
         path.clear();
     }
+
+    targetVerts = MatrixXd::Zero(numVertRows, 2);
+    targetEdges = MatrixXi::Zero(numEdgeRows, 2);
+
+    int vert_index = 0;
+    int edge_index = 0;
+    for(auto tP : targetPaths) {
+        int start_index = 0;
+        for(auto pv : tP) {
+            targetVerts.row(vert_index) = (Vector2d() << pv.x, pv.y).finished();
+            targetEdges.row(edge_index) = (Vector2i() << vert_index, (vert_index + 1) % tP.size() + start_index).finished();
+            vert_index ++;
+            edge_index ++;
+        }
+    }
+
 
     file.close();
 }

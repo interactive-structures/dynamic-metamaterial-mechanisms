@@ -14,7 +14,7 @@ int main()
 {
 	int rows = 2;
 	int cols = 2;
-	int updatesPerRender = 5;
+	int updatesPerRender = 10;
 
 	vector<int> cells(rows * cols);
 
@@ -23,13 +23,17 @@ int main()
 
 
 	MMGrid myGrid(rows, cols, cells);
+	myGrid.loadFromFile("../configs/waterdrop.txt");
+	rows = myGrid.getRows();
+	cols = myGrid.getCols();
+	cells = myGrid.getCells();
 	float stiffness = myGrid.getStiffness();
 	float bevel = myGrid.getBevel();
 	float damping = myGrid.getDamping();
 	float linkMass = myGrid.getLinkMass();
 	int shrink_factor = myGrid.getShrinkFactor();
 
-	cpFloat timeStep = 1.0 / 60.0;
+	cpFloat timeStep = 5.0 / 60.0;
 	// timeStep *= .5;
 
 	igl::opengl::glfw::Viewer viewer;
@@ -98,7 +102,7 @@ int main()
 	{
 		myGrid.render(&v, selected_cell, selected_joint);
 		for(int i = 0; i < updatesPerRender; i++)
-			myGrid.update(timeStep / updatesPerRender);
+			myGrid.update_follow_path(timeStep / updatesPerRender, 5);
 		return false;
 	};
 	char editMode = 'r';
@@ -203,6 +207,15 @@ int main()
 		{
 			cells[selected_cell] = cells[selected_cell] == 1 ? 0 : 1;
 			myGrid.setCells(rows, cols, cells);
+			ConstraintFun cf(rows, cols, cells);
+			cout << "Constraints: [";
+			for(auto rc : cf.getRowConstraints()) {
+				cout << rc;
+			}
+			for(auto cc : cf.getColConstraints()) {
+				cout << cc;
+			}
+			cout << "]" << endl;
 		}
 		else if (key == 'J')
 		{

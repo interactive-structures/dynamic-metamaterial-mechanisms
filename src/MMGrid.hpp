@@ -5,6 +5,7 @@
 #include <igl/opengl/glfw/Viewer.h>
 #include "chipmunk/chipmunk.h"
 #include "rendering.hpp"
+#include "ConstraintFun.hpp"
 
 #define SQRT_2 1.4142135623730950488016887242
 
@@ -28,11 +29,20 @@ private:
     vector<cpConstraint *> constraints;
     vector<cpConstraint *> controllerConstraints;
     MatrixX2d vertices;
+    MatrixX2d targetVerts;
     MatrixX2i edges;
+    MatrixX2i targetEdges;
     MatrixX3d pointColors;
     MatrixX3d edgeColors;
+    cpVect bottomLeft;
+    vector<cpVect> path;
+    vector<int> targets;
+    vector<vector<cpVect>> targetPaths;
+    vector<int> anchors;
     int resolution = 6;
     int shrink_factor = 2;
+    cpFloat frameTime = 0;
+    int pointIndex = 0;
     std::pair<MatrixX3d, MatrixX3i> mesh;
     int jointRows() { return rows + 1; };
     int jointCols() { return cols + 1; };
@@ -103,6 +113,7 @@ private:
     void updateVertices();
     void updateMesh();
     void updateEdges();
+    void removeAllJointControllers();
 
 public:
     bool changingStructure = false;
@@ -111,6 +122,7 @@ public:
     void render(igl::opengl::glfw::Viewer *viewer, int selected_cell, int selected_joint);
     void render(igl::opengl::glfw::Viewer viewer, int selected_cell);
     void update(cpFloat dt);
+    void update_follow_path(cpFloat dt, int points_per_second);
     void setCells(int rows, int cols, vector<int> cells);
     void applyForce(int direction, int selected_cell);
     cpFloat getLinkMass() {return linkMass;};
@@ -138,10 +150,14 @@ public:
         this->shrink_factor = shrink_factor;
         setCells(rows, cols, cells);
     };
+    int getRows() {return rows;};
+    int getCols() {return cols;};
+    vector<int> getCells() {return cells;}
     void addJointController(int jointIndex);
     void removeJointController(int jointIndex);
     cpVect getPos(int jointIndex);
     void moveController(int jointIndex, cpVect pos);
     bool isConstrained(int jointIndex);
     void setJointMaxForce(int jointIndex, cpFloat force);
+    void loadFromFile(const std::string fname);
 };
