@@ -1,3 +1,4 @@
+#define _USE_MATH_DEFINES
 #include "MMGrid.hpp"
 
 const int JOINT_MAX_FORCE = 10;

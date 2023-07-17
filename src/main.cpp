@@ -38,7 +38,7 @@ int main()
 	const double cellsize = 1;
 
 	MMGrid myGrid(rows, cols, cells);
-	myGrid.loadFromFile("../configs/waterdrop.txt");
+	myGrid.loadFromFile("../../configs/waterdrop.txt");
 	rows = myGrid.getRows();
 	cols = myGrid.getCols();
 	cells = myGrid.getCells();
@@ -66,7 +66,7 @@ int main()
 	int selected_cell = 0;
 	int selected_joint = 0;
 	int select_mode = 0;
-	bool edit_enabled = true;
+	bool edit_enabled = false;
 	char editMode = 'r';
 	bool following_path = false;
 	string config_file = "";

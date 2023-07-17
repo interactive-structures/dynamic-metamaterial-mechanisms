@@ -1,3 +1,4 @@
+#define _USE_MATH_DEFINES
 #include "rendering.hpp"
 
 // mesh generation test
@@ -10,7 +11,7 @@ std::pair<MatrixX3d, MatrixX3i> generateCapsule(Vector3d base, double r, double 
     double rad_amount = 2 * pi / res;
 
     Vector3d axis(0, 0, 1);
-    Transform<double, 3, Affine> t(AngleAxis(rot, axis));
+    Transform<double, 3, Affine> t(AngleAxis<double>(rot, axis));
     // std::cout << rad_amount << std::endl;
     std::vector<Vector3d> points;
     for (int i = 0; i < res; i++)
