@@ -569,60 +569,6 @@ MMGrid::~MMGrid()
 }
 void MMGrid::removeSimStructures()
 {
-    // for (cpConstraint *c : constraints)
-    // {
-    //     if (cpSpaceContainsConstraint(space, c))
-    //         cpSpaceRemoveConstraint(space, c);
-    //     else
-    //         cout << "Say sum'n" << endl;
-
-    //     cpConstraintFree(c);
-    // }
-    // for (cpShape *l : rowLinkShapes)
-    // {
-    //     if (cpSpaceContainsShape(space, l))
-    //         cpSpaceRemoveShape(space, l);
-    //     else
-    //         cout << "Say sum'n" << endl;
-
-    //     cpShapeFree(l);
-    // }
-    // for (cpShape *l : colLinkShapes)
-    // {
-    //     if (cpSpaceContainsShape(space, l))
-    //         cpSpaceRemoveShape(space, l);
-    //     else
-    //         cout << "Say sum'n" << endl;
-
-    //     cpShapeFree(l);
-    // }
-    // for (cpBody *l : rowLinks)
-    // {
-    //     if (cpSpaceContainsBody(space, l))
-    //         cpSpaceRemoveBody(space, l);
-    //     else
-    //         cout << "Say sum'n" << endl;
-
-    //     cpBodyFree(l);
-    // }
-    // for (cpBody *l : colLinks)
-    // {
-    //     if (cpSpaceContainsBody(space, l))
-    //         cpSpaceRemoveBody(space, l);
-    //     else
-    //         cout << "Say sum'n" << endl;
-
-    //     cpBodyFree(l);
-    // }
-    // for (cpBody *l : crossLinks)
-    // {
-    //     if (cpSpaceContainsBody(space, l))
-    //         cpSpaceRemoveBody(space, l);
-    //     else
-    //         cout << "Say sum'n" << endl;
-
-    //     cpBodyFree(l);
-    // }
     cpSpaceFree(space);
     rowLinks.clear();
     colLinks.clear();

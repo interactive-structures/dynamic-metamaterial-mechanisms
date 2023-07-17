@@ -4,6 +4,7 @@
 #include <igl/opengl/glfw/imgui/ImGuiPlugin.h>
 #include <igl/opengl/glfw/imgui/ImGuiMenu.h>
 #include <igl/opengl/glfw/imgui/ImGuiHelpers.h>
+#include "misc/cpp/imgui_stdlib.h"
 #include "chipmunk/chipmunk.h"
 // #include "MMGrid.hpp"
 // #include "PRand.hpp"
@@ -31,14 +32,13 @@ int main()
 	srand(time(NULL));
 	int rows = 2;
 	int cols = 2;
-	int updatesPerRender = 10;
+	int updatesPerRender = 5;
 
 	vector<int> cells(rows * cols);
 
 	const double cellsize = 1;
 
 	MMGrid myGrid(rows, cols, cells);
-	myGrid.loadFromFile("../../configs/waterdrop.txt");
 	rows = myGrid.getRows();
 	cols = myGrid.getCols();
 	cells = myGrid.getCells();
@@ -67,6 +67,7 @@ int main()
 	int selected_joint = 0;
 	int select_mode = 0;
 	bool edit_enabled = false;
+	bool edit_enabled = false;
 	char editMode = 'r';
 	bool following_path = false;
 	string config_file = "";
@@ -75,10 +76,36 @@ int main()
 	{
 		// Define next window position + size
 		ImGui::SetNextWindowPos(ImVec2(180.f * menu.menu_scaling(), 10), ImGuiCond_FirstUseEver);
-		ImGui::SetNextWindowSize(ImVec2(200, 160), ImGuiCond_FirstUseEver);
+		ImGui::SetNextWindowSize(ImVec2(200, 500), ImGuiCond_FirstUseEver);
 		ImGui::Begin(
 			"Cell Config", nullptr,
 			ImGuiWindowFlags_NoSavedSettings);
+
+		ImGui::InputText("Config File", &config_file);
+		if (ImGui::Button("Load Config File"))
+		{
+			myGrid.loadFromFile(config_file);
+			rows = myGrid.getRows();
+			cols = myGrid.getCols();
+			cells = myGrid.getCells();
+			float stiffness = myGrid.getStiffness();
+			float bevel = myGrid.getBevel();
+			float damping = myGrid.getDamping();
+			float linkMass = myGrid.getLinkMass();
+			int shrink_factor = myGrid.getShrinkFactor();
+		}
+
+		if (ImGui::Button("Path Following"))
+		{
+			following_path = !following_path;
+		}
+
+		if (ImGui::Button("Edit Enabled"))
+		{
+			edit_enabled = !edit_enabled;
+			following_path = false;
+			myGrid.setCells(rows, cols, cells);
+		}
 
 		if (select_mode == 0)
 		{
@@ -225,7 +252,16 @@ int main()
 	{
 		myGrid.render(&v, selected_cell, selected_joint);
 		for (int i = 0; i < updatesPerRender; i++)
-			myGrid.update_follow_path(timeStep / updatesPerRender, 1);
+		{
+			if (following_path)
+			{
+				myGrid.update_follow_path(timeStep / updatesPerRender, 1);
+			}
+			else
+			{
+				myGrid.update(timeStep / updatesPerRender);
+			}
+		}
 		return false;
 	};
 	viewer.callback_key_down = [&](igl::opengl::glfw::Viewer &, unsigned char key, int modifier) -> bool
@@ -306,13 +342,8 @@ int main()
 		myGrid.setJointMaxForce(selected_joint, 500);
 		return false;
 	};
-	// viewer.data().set_edges(points, edges, ec);
+
 	viewer.launch();
 
-	// SimulatedAnnealing sa("../configs/waterdrop.txt");
-	// MMGrid myGrid = sa.simulate(50, .05);
-	// cout << myGrid.getPathError() << endl;
-	// ConstraintGraph cg(myGrid.getRows(), myGrid.getCols(), myGrid.getCells());
-	// cout << cg.dofs() << endl;
 	return 0;
 }

@@ -22,7 +22,7 @@ private:
     cpFloat linkMass = 0.01;
     cpFloat bevel = .06;
     cpFloat stiffness = 0.1;
-    cpFloat damping = 0.6;
+    cpFloat damping = 0.2;
     vector<cpBody *> rowLinks, colLinks, crossLinks, joints, controllers;
     vector<int> constrainedJoints;
     vector<cpConstraint *> controllerConstraints;
@@ -101,12 +101,12 @@ private:
     void setupSpace()
     {
         cpVect gravity = cpv(0, -9.8);
-        cpSpaceSetGravity(space, gravity);
+        // cpSpaceSetGravity(space, gravity);
 
         cpShape *ground = cpSegmentShapeNew(cpSpaceGetStaticBody(space), cpv(-10, 0), cpv(10, 0), 0.05);
         cpShapeSetElasticity(ground, .05);
         cpShapeSetFriction(ground, 1);
-        cpSpaceAddShape(space, ground);
+        // cpSpaceAddShape(space, ground);
     }
     void updateVertices();
     void updateMesh();
