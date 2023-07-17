@@ -1,7 +1,9 @@
 #include "MMGrid.hpp"
 
 class SimulatedAnnealing {
+    private:
+        MMGrid simGrid;
     public:
-        SimulatedAnnealing(const string configfile, int numIterations, double startingTemp);
-        MMGrid simulate();
-}
+        SimulatedAnnealing(string configfile);
+        MMGrid simulate(int numIterations, double coolingFactor);
+};

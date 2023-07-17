@@ -5,7 +5,7 @@
 #include <igl/opengl/glfw/Viewer.h>
 #include "chipmunk/chipmunk.h"
 #include "rendering.hpp"
-#include "ConstraintFun.hpp"
+#include "ConstraintGraph.hpp"
 
 #define SQRT_2 1.4142135623730950488016887242
 
@@ -19,14 +19,12 @@ private:
     int cols;
     vector<int> cells;
     cpSpace *space;
-    cpFloat linkMass = .1;
+    cpFloat linkMass = 0.01;
     cpFloat bevel = .06;
-    cpFloat stiffness = 4;
-    cpFloat damping = 0.04;
+    cpFloat stiffness = 0.1;
+    cpFloat damping = 0.6;
     vector<cpBody *> rowLinks, colLinks, crossLinks, joints, controllers;
-    vector<cpShape *> rowLinkShapes, colLinkShapes, crossLinkShapes;
     vector<int> constrainedJoints;
-    vector<cpConstraint *> constraints;
     vector<cpConstraint *> controllerConstraints;
     MatrixX2d vertices;
     MatrixX2d targetVerts;
@@ -160,4 +158,6 @@ public:
     bool isConstrained(int jointIndex);
     void setJointMaxForce(int jointIndex, cpFloat force);
     void loadFromFile(const std::string fname);
+    double getPathError();
+    void resetAnimation();
 };

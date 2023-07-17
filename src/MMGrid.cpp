@@ -1,5 +1,7 @@
 #include "MMGrid.hpp"
 
+const int JOINT_MAX_FORCE = 10;
+
 MMGrid::MMGrid(int rows, int cols, vector<int> cells)
 {
     changingStructure = true;
@@ -21,6 +23,7 @@ void MMGrid::setCells(int rows, int cols, vector<int> cells)
 {
     changingStructure = true;
     removeSimStructures();
+    resetAnimation();
     this->rows = rows;
     this->cols = cols;
     this->cells = cells;
@@ -40,11 +43,6 @@ void MMGrid::setupSimStructures()
     rowLinks.resize(numRowLinks());
     colLinks.resize(numColLinks());
     crossLinks.resize(numCrossLinks());
-    rowLinkShapes.resize(numRowLinks());
-    colLinkShapes.resize(numColLinks());
-    constraints.clear();
-    constraints.reserve(numConstraints());
-
     joints.clear();
     joints.reserve(jointRows() * jointCols());
     controllers.clear();
@@ -63,21 +61,21 @@ void MMGrid::setupSimStructures()
     for (int i = 0; i < numRowLinks(); i++)
     {
         int joint_index = (i / cols) * (jointCols()) + (i % cols);
-        cpVect posA = bottomLeft + getJointOffset(joint_index) + rowBevOffset, posB = bottomLeft + getJointOffset(joint_index + 1) - rowBevOffset;
+        cpVect posA = bottomLeft + getJointOffset(joint_index) + rowBevOffset;
+        cpVect posB = bottomLeft + getJointOffset(joint_index + 1) - rowBevOffset;
         cpBody *b = makeLinkBody(posA, posB);
         cpShape *s = makeLinkShape(b, posA, posB);
         rowLinks[i] = b;
-        rowLinkShapes[i] = s;
     }
     // colLinks
     for (int i = 0; i < numColLinks(); i++)
     {
         int joint_index = i;
-        cpVect posA = bottomLeft + getJointOffset(joint_index) + colBevOffset, posB = bottomLeft + getJointOffset(joint_index + jointCols()) - colBevOffset;
+        cpVect posA = bottomLeft + getJointOffset(joint_index) + colBevOffset;
+        cpVect posB = bottomLeft + getJointOffset(joint_index + jointCols()) - colBevOffset;
         cpBody *b = makeLinkBody(posA, posB);
         cpShape *s = makeLinkShape(b, posA, posB);
         colLinks[i] = b;
-        colLinkShapes[i] = s;
     }
     // crossLinks
     int crossLinkIndex = 0;
@@ -112,11 +110,6 @@ void MMGrid::setupSimStructures()
             cpSpaceAddConstraint(space, pivot2);
             cpSpaceAddConstraint(space, pivot3);
             cpSpaceAddConstraint(space, pivot4);
-            constraints.push_back(pivot1);
-            constraints.push_back(pivot2);
-            constraints.push_back(pivot3);
-            constraints.push_back(pivot4);
-            // crossLinkShapes[i] = s;
         }
 
     // make pivot constraints
@@ -130,8 +123,6 @@ void MMGrid::setupSimStructures()
         cpConstraint *pivot2 = cpPivotJointNew(next_col, row_current, bottomLeft + getJointOffset(i + 1));
         cpSpaceAddConstraint(space, pivot1);
         cpSpaceAddConstraint(space, pivot2);
-        constraints.push_back(pivot1);
-        constraints.push_back(pivot2);
     }
     // top row
     for (int i = rows * cols; i < (jointRows()) * cols; i++)
@@ -148,8 +139,6 @@ void MMGrid::setupSimStructures()
         cpConstraint *pivot2 = cpPivotJointNew(next_col, row_current, bottomLeft + getJointOffset(joint_idx + 1));
         cpSpaceAddConstraint(space, pivot1);
         cpSpaceAddConstraint(space, pivot2);
-        constraints.push_back(pivot1);
-        constraints.push_back(pivot2);
     }
     // interior rows
     for (int i = cols; i < rows * cols; i++)
@@ -174,10 +163,6 @@ void MMGrid::setupSimStructures()
         cpSpaceAddConstraint(space, pivot2);
         cpSpaceAddConstraint(space, pivot3);
         cpSpaceAddConstraint(space, pivot4);
-        constraints.push_back(pivot1);
-        constraints.push_back(pivot2);
-        constraints.push_back(pivot3);
-        constraints.push_back(pivot4);
     }
 
     // make dampedRotarySpring constraints
@@ -191,8 +176,6 @@ void MMGrid::setupSimStructures()
         cpConstraint *dampedRotarySpring2 = cpDampedRotarySpringNew(next_col, row_current, 0, stiffness, damping);
         cpSpaceAddConstraint(space, dampedRotarySpring1);
         cpSpaceAddConstraint(space, dampedRotarySpring2);
-        constraints.push_back(dampedRotarySpring1);
-        constraints.push_back(dampedRotarySpring2);
     }
     // top row
     for (int i = rows * cols; i < (jointRows()) * cols; i++)
@@ -209,8 +192,6 @@ void MMGrid::setupSimStructures()
         cpConstraint *dampedRotarySpring2 = cpDampedRotarySpringNew(next_col, row_current, 0, stiffness, damping);
         cpSpaceAddConstraint(space, dampedRotarySpring1);
         cpSpaceAddConstraint(space, dampedRotarySpring2);
-        constraints.push_back(dampedRotarySpring1);
-        constraints.push_back(dampedRotarySpring2);
     }
     // interior rows
     for (int i = cols; i < rows * cols; i++)
@@ -235,10 +216,6 @@ void MMGrid::setupSimStructures()
         cpSpaceAddConstraint(space, dampedRotarySpring2);
         cpSpaceAddConstraint(space, dampedRotarySpring3);
         cpSpaceAddConstraint(space, dampedRotarySpring4);
-        constraints.push_back(dampedRotarySpring1);
-        constraints.push_back(dampedRotarySpring2);
-        constraints.push_back(dampedRotarySpring3);
-        constraints.push_back(dampedRotarySpring4);
     }
 
     // make joint bodies + constraints + controller bodies
@@ -257,12 +234,7 @@ void MMGrid::setupSimStructures()
         cpConstraint *controlPivot = cpPivotJointNew(joint, controller, bottomLeft + getJointOffset(i));
         cpSpaceAddConstraint(space, pivot1);
         cpSpaceAddConstraint(space, pivot2);
-        // cpSpaceAddConstraint(space, controlPivot);
-        constraints.push_back(pivot1);
-        constraints.push_back(pivot2);
-        constraints.push_back(controlPivot);
         controllerConstraints.push_back(controlPivot);
-        // cpConstraintSetMaxForce(controlPivot, 20);
         if (i == cols - 1)
         {
             cpBody *joint = makeJointBody(bottomLeft + getJointOffset(i + 1));
@@ -274,12 +246,7 @@ void MMGrid::setupSimStructures()
             cpConstraint *controlPivot = cpPivotJointNew(joint, controller, bottomLeft + getJointOffset(i + 1));
             cpSpaceAddConstraint(space, pivot1);
             cpSpaceAddConstraint(space, pivot2);
-            // cpSpaceAddConstraint(space, controlPivot);
-            constraints.push_back(pivot1);
-            constraints.push_back(pivot2);
-            constraints.push_back(controlPivot);
             controllerConstraints.push_back(controlPivot);
-            // cpConstraintSetMaxForce(controlPivot, 20);
         }
     }
 
@@ -311,12 +278,6 @@ void MMGrid::setupSimStructures()
         cpSpaceAddConstraint(space, pivot2);
         cpSpaceAddConstraint(space, pivot3);
         cpSpaceAddConstraint(space, pivot4);
-        // cpSpaceAddConstraint(space, controlPivot);
-        constraints.push_back(pivot1);
-        constraints.push_back(pivot2);
-        constraints.push_back(pivot3);
-        constraints.push_back(pivot4);
-        constraints.push_back(controlPivot);
         controllerConstraints.push_back(controlPivot);
         // cpConstraintSetMaxForce(controlPivot, 20);
         if ((i + 1) % cols == 0)
@@ -334,14 +295,7 @@ void MMGrid::setupSimStructures()
             cpSpaceAddConstraint(space, pivot2);
             cpSpaceAddConstraint(space, pivot3);
             cpSpaceAddConstraint(space, pivot4);
-            // cpSpaceAddConstraint(space, controlPivot);
-            constraints.push_back(pivot1);
-            constraints.push_back(pivot2);
-            constraints.push_back(pivot3);
-            constraints.push_back(pivot4);
-            constraints.push_back(controlPivot);
             controllerConstraints.push_back(controlPivot);
-            // cpConstraintSetMaxForce(controlPivot, 20);
         }
     }
 
@@ -365,12 +319,7 @@ void MMGrid::setupSimStructures()
         cpConstraint *controlPivot = cpPivotJointNew(joint, controller, bottomLeft + getJointOffset(joint_idx));
         cpSpaceAddConstraint(space, pivot1);
         cpSpaceAddConstraint(space, pivot2);
-        // cpSpaceAddConstraint(space, controlPivot);
-        constraints.push_back(pivot1);
-        constraints.push_back(pivot2);
-        constraints.push_back(controlPivot);
         controllerConstraints.push_back(controlPivot);
-        // cpConstraintSetMaxForce(controlPivot, 20);
         if (i == (jointRows()) * cols - 1)
         {
             cpBody *joint = makeJointBody(bottomLeft + getJointOffset(joint_idx + 1));
@@ -382,12 +331,7 @@ void MMGrid::setupSimStructures()
             cpConstraint *controlPivot = cpPivotJointNew(joint, controller, bottomLeft + getJointOffset(joint_idx + 1));
             cpSpaceAddConstraint(space, pivot1);
             cpSpaceAddConstraint(space, pivot2);
-            // cpSpaceAddConstraint(space, controlPivot);
-            constraints.push_back(pivot1);
-            constraints.push_back(pivot2);
-            constraints.push_back(controlPivot);
             controllerConstraints.push_back(controlPivot);
-            // cpConstraintSetMaxForce(controlPivot, 20);
         }
     }
 }
@@ -581,15 +525,18 @@ void MMGrid::render(igl::opengl::glfw::Viewer *viewer, int selected_cell, int se
     MatrixX3d edgePoints = MatrixXd::Zero(vertices.rows(), 3);
     MatrixX3d edgeColors2 = MatrixXd::Zero(edgeColors.rows(), 3);
     MatrixX2i edges2 = MatrixXi::Zero(edges.rows(), 2);
-    if(targetVerts.rows() == 0) {
+    if (targetVerts.rows() == 0)
+    {
         edgePoints << points;
         edges2 << edges;
         edgeColors2 << edgeColors;
-    } else {
+    }
+    else
+    {
         MatrixX2d intermediate = MatrixXd::Zero(vertices.rows() + targetVerts.rows(), 2);
         intermediate << vertices, targetVerts;
         edgePoints = MatrixXd::Zero(intermediate.rows(), 3);
-        edgePoints << intermediate,  MatrixXd::Zero(intermediate.rows(), 1);
+        edgePoints << intermediate, MatrixXd::Zero(intermediate.rows(), 1);
         edges2 = MatrixXi::Zero(edges.rows() + targetEdges.rows(), 2);
         edges2 << edges, targetEdges + MatrixXi::Constant(targetEdges.rows(), 2, vertices.rows());
         edgeColors2 = MatrixXd::Zero(edges.rows() + targetEdges.rows(), 3);
@@ -599,6 +546,11 @@ void MMGrid::render(igl::opengl::glfw::Viewer *viewer, int selected_cell, int se
     viewer->data().set_points(points, pointColors);
     viewer->data().set_edges(edgePoints, edges2, edgeColors2);
     viewer->data().set_mesh(mesh.first, mesh.second);
+}
+
+void MMGrid::resetAnimation() {
+    pointIndex = 0;
+    frameTime = 0;
 }
 
 void MMGrid::update(cpFloat dt)
@@ -674,9 +626,6 @@ void MMGrid::removeSimStructures()
     rowLinks.clear();
     colLinks.clear();
     crossLinks.clear();
-    rowLinkShapes.clear();
-    colLinkShapes.clear();
-    constraints.clear();
 }
 
 void MMGrid::applyForce(int direction, int selected_cell)
@@ -739,8 +688,10 @@ void MMGrid::removeJointController(int jointIndex)
         constrainedJoints.erase(constrainedJoints.begin() + pos);
     }
 }
-void MMGrid::removeAllJointControllers() {
-    for(int jointIndex : constrainedJoints) {
+void MMGrid::removeAllJointControllers()
+{
+    for (int jointIndex : constrainedJoints)
+    {
         cpSpaceRemoveConstraint(space, controllerConstraints[jointIndex]);
     }
     controllerConstraints.clear();
@@ -774,7 +725,7 @@ void MMGrid::update_follow_path(cpFloat dt, int points_per_second)
         int targetIndex = targets[i];
         vector<cpVect> targetPath = targetPaths[i];
         addJointController(targetIndex);
-        setJointMaxForce(targetIndex, 100);
+        setJointMaxForce(targetIndex, JOINT_MAX_FORCE);
         moveController(targetIndex, targetPath[pointIndex]);
     }
     update(dt);
@@ -918,16 +869,43 @@ void MMGrid::loadFromFile(const std::string fname)
 
     int vert_index = 0;
     int edge_index = 0;
-    for(auto tP : targetPaths) {
+    for (auto tP : targetPaths)
+    {
         int start_index = 0;
-        for(auto pv : tP) {
+        for (auto pv : tP)
+        {
             targetVerts.row(vert_index) = (Vector2d() << pv.x, pv.y).finished();
             targetEdges.row(edge_index) = (Vector2i() << vert_index, (vert_index + 1) % tP.size() + start_index).finished();
-            vert_index ++;
-            edge_index ++;
+            vert_index++;
+            edge_index++;
         }
     }
 
-
     file.close();
+}
+
+double MMGrid::getPathError()
+{
+    double simulatedPathStepTime = .5;
+    int pathStepsPerSec = 1 / simulatedPathStepTime;
+    double timeStep = simulatedPathStepTime / 3;
+    double totError = 0;
+    for (int pathStep = 0; pathStep < targetPaths[0].size(); pathStep++)
+    {
+        while(pointIndex < pathStep) {
+            update_follow_path(timeStep, pathStepsPerSec);
+        }
+        double pointError = 0;
+        for (int i = 0; i < targetPaths.size(); i++)
+        {
+            int targetIndex = targets[i];
+            vector<cpVect> targetPath = targetPaths[i];
+            cpVect posActual = cpBodyGetPosition(joints[targetIndex]);
+            cpVect posTarget = targetPath[pointIndex];
+            pointError += cpvdistsq(posActual, posTarget);
+        }
+        totError += pointError;
+    }
+    cout << "Calculated Error: " << totError << endl;
+    return totError;
 }
