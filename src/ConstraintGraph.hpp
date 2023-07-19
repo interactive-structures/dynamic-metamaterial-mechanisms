@@ -18,6 +18,7 @@ private:
 
 public:
     ConstraintGraph(int rows, int cols, vector<int> cells);
+    ConstraintGraph(vector<int> rowConstraints, vector<int> colConstraints);
     std::vector<int> getRowConstraints() { return rowConstraints; };
     std::vector<int> getColConstraints() { return colConstraints; };
     std::vector<int> getAllConstraints()

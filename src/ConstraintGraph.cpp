@@ -23,6 +23,15 @@ ConstraintGraph::ConstraintGraph(int rows, int cols, vector<int> cells) : rows(r
     updateAllConstraints();    
 }
 
+ConstraintGraph::ConstraintGraph(vector<int> rowConstraints, vector<int> colConstraints) {
+    this->rowConstraints = rowConstraints;
+    this->colConstraints = colConstraints;
+    this->rows = rowConstraints.size();
+    this->cols = colConstraints.size();
+    updateAllConstraints();
+}
+
+
 void ConstraintGraph::updateAllConstraints() {
     allConstraints.clear();
     allConstraints.reserve(rows + cols);
@@ -113,7 +122,7 @@ void ConstraintGraph::splitComponents()
     }
     colConstraints = std::vector<int>(cols);
     for(int rigidIndex : cellIndices) {
-        std::cout << rigidIndex << " " << skip << std::endl;
+        // std::cout << rigidIndex << " " << skip << std::endl;
         if(rigidIndex != skip) {
             int rowIndex = rigidIndex / cols;
             int colIndex = rigidIndex % cols;

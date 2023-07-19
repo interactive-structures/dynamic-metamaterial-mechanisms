@@ -22,31 +22,39 @@ SimulatedAnnealing::SimulatedAnnealing(string configfile) : simGrid(2, 2, std::v
     this->simGrid.loadFromFile(configfile);
 }
 
-MMGrid SimulatedAnnealing::simulate(int numIterations, double coolingFactor = .05) {
+MMGrid SimulatedAnnealing::simulate(int numIterations, double coolingFactor) {
     srand(time(NULL));
     double startingTemp = numIterations / 3.0;
     double pathWeight = 1;
     double dofWeight = 5;
+    double prevErr;
+    double pathErr = simGrid.getPathError();
+    ConstraintGraph cg(simGrid.getRows(), simGrid.getCols(), simGrid.getCells());
+    double dofErr = cg.dofs();
+    prevErr = pathErr * pathWeight + dofErr * dofWeight;
     for(int i = 0; i < numIterations; i++) {
         std::cout << "Iteration: " << i << endl;
-        double pathErr = simGrid.getPathError();
-        ConstraintGraph cg(simGrid.getRows(), simGrid.getCols(), simGrid.getCells());
-        double dofErr = cg.dofs();
-        double err = pathErr * pathWeight + dofErr * dofWeight;
-        double acceptThresh = 1.0 / (1.0 + exp(err / (startingTemp * pow(coolingFactor, i))));
+        std::cout << "Previous weighted error is " << prevErr << std::endl;
+        double acceptThresh = 1.0 / (1.0 + exp(prevErr / (startingTemp * pow(coolingFactor, i))));
 
         MMGrid candGrid = mutate(simGrid);
         pathErr = candGrid.getPathError();
         ConstraintGraph cg2(candGrid.getRows(), candGrid.getCols(), candGrid.getCells());
         dofErr = cg2.dofs();
         double newErr = pathErr * pathWeight + dofErr * dofWeight;
-        if(newErr < err) {
-            simGrid = candGrid;
+        std::cout << "New weighted error is " << newErr << std::endl;
+        if(newErr < prevErr) {
+            simGrid.setCells(candGrid.getRows(), candGrid.getCols(), candGrid.getCells());
+            prevErr = newErr;
         }
         else if((double)rand() / (double)RAND_MAX < acceptThresh) {
-            simGrid = candGrid;
+            simGrid.setCells(candGrid.getRows(), candGrid.getCols(), candGrid.getCells());
+            prevErr = newErr;
         }
-        simGrid.setCells(simGrid.getRows(), simGrid.getCols(), simGrid.getCells());
+        else {
+            simGrid.setCells(simGrid.getRows(), simGrid.getCols(), simGrid.getCells());
+        }
+        
     }
     return simGrid;
 }

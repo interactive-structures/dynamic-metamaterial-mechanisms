@@ -1,7 +1,7 @@
 #define _USE_MATH_DEFINES
 #include "MMGrid.hpp"
 
-const int JOINT_MAX_FORCE = 10;
+const int JOINT_MAX_FORCE = 25;
 
 MMGrid::MMGrid(int rows, int cols, vector<int> cells)
 {
@@ -56,7 +56,7 @@ void MMGrid::setupSimStructures()
     cpVect rowBevOffset = cpv(bevel * SQRT_2, 0), colBevOffset = cpv(0, bevel * SQRT_2);
     rowBevOffset = rowBevOffset * shrink_factor;
     colBevOffset = colBevOffset * shrink_factor;
-    bottomLeft = cpv(0, bevel * 2);
+    bottomLeft = cpv(0, 0);
 
     // rowlinks
     for (int i = 0; i < numRowLinks(); i++)
@@ -65,7 +65,7 @@ void MMGrid::setupSimStructures()
         cpVect posA = bottomLeft + getJointOffset(joint_index) + rowBevOffset;
         cpVect posB = bottomLeft + getJointOffset(joint_index + 1) - rowBevOffset;
         cpBody *b = makeLinkBody(posA, posB);
-        cpShape *s = makeLinkShape(b, posA, posB);
+        // cpShape *s = makeLinkShape(b, posA, posB);
         rowLinks[i] = b;
     }
     // colLinks
@@ -75,7 +75,7 @@ void MMGrid::setupSimStructures()
         cpVect posA = bottomLeft + getJointOffset(joint_index) + colBevOffset;
         cpVect posB = bottomLeft + getJointOffset(joint_index + jointCols()) - colBevOffset;
         cpBody *b = makeLinkBody(posA, posB);
-        cpShape *s = makeLinkShape(b, posA, posB);
+        // cpShape *s = makeLinkShape(b, posA, posB);
         colLinks[i] = b;
     }
     // crossLinks
@@ -673,7 +673,7 @@ void MMGrid::update_follow_path(cpFloat dt, int points_per_second)
         vector<cpVect> targetPath = targetPaths[i];
         addJointController(targetIndex);
         setJointMaxForce(targetIndex, JOINT_MAX_FORCE);
-        moveController(targetIndex, targetPath[pointIndex]);
+        moveController(targetIndex, bottomLeft + targetPath[pointIndex]);
     }
     update(dt);
     if (targetPaths.size() > 0)
@@ -831,27 +831,52 @@ void MMGrid::loadFromFile(const std::string fname)
     file.close();
 }
 
+double MMGrid::getCurrentError() {
+    double pointError = 0;
+    for (int i = 0; i < targetPaths.size(); i++)
+    {
+        int targetIndex = targets[i];
+        vector<cpVect> targetPath = targetPaths[i];
+        cpVect posActual = cpBodyGetPosition(joints[targetIndex]);
+        cpVect posTarget = targetPath[pointIndex];
+        pointError += cpvdistsq(posActual, posTarget);
+    }
+    return pointError;
+}
+
 double MMGrid::getPathError()
 {
-    double simulatedPathStepTime = .5;
-    int pathStepsPerSec = 1 / simulatedPathStepTime;
-    double timeStep = simulatedPathStepTime / 3;
+    int pathStepsPerSec = 3;
+    double timeStep = 0.2 / 60;
     double totError = 0;
+    double acceptError = 0.01;
+    update_follow_path(timeStep, pathStepsPerSec);
+    for(int i = 0; i < (rows + 1) * (cols + 1); i++) {
+        if(!isConstrained(i)) {
+            cpSpaceRemoveBody(space, joints[i]);
+            cpSpaceRemoveBody(space, controllers[i]);
+        } else {
+            cout << i << " is constrained." << endl;
+        }
+    }
     for (int pathStep = 0; pathStep < targetPaths[0].size(); pathStep++)
     {
+        int numIterations = 0;
+        double curError;
+        time_t start, end;
+        time(&start);
         while(pointIndex < pathStep) {
             update_follow_path(timeStep, pathStepsPerSec);
+            numIterations++;
+            curError = getCurrentError();
+            if(curError < acceptError) {
+                pointIndex++;
+                frameTime = 0;
+            }
         }
-        double pointError = 0;
-        for (int i = 0; i < targetPaths.size(); i++)
-        {
-            int targetIndex = targets[i];
-            vector<cpVect> targetPath = targetPaths[i];
-            cpVect posActual = cpBodyGetPosition(joints[targetIndex]);
-            cpVect posTarget = targetPath[pointIndex];
-            pointError += cpvdistsq(posActual, posTarget);
-        }
-        totError += pointError;
+        time(&end);
+        cout << "For path step " << pathStep << " error is " << curError << " with " << numIterations << " iterations in " << end - start << " seconds." << endl;
+        totError += curError;
     }
     cout << "Calculated Error: " << totError << endl;
     return totError;

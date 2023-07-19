@@ -19,9 +19,9 @@ private:
     int cols;
     vector<int> cells;
     cpSpace *space;
-    cpFloat linkMass = 0.01;
+    cpFloat linkMass = 0.3;
     cpFloat bevel = .06;
-    cpFloat stiffness = 0.1;
+    cpFloat stiffness = 0.6;
     cpFloat damping = 0.2;
     vector<cpBody *> rowLinks, colLinks, crossLinks, joints, controllers;
     vector<int> constrainedJoints;
@@ -116,6 +116,23 @@ private:
 public:
     bool changingStructure = false;
     MMGrid(int rows, int cols, vector<int> cells);
+    MMGrid(const MMGrid& other) {
+        rows = other.rows;
+        cols = other.cols;
+        cells = other.cells;
+        path = other.path;
+        targets = other.targets;
+        targetPaths = other.targetPaths;
+        anchors = other.anchors;
+        vertices = MatrixXd::Zero(jointCols() * jointRows(), 2);
+        edges = MatrixXi::Zero(numColLinks() + numCrossLinks() + numRowLinks(), 2);
+        pointColors = MatrixXd::Zero(vertices.rows(), 3);
+        edgeColors = MatrixXd::Zero(edges.rows(), 3);
+        setupSimStructures();
+        updateVertices();
+        updateMesh();
+        updateEdges();        
+    }
     ~MMGrid();
     void render(igl::opengl::glfw::Viewer *viewer, int selected_cell, int selected_joint);
     void render(igl::opengl::glfw::Viewer viewer, int selected_cell);
@@ -159,5 +176,6 @@ public:
     void setJointMaxForce(int jointIndex, cpFloat force);
     void loadFromFile(const std::string fname);
     double getPathError();
+    double getCurrentError();
     void resetAnimation();
 };

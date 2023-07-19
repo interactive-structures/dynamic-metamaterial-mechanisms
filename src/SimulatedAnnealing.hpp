@@ -5,5 +5,5 @@ class SimulatedAnnealing {
         MMGrid simGrid;
     public:
         SimulatedAnnealing(string configfile);
-        MMGrid simulate(int numIterations, double coolingFactor);
+        MMGrid simulate(int numIterations, double coolingFactor = 0.05);
 };
