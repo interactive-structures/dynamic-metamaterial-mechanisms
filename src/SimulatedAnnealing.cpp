@@ -25,8 +25,8 @@ SimulatedAnnealing::SimulatedAnnealing(string configfile) : simGrid(2, 2, std::v
 MMGrid SimulatedAnnealing::simulate(int numIterations, double coolingFactor) {
     srand(time(NULL));
     double startingTemp = numIterations / 3.0;
-    double pathWeight = 1;
-    double dofWeight = 5;
+    double pathWeight = 2;
+    double dofWeight = 3;
     double prevErr;
     double pathErr = simGrid.getPathError();
     ConstraintGraph cg(simGrid.getRows(), simGrid.getCols(), simGrid.getCells());

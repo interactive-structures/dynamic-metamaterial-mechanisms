@@ -1,7 +1,7 @@
 #define _USE_MATH_DEFINES
 #include "MMGrid.hpp"
 
-const int JOINT_MAX_FORCE = 25;
+const int JOINT_MAX_FORCE = 100;
 
 MMGrid::MMGrid(int rows, int cols, vector<int> cells)
 {
@@ -65,7 +65,7 @@ void MMGrid::setupSimStructures()
         cpVect posA = bottomLeft + getJointOffset(joint_index) + rowBevOffset;
         cpVect posB = bottomLeft + getJointOffset(joint_index + 1) - rowBevOffset;
         cpBody *b = makeLinkBody(posA, posB);
-        // cpShape *s = makeLinkShape(b, posA, posB);
+        cpShape *s = makeLinkShape(b, posA, posB);
         rowLinks[i] = b;
     }
     // colLinks
@@ -75,7 +75,7 @@ void MMGrid::setupSimStructures()
         cpVect posA = bottomLeft + getJointOffset(joint_index) + colBevOffset;
         cpVect posB = bottomLeft + getJointOffset(joint_index + jointCols()) - colBevOffset;
         cpBody *b = makeLinkBody(posA, posB);
-        // cpShape *s = makeLinkShape(b, posA, posB);
+        cpShape *s = makeLinkShape(b, posA, posB);
         colLinks[i] = b;
     }
     // crossLinks
@@ -847,9 +847,9 @@ double MMGrid::getCurrentError() {
 double MMGrid::getPathError()
 {
     int pathStepsPerSec = 3;
-    double timeStep = 0.2 / 60;
+    double timeStep = 0.5 / 60;
     double totError = 0;
-    double acceptError = 0.01;
+    double haltDelta = 1e-4;
     update_follow_path(timeStep, pathStepsPerSec);
     for(int i = 0; i < (rows + 1) * (cols + 1); i++) {
         if(!isConstrained(i)) {
@@ -862,20 +862,21 @@ double MMGrid::getPathError()
     for (int pathStep = 0; pathStep < targetPaths[0].size(); pathStep++)
     {
         int numIterations = 0;
-        double curError;
-        time_t start, end;
-        time(&start);
+        double curError, prevError = INT8_MAX;
+        clock_t start, end;
+        start = clock();
         while(pointIndex < pathStep) {
             update_follow_path(timeStep, pathStepsPerSec);
             numIterations++;
             curError = getCurrentError();
-            if(curError < acceptError) {
+            if(abs(prevError - curError) < haltDelta) {
                 pointIndex++;
                 frameTime = 0;
             }
+            prevError = curError;
         }
-        time(&end);
-        cout << "For path step " << pathStep << " error is " << curError << " with " << numIterations << " iterations in " << end - start << " seconds." << endl;
+        end = clock();
+        cout << "For path step " << pathStep << " error is " << curError << " with " << numIterations << " iterations in " << double(end - start) / double(CLOCKS_PER_SEC) << " seconds." << endl;
         totError += curError;
     }
     cout << "Calculated Error: " << totError << endl;

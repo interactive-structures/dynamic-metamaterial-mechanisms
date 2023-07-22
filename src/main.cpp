@@ -365,10 +365,10 @@ void main_verify() {
 
 	MMGrid myGrid(rows, cols, cells);
 	myGrid.loadFromFile("../configs/waterdrop.txt");
-	ConstraintGraph vf({1,1,3,3,1,1}, {0,1,3,1,0,1});
+	ConstraintGraph vf({1,2,2,2,2,2}, {1,2,0,2,2,0});
 	rows = myGrid.getRows();
 	cols = myGrid.getCols();
-	cells = vf.makeCells();
+	cells = vf.allConstrainedCells();
 	myGrid.setCells(rows, cols, cells);
 	float stiffness = myGrid.getStiffness();
 	float bevel = myGrid.getBevel();
@@ -679,7 +679,7 @@ void main_verify() {
 int main()
 {
 	// main_draw_debug();
-	// main_sa();
-	main_verify();
+	main_sa();
+	// main_verify();
 	return 0;
 }

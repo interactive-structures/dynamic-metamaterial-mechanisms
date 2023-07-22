@@ -22,7 +22,7 @@ private:
     cpFloat linkMass = 0.3;
     cpFloat bevel = .06;
     cpFloat stiffness = 0.6;
-    cpFloat damping = 0.2;
+    cpFloat damping = 2;
     vector<cpBody *> rowLinks, colLinks, crossLinks, joints, controllers;
     vector<int> constrainedJoints;
     vector<cpConstraint *> controllerConstraints;
