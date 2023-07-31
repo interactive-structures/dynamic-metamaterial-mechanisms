@@ -8,7 +8,7 @@
 #include "chipmunk/chipmunk.h"
 // #include "MMGrid.hpp"
 // #include "PRand.hpp"
-#include "SimulatedAnnealing.hpp"
+#include "common/SimulatedAnnealing.hpp"
 
 using namespace std;
 using namespace Eigen;
