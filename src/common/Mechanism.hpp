@@ -19,7 +19,11 @@ public:
     Position from;
     Position to;
     Link(Position from, Position to) : from(from), to(to){};
-    bool operator==(Link const &other)
+    Link(const Link &other) {
+        from = other.from;
+        to = other.to;
+    }
+    bool operator==(const Link &other) const
     {
         return other.from == from && other.to == to;
     }
@@ -45,23 +49,27 @@ class SimulatedCell
 {
 public:
     vector<SimulationBody> links;
+    vector<double> linkLengths;
     vector<Position> corners;
     vector<SimulationConstraint> pivotJoints;
     vector<SimulationConstraint> rotarySprings;
-    SimulatedCell(vector<Position> corners, vector<SimulationBody> links, vector<SimulationConstraint> pivotJoints, vector<SimulationConstraint> rotarySprings) : corners(corners), links(links), pivotJoints(pivotJoints), rotarySprings(rotarySprings){};
+    SimulatedCell(vector<Position> corners, vector<SimulationBody> links, vector<double> linkLengths, vector<SimulationConstraint> pivotJoints, vector<SimulationConstraint> rotarySprings) : corners(corners), links(links), linkLengths(linkLengths), pivotJoints(pivotJoints), rotarySprings(rotarySprings){};
+    void update();
 };
 
 class SimulatedMechanism
 {
 public:
-    SimulationSpace space;
+    SimulationSpacePtr spacePtr;
+    const SimulationSpace& space;
     vector<SimulationBody> links;
     vector<SimulationConstraint> pivotJoints;
     vector<SimulationConstraint> rotarySprings;
     vector<SimulatedCell> cells;
     float linkLength, linkMass, linkRadius, springStiffness, springDamping, cornerOffset;
     SimulatedCell getCorrespondingSimulatedCell(Cell cell);
-    SimulatedMechanism(SimulationSpace space, vector<SimulationBody> links, vector<SimulationConstraint> pivotJoints, vector<SimulationConstraint> rotarySprings, vector<SimulatedCell> cells, float linkLength, float linkMass, float linkRadius, float springStiffness, float springDamping, float cornerOffset) : space(space), links(links), pivotJoints(pivotJoints), rotarySprings(rotarySprings), cells(cells), linkLength(linkLength), linkMass(linkMass), linkRadius(linkRadius), springStiffness(springStiffness), springDamping(springDamping), cornerOffset(cornerOffset){};
+    SimulatedMechanism(SimulationSpacePtr spacePtr, vector<SimulationBody> links, vector<SimulationConstraint> pivotJoints, vector<SimulationConstraint> rotarySprings, vector<SimulatedCell> cells, float linkLength, float linkMass, float linkRadius, float springStiffness, float springDamping, float cornerOffset) : spacePtr(spacePtr), space(*spacePtr), links(links), pivotJoints(pivotJoints), rotarySprings(rotarySprings), cells(cells), linkLength(linkLength), linkMass(linkMass), linkRadius(linkRadius), springStiffness(springStiffness), springDamping(springDamping), cornerOffset(cornerOffset) {};
+    void step();
 };
 
 class Mechanism
@@ -78,3 +86,4 @@ class Grid : public Mechanism
 public:
     Grid(int rows, int cols);
 };
+

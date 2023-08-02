@@ -1,11 +1,8 @@
 #include "chipmunk/chipmunk.h"
 #include <vector>
 #include <unordered_map>
-
-using std::vector;
-
-typedef vector<double> Position;
-
+#include <memory>
+#include "Position.hpp"
 
 class SimulationBody {
     friend class SimulationSpace;
@@ -15,9 +12,19 @@ class SimulationBody {
         cpSpace* mySpace;
         cpShape* myShape;
     public:
+        SimulationBody() {
+            myBody = nullptr;
+            mySpace = nullptr;
+            myShape = nullptr;
+        }
         SimulationBody(cpSpace* space, cpBody* body, cpShape* shape) : mySpace(space), myBody(body), myShape(shape) {};
         Position getPos();
         Position getRot();
+        Position getGlobalSegmentPosA();
+        Position getGlobalSegmentPosB();
+        Position getOffsetAlongSegment(double offset);
+        void setPosition(Position pos);
+        void changePosition(Position delta);
 };
 
 class SimulationConstraint {
@@ -41,12 +48,15 @@ class SimulationSpace {
         cpSpace *mySpace;
     public:
         SimulationSpace(double timestep);
-        void step();
-        void setGravity(Position gravity);
-        SimulationBody addSegmentBody(Position start, Position end, double mass, double radius);
-        SimulationBody addStaticSegmentBody(Position start, Position end, double radius);
-        SimulationBody addKinematicBody(Position pos);
-        SimulationConstraint pivotConstrain(SimulationBody bodyA, SimulationBody bodyB, Position anchorPos);
-        SimulationConstraint rotarySpringConstrain(SimulationBody bodyA, SimulationBody bodyB, double restAngle, double stiffness, double damping);
+        void step() const;
+        void setGravity(Position gravity) const;
+        SimulationBody addSegmentBody(Position start, Position end, double mass, double radius) const;
+        SimulationBody addCircleBody(Position center, double mass, double innerRadius, double outerRadius) const;
+        SimulationBody addStaticSegmentBody(Position start, Position end, double radius) const;
+        SimulationBody addKinematicBody(Position pos) const;
+        SimulationConstraint pivotConstrain(SimulationBody bodyA, SimulationBody bodyB, Position anchorPos) const;
+        SimulationConstraint rotarySpringConstrain(SimulationBody bodyA, SimulationBody bodyB, double restAngle, double stiffness, double damping) const;
         ~SimulationSpace();
 };
+
+typedef std::shared_ptr<SimulationSpace> SimulationSpacePtr;
