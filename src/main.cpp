@@ -447,7 +447,7 @@ void main_verify()
 					if (ImGui::Button("Delete"))
 					{
 						it = paths.erase(it);
-					};
+					} else it++;
 				}
 			}
 			else
