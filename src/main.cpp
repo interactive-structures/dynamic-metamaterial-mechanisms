@@ -1,5 +1,9 @@
+#define _USE_MATH_DEFINES
 #define _CRT_SECURE_NO_WARNINGS
 #include <iostream>
+#include <filesystem>
+#include <cmath>
+
 #include <igl/opengl/glfw/Viewer.h>
 #include <igl/opengl/glfw/imgui/ImGuiPlugin.h>
 #include <igl/opengl/glfw/imgui/ImGuiMenu.h>
@@ -9,7 +13,6 @@
 // #include "MMGrid.hpp"
 // #include "PRand.hpp"
 #include "common/SimulatedAnnealing.hpp"
-#include <filesystem>
 
 using namespace std;
 using namespace Eigen;
@@ -402,10 +405,10 @@ void main_verify()
 	bool edit_enabled = false;
 	char editMode = 'r';
 	bool following_path = false;
-	string config_file = std::filesystem::current_path();
-	string path_file = std::filesystem::current_path();
-	string out_config_file = std::filesystem::current_path();
-	string out_angle_file = std::filesystem::current_path();
+	string config_file = std::filesystem::current_path().string();
+	string path_file = std::filesystem::current_path().string();
+	string out_config_file = std::filesystem::current_path().string();
+	string out_angle_file = std::filesystem::current_path().string();
 	vector<string> paths;
 	menu.callback_draw_viewer_menu = [&]()
 	{
