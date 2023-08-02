@@ -625,6 +625,53 @@ void MMGrid::resetAnimation() {
     frameTime = 0;
 }
 
+vector<vector<double>> MMGrid::getAnglesFor(vector<int> cellIndices)
+{
+    vector<int> rowLinkIndices;
+    vector<int> colLinkIndices;
+    vector<vector<double>> out;
+    for(int cellIndex : cellIndices) {
+        rowLinkIndices.push_back(cellIndex);
+        colLinkIndices.push_back(cellIndex - cellIndex / cols);
+        out.push_back({});
+    }
+    int pathStepsPerSec = 3;
+    double timeStep = 0.5 / 60;
+    double totError = 0;
+    double haltDelta = 1e-4;
+    update_follow_path(timeStep, pathStepsPerSec);
+    for(int i = 0; i < (rows + 1) * (cols + 1); i++) {
+        if(!isConstrained(i)) {
+            cpSpaceRemoveBody(space, joints[i]);
+            cpSpaceRemoveBody(space, controllers[i]);
+        } else {
+            cout << i << " is constrained." << endl;
+        }
+    }
+    for (int pathStep = 0; pathStep < targetPaths[0].size(); pathStep++)
+    {
+        int numIterations = 0;
+        double curError, prevError = INT8_MAX;
+        clock_t start, end;
+        start = clock();
+        while(pointIndex < pathStep) {
+            update_follow_path(timeStep, pathStepsPerSec);
+            numIterations++;
+            curError = getCurrentError();
+            if(abs(prevError - curError) < haltDelta) {
+                pointIndex++;
+                frameTime = 0;
+            }
+            prevError = curError;
+        }
+        for(int i = 0; i < cellIndices.size(); i++) {
+            double angleDiff = cpvtoangle(cpBodyGetRotation(colLinks[colLinkIndices[i]])) + M_PI_2 - cpvtoangle(cpBodyGetRotation(rowLinks[rowLinkIndices[i]]));
+            out[i].push_back(angleDiff);
+        }
+    }
+    return out;
+}
+
 void MMGrid::update(cpFloat dt)
 {
     changingStructure = true;

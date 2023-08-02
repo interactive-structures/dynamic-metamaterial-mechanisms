@@ -38,7 +38,7 @@ void main_draw_debug()
     Renderer r(8);
     Mechanism mm = Grid(1,2);
     SimulatedMechanism sm = mm.makeSimulation(.4/120, 1, 1, .1, 1, 1, .3);
-    sm.space.setGravity({0,-1});
+    // sm.space.setGravity({0,-1});
     for(auto c : sm.cells) {
         r.addCell("cell", c.corners, 1, .15);
     }
@@ -100,6 +100,9 @@ void main_draw_debug()
         r.clear();
         for(auto c : sm.cells) {
             r.addCell("cell", c.corners, 1, .15);
+            for(auto corner : c.corners) {
+                r.addDebugPoint(corner);
+            }
         }
         // sm.step();
         r.renderTo(v);

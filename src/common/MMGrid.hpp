@@ -179,4 +179,5 @@ public:
     double getPathError();
     double getCurrentError();
     void resetAnimation();
+    vector<vector<double>> getAnglesFor(vector<int> cellIndices);
 };

@@ -192,3 +192,9 @@ void Renderer::addCell(RenderTag tag, vector<Position> corners, double width, do
         faceIndex++;
     }
 }
+
+void Renderer::addDebugPoint(Position pos) {
+    debug_points.conservativeResize(debug_points.rows() + 1, 3);
+    debug_pointColors.conservativeResize(debug_pointColors.rows() + 1, 3);
+    debug_points.row(debug_points.rows() - 1) = Vector3d(pos[0], pos[1], pos[2]);
+}

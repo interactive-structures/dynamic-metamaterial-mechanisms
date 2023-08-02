@@ -60,6 +60,7 @@ SimulatedMechanism Mechanism::makeSimulation(float timestep, float linkLength, f
         }
         if (cell.isRigid && cell.corners.size() > 3)
         {
+            std::cout << "RIGID CELL!" << std::endl;
             for (int i = 0; i < cell.corners.size(); i += 2)
             {
                 // first pass creates the bodies if necessary
@@ -80,20 +81,27 @@ SimulatedMechanism Mechanism::makeSimulation(float timestep, float linkLength, f
         for (int i = 0; i < cellLinks.size(); i++)
         {
             // second pass constrains the bodies
-            int next_i = (i + 1) % cellLinks.size();
+            int next_i = (i + 1) % cell.corners.size();
             Link current = cellLinks[i];
             Link next = cellLinks[next_i];
             auto currentBodyIt = existingLinks.find(current);
             if (currentBodyIt == existingLinks.end())
-                currentBodyIt = existingLinks.find(current.reverse());
+            {
+                current = current.reverse();
+                std::cout << "reversed" << std::endl;
+                currentBodyIt = existingLinks.find(current);
+            }
             auto nextBodyIt = existingLinks.find(next);
-            if (nextBodyIt == existingLinks.end())
-                nextBodyIt = existingLinks.find(next.reverse());
+            if (nextBodyIt == existingLinks.end()) {
+                next = next.reverse();
+                std::cout << "reversed next" << std::endl;
+                nextBodyIt = existingLinks.find(next);
+            }
             SimulationBody currentBody = currentBodyIt->second;
             SimulationBody nextBody = nextBodyIt->second;
             cellLinkBodies.push_back(currentBody);
-            cellPivots.push_back(space.pivotConstrain(currentBody, nextBody, current.to));
-            cellRotSprings.push_back(space.rotarySpringConstrain(currentBody, nextBody, 0, 1, 1));
+            // cellPivots.push_back(space.pivotConstrain(currentBody, nextBody, current.to));
+            // cellRotSprings.push_back(space.rotarySpringConstrain(currentBody, nextBody, 0, 1, 1));
         }
         pivotJoints.insert(pivotJoints.end(), cellPivots.begin(), cellPivots.end());
         rotSprings.insert(rotSprings.end(), cellRotSprings.begin(), cellRotSprings.end());

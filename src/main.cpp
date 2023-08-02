@@ -504,6 +504,35 @@ void main_verify() {
 			myGrid.setCells(rows, cols, cells);
 		}
 
+		if (ImGui::Button("Print Active Cell Indices")) {
+			ConstraintGraph cf(rows, cols, cells);
+			vector<int> indices = cf.getActiveCellIndices(cells);
+			for(int index: indices) {
+				std::cout << index << ",";
+			}
+			std::cout << std::endl;
+		}
+
+		if (ImGui::Button("Print Angles for Active Cell Indices")) {
+			myGrid.setCells(rows, cols, cells);
+			ConstraintGraph cf(rows, cols, cells);
+			vector<int> indices = cf.getActiveCellIndices(cells);
+			std::cout << "Indices: ";
+			for(int index: indices) {
+				std::cout << index << ",";
+			}
+			std::cout<< std::endl;
+			vector<vector<double>> angles = myGrid.getAnglesFor(indices);
+			for(int i = 0; i < indices.size(); i++) {
+				std::cout << "For cell " << indices[i] << "(" << indices[i] / cols << " " << indices[i] % cols << "): " << std::endl;
+				std::cout << "Angles:" << std::endl;
+				for(double d : angles[i]) {
+					std::cout << d * 180 / M_PI << std::endl;
+				}
+				std::cout << std::endl;
+			}
+		}
+
 		if (edit_enabled)
 		{
 			if (editMode == 'r')
@@ -679,7 +708,7 @@ void main_verify() {
 int main()
 {
 	// main_draw_debug();
-	main_sa();
-	// main_verify();
+	// main_sa();
+	main_verify();
 	return 0;
 }

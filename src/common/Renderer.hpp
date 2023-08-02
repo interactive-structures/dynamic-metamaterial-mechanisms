@@ -28,6 +28,7 @@ class Renderer {
         void addCylinder(RenderTag tag,  Position posA, Position posB, double radius);
         void addCapsule(RenderTag tag, Position posA, Position posB, double radius);
         void addCell(RenderTag tag, vector<Position> corners, double width, double thickness);
+        void addDebugPoint(Position pos);
         void updateSphere(RenderTag tag, Position center, double radius);
         void updateCylinder(RenderTag tag,  Position center, double radius, double halfHeight);
         void updateBevelSegment(RenderTag tag, Position center, double radius, double halfHeight);

@@ -214,3 +214,30 @@ vector<int> ConstraintGraph::allConstrainedCells() {
     }
     return result;
 }
+
+vector<int> ConstraintGraph::getActiveCellIndices(vector<int> cells) {
+    vector<int> result;
+    vector<int> fullyConstrained;
+    for(auto ac : allConstraints) {
+        fullyConstrained.push_back(1);
+    } 
+    ConstraintGraph other(rows, cols, cells);
+    while(other.allConstraints != fullyConstrained) {
+        PRand colRand(cols);
+        for (int c_try = 0; c_try < cols; c_try++)
+        {
+            int c = colRand.next();
+            PRand rowRand(rows);
+            for (int r_try = 0; r_try < rows; r_try++)
+            {
+                int r = rowRand.next();
+                if(other.rowConstraints[r] != other.colConstraints[c]) { //rowConstraints[colConstraints[c] - 1] == colConstraints[c], presumably (if constraints set up correctly), and colConstraints[c] == 0 will be true if the expression in the if statement is true 
+                    other.tieRC(r, c);
+                    other.updateAllConstraints();
+                    result.push_back(c + r * cols);
+                }
+            }
+        }
+    }
+    return result;
+}

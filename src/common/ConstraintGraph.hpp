@@ -34,4 +34,5 @@ public:
     vector<int> makeCellIndices();
     vector<int> allConstrainedIndices();
     vector<int> allConstrainedCells();
+    vector<int> getActiveCellIndices(vector<int> cells);
 };
