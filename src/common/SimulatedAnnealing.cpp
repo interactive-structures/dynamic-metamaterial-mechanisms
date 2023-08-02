@@ -22,6 +22,8 @@ SimulatedAnnealing::SimulatedAnnealing(string configfile) : simGrid(2, 2, std::v
     this->simGrid.loadFromFile(configfile);
 }
 
+SimulatedAnnealing::SimulatedAnnealing(MMGrid startGrid) : simGrid(startGrid) {}
+
 MMGrid SimulatedAnnealing::simulate(int numIterations, double coolingFactor) {
     srand(time(NULL));
     double startingTemp = numIterations / 3.0;

@@ -672,6 +672,85 @@ vector<vector<double>> MMGrid::getAnglesFor(vector<int> cellIndices)
     return out;
 }
 
+void MMGrid::writeConfig(string filePath)
+{
+    ofstream file(filePath);
+
+    if (!file.good())
+    {
+        cout << "file " << filePath << " not found!" << endl;
+        return;
+    }
+    file << std::endl;
+
+    int pathLength = targetPaths.size() == 0? 0 : targetPaths[0].size();
+
+    file << (rows + 1) * (cols + 1) << " " << rows * cols << " " << anchors.size() << " " << targetPaths.size() << " " << pathLength << std::endl;
+
+    file << std::endl;
+    file << std::endl;
+
+    double x = bottomLeft.x, y = bottomLeft.y;
+
+    for (int i = 0; i < (rows + 1) * (cols + 1); ++i)
+    {
+        file << x << " " << y << std::endl;
+    }
+
+    file << std::endl;
+    file << std::endl;
+
+    for (int x : anchors)
+    {
+        file << x << " ";
+    }
+
+    // shift = vertices[anchors.front()];
+    //  anchors.pop_back();
+
+    file << std::endl;
+    file << std::endl;
+    file << std::endl;
+
+    int l_rows = -1, l_cols = -1;
+    int prev_bottomleft = 0;
+    vector<int> l_cells;
+
+    int offset = 0;
+
+    for (int i = 0; i < cells.size(); ++i)
+    {
+        if(cells[i] == 0) {
+            file << "s";
+        } else {
+            file << "r";
+        }
+
+        if(i != 0 && i % cols == 0) offset++;
+
+        file << " " << i + offset << " 0 0 0" << std::endl;
+    }
+
+    int numVertRows = 0;
+    int numEdgeRows = 0;
+
+    for (int c = 0; c < targets.size(); c++)
+    {
+        file << std::endl;
+        file << std::endl;
+
+        file << targets[c] << std::endl;
+
+        for (int i = 0; i < targetPaths[c].size(); ++i)
+        {
+            double x = targetPaths[c][i].x, y = targetPaths[c][i].y;
+            file << x << " " << y << std::endl;
+        }
+    }
+
+    file.close();
+}
+
 void MMGrid::update(cpFloat dt)
 {
     changingStructure = true;

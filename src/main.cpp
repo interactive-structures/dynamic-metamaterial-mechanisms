@@ -10,6 +10,7 @@
 // #include "PRand.hpp"
 #include "common/SimulatedAnnealing.hpp"
 #include <filesystem>
+#include <fstream>
 
 using namespace std;
 using namespace Eigen;
@@ -368,11 +369,9 @@ void main_verify()
 	const double cellsize = 1;
 
 	MMGrid myGrid(rows, cols, cells);
-	myGrid.loadFromFile("../configs/waterdrop.txt");
-	ConstraintGraph vf({1, 2, 2, 2, 2, 2}, {1, 2, 0, 2, 2, 0});
 	rows = myGrid.getRows();
 	cols = myGrid.getCols();
-	cells = vf.allConstrainedCells();
+	cells = myGrid.getCells();
 	myGrid.setCells(rows, cols, cells);
 	float stiffness = myGrid.getStiffness();
 	float bevel = myGrid.getBevel();
@@ -394,11 +393,11 @@ void main_verify()
 	viewer.plugins.push_back(&plugin);
 	igl::opengl::glfw::imgui::ImGuiMenu menu;
 	plugin.widgets.push_back(&menu);
-	menu.name = "Config Menu";
 
 	int selected_cell = 0;
 	int selected_joint = 0;
 	int select_mode = 0;
+	int iterations = 20;
 	bool edit_enabled = false;
 	char editMode = 'r';
 	bool following_path = false;
@@ -406,12 +405,11 @@ void main_verify()
 	string path_file = std::filesystem::current_path();
 	string out_config_file = std::filesystem::current_path();
 	string out_angle_file = std::filesystem::current_path();
-	vector<string> paths;
+	vector<std::pair<int, string>> paths;
 	menu.callback_draw_viewer_menu = [&]()
 	{
 		// menu.draw_viewer_menu();
-		ImGui::SetWindowSize(ImVec2(300, 1000));
-
+		ImGui::SetWindowSize(ImVec2(300, 1000));		ImGui::SetWindowSize(ImVec2(300, 1000));
 		if (ImGui::CollapsingHeader("Grid Design", ImGuiTreeNodeFlags_DefaultOpen))
 		{
 			ImGui::SliderInt("Row Number", &rows, 2, 10);
@@ -422,6 +420,15 @@ void main_verify()
 				ImGui::InputText("Config File", &config_file);
 				if (ImGui::Button("Import Config"))
 				{
+					myGrid.loadFromFile(config_file);
+					rows = myGrid.getRows();
+					cols = myGrid.getCols();
+					cells = myGrid.getCells();
+					float stiffness = myGrid.getStiffness();
+					float bevel = myGrid.getBevel();
+					float damping = myGrid.getDamping();
+					float linkMass = myGrid.getLinkMass();
+					int shrink_factor = myGrid.getShrinkFactor();
 				}
 			}
 			if (ImGui::CollapsingHeader("Export Config File"))
@@ -429,6 +436,7 @@ void main_verify()
 				ImGui::InputText("Config File Output", &out_config_file);
 				if (ImGui::Button("Save Config"))
 				{
+					myGrid.writeConfig(out_config_file);
 				}
 			}
 		}
@@ -441,13 +449,15 @@ void main_verify()
 				auto it = paths.begin();
 				while (it != paths.end())
 				{
-					string path = *it;
-					ImGui::Text("%s", path.c_str());
+					auto current = *it;
+					ImGui::Text("%d %s", current.first, current.second.c_str());
 					ImGui::SameLine();
 					if (ImGui::Button("Delete"))
 					{
 						it = paths.erase(it);
-					} else {
+					}
+					else
+					{
 						it++;
 					}
 				}
@@ -459,14 +469,21 @@ void main_verify()
 			ImGui::InputText("Path File", &path_file);
 			if (ImGui::Button("Add a new path"))
 			{
-				paths.push_back(path_file);
+				paths.push_back(std::pair(selected_joint, path_file));
 			}
 		}
 
 		if (ImGui::CollapsingHeader("Optimization", ImGuiTreeNodeFlags_DefaultOpen))
 		{
+			ImGui::InputInt("Optimization Iterations", &iterations);
 			if (ImGui::Button("Generate Cell Placement"))
 			{
+				SimulatedAnnealing sa(myGrid);
+				MMGrid newGrid = sa.simulate(iterations);
+				myGrid.setCells(newGrid.getRows(), newGrid.getCols(), newGrid.getCells());
+				rows = myGrid.getRows();
+				cols = myGrid.getCols();
+				cells = myGrid.getCells();
 			}
 			ImGui::Button("Add Active Cell at Selected");
 			if (ImGui::CollapsingHeader("Export Angle Outputs"))
@@ -474,6 +491,33 @@ void main_verify()
 				ImGui::InputText("Angle File Output", &out_angle_file);
 				if (ImGui::Button("Save Angles"))
 				{
+					ofstream angleOutput(out_angle_file);
+					if(angleOutput.good()) {
+					myGrid.setCells(rows, cols, cells);
+					ConstraintGraph cf(rows, cols, cells);
+					vector<int> indices = cf.getActiveCellIndices(cells);
+					angleOutput << "Indices: ";
+					for (int index : indices)
+					{
+						angleOutput << index << ",";
+					}
+					angleOutput << std::endl;
+					vector<vector<double>> angles = myGrid.getAnglesFor(indices);
+					for (int i = 0; i < indices.size(); i++)
+					{
+						angleOutput << "For cell " << indices[i] << "(" << indices[i] / cols << " " << indices[i] % cols << "): " << std::endl;
+						angleOutput << "Angles:" << std::endl;
+						for (double d : angles[i])
+						{
+							angleOutput << d * 180 / M_PI << std::endl;
+						}
+						angleOutput << std::endl;
+					}
+					angleOutput.close();
+					}
+					else {
+						std::cout << "FILE NOT FOUND!" << std::endl;
+					}
 				}
 			}
 		}
