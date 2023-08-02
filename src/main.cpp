@@ -407,10 +407,10 @@ void main_verify()
 	string out_config_file = std::filesystem::current_path();
 	string out_angle_file = std::filesystem::current_path();
 	vector<string> paths;
-
 	menu.callback_draw_viewer_menu = [&]()
 	{
 		// menu.draw_viewer_menu();
+		ImGui::SetWindowSize(ImVec2(300, 1000));
 
 		if (ImGui::CollapsingHeader("Grid Design", ImGuiTreeNodeFlags_DefaultOpen))
 		{
@@ -447,7 +447,9 @@ void main_verify()
 					if (ImGui::Button("Delete"))
 					{
 						it = paths.erase(it);
-					};
+					} else {
+						it++;
+					}
 				}
 			}
 			else
