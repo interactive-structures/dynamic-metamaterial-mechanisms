@@ -1,17 +1,9 @@
 # Build Instructions
-Pull this repo
+Clone this branch of the repo!
 
-`git pull https://github.com/interactive-structures/dynamic-metamaterial-mechanisms`
+`git clone --recursive -b chipmunk-refactor-final https://github.com/interactive-structures/dynamic-metamaterial-mechanisms`
 
-Checkout this branch
-
-`git checkout chipmunk-refactor-final`
-
-Update submodules
-
-`git submodule update --init`
-
-Make and enter `build` directory
+In a terminal in your local copy of the repo,  make and enter `build` directory.
 
 `mkdir build`
 
@@ -21,9 +13,11 @@ Run cmake
 
 `cmake ../`
 
-For linux/macos:
+For linux/macos, make:
 
 `make dynamic_mm_gui`
+
+Then run:
 
 `./dynamic_mm_gui`
 
