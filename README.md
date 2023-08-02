@@ -30,6 +30,6 @@ For linux/macos:
 For Windows: open the project in Visual Studio and run it.
 
 # Sensible Values for Simulation Parameters:
-|name | meaning | value|
-|-- | -- | -- \
-|linkLength | length of simulated links | 0.4 |
+| name | meaning | value |
+| -- | -- | -- |
+| linkLength | length of simulated links | 0.4 |
