@@ -180,4 +180,5 @@ public:
     double getCurrentError();
     void resetAnimation();
     vector<vector<double>> getAnglesFor(vector<int> cellIndices);
+    void writeConfig(string filePath);
 };
