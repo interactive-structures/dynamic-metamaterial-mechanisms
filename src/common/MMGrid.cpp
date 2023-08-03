@@ -10,7 +10,7 @@ MMGrid::MMGrid(int rows, int cols, vector<int> cells)
     this->cols = cols;
     this->cells = cells;
     vertices = MatrixXd::Zero(jointCols() * jointRows(), 2);
-    edges = MatrixXi::Zero(numColLinks() + numCrossLinks() + numRowLinks(), 2);
+    edges = MatrixXi::Zero(numColLinks() + numCrossLinks() + numRowLinks() + numActiveLinks(), 2);
     pointColors = MatrixXd::Zero(vertices.rows(), 3);
     edgeColors = MatrixXd::Zero(edges.rows(), 3);
     setupSimStructures();
@@ -29,7 +29,7 @@ void MMGrid::setCells(int rows, int cols, vector<int> cells)
     this->cols = cols;
     this->cells = cells;
     vertices = MatrixXd::Zero(jointCols() * jointRows(), 2);
-    edges = MatrixXi::Zero(numColLinks() + numCrossLinks() + numRowLinks(), 2);
+    edges = MatrixXi::Zero(numColLinks() + numCrossLinks() + numRowLinks() + numActiveLinks(), 2);
     setupSimStructures();
     updateVertices();
     updateMesh();
@@ -523,6 +523,11 @@ void MMGrid::updateEdges()
             edges.row(edge_index) = (Vector2i() << br_joint_idx, ul_joint_idx).finished();
             edge_index++;
         }
+        if (cells[i] == 2)
+        {
+            edges.row(edge_index) = (Vector2i() << bl_joint_idx, ur_joint_idx).finished();
+            edge_index++;
+        }
     }
 }
 
@@ -722,7 +727,10 @@ void MMGrid::writeConfig(string filePath)
     {
         if(cells[i] == 0) {
             file << "s";
-        } else {
+        } else if(cells[i] == 2) {
+            file << "a";
+        }
+        else {
             file << "r";
         }
 

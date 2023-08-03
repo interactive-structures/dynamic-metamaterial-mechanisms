@@ -410,11 +410,11 @@ void main_verify()
 	string out_config_file = std::filesystem::current_path().string();
 	string out_angle_file = std::filesystem::current_path().string();
 	vector<std::pair<int, string>> paths;
+	vector<int> activeCellIndices;
 	
 	menu.callback_draw_viewer_menu = [&]()
 	{
 		// menu.draw_viewer_menu();
-		ImGui::SetWindowSize(ImVec2(300, 1000));		ImGui::SetWindowSize(ImVec2(300, 1000));
 		if (ImGui::CollapsingHeader("Grid Design", ImGuiTreeNodeFlags_DefaultOpen))
 		{
 			ImGui::SliderInt("Row Number", &rows, 2, 10);
@@ -485,12 +485,34 @@ void main_verify()
 			{
 				SimulatedAnnealing sa(myGrid);
 				MMGrid newGrid = sa.simulate(iterations);
-				myGrid.setCells(newGrid.getRows(), newGrid.getCols(), newGrid.getCells());
-				rows = myGrid.getRows();
-				cols = myGrid.getCols();
-				cells = myGrid.getCells();
+				rows = newGrid.getRows();
+				cols = newGrid.getCols();
+				cells = newGrid.getCells();
+				activeCellIndices = ConstraintGraph(rows, cols, cells).getActiveCellIndices(cells);
+				for(int index : activeCellIndices) {
+					cells[index] = 2;
+				}
+				myGrid.setCells(rows, cols, cells);
 			}
-			ImGui::Button("Add Active Cell at Selected");
+			if(ImGui::Button("Add Active Cell at Selected")) {
+				bool found = false;
+				auto it = activeCellIndices.begin();
+				while(it != activeCellIndices.end()) {
+					if(*it == selected_cell) {
+						found = true;
+						it = activeCellIndices.erase(it);
+						cells[selected_cell] = 0;
+						break;
+					} else{
+						it++;
+					}
+				}
+				if(!found) {
+					activeCellIndices.push_back(selected_cell);
+					cells[selected_cell] = 2;
+				}
+				myGrid.setCells(rows, cols, cells);
+			};
 			if (ImGui::CollapsingHeader("Export Angle Outputs"))
 			{
 				ImGui::InputText("Angle File Output", &out_angle_file);
@@ -499,18 +521,16 @@ void main_verify()
 					ofstream angleOutput(out_angle_file);
 					if(angleOutput.good()) {
 					myGrid.setCells(rows, cols, cells);
-					ConstraintGraph cf(rows, cols, cells);
-					vector<int> indices = cf.getActiveCellIndices(cells);
 					angleOutput << "Indices: ";
-					for (int index : indices)
+					for (int index : activeCellIndices)
 					{
 						angleOutput << index << ",";
 					}
 					angleOutput << std::endl;
-					vector<vector<double>> angles = myGrid.getAnglesFor(indices);
-					for (int i = 0; i < indices.size(); i++)
+					vector<vector<double>> angles = myGrid.getAnglesFor(activeCellIndices);
+					for (int i = 0; i < activeCellIndices.size(); i++)
 					{
-						angleOutput << "For cell " << indices[i] << "(" << indices[i] / cols << " " << indices[i] % cols << "): " << std::endl;
+						angleOutput << "For cell " << activeCellIndices[i] << "(" << activeCellIndices[i] / cols << " " << activeCellIndices[i] % cols << "): " << std::endl;
 						angleOutput << "Angles:" << std::endl;
 						for (double d : angles[i])
 						{

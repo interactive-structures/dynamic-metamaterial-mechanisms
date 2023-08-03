@@ -54,6 +54,14 @@ private:
                 o += 2;
         return o;
     };
+    int numActiveLinks()
+    {
+        int o = 0;
+        for (int i = 0; i < rows * cols; i++)
+            if (cells[i] == 2)
+                o += 1;
+        return o;
+    };
     int numConstraints()
     {
         return (rows * cols * 4) + numCrossLinks() * 2;
