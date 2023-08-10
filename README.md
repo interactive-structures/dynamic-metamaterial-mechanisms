@@ -1,4 +1,5 @@
-# Build Instructions
+# Robotic Metamaterials Optimization (WIP)
+## Build Instructions
 Clone this branch of the repo!
 
 `git clone --recursive -b chipmunk-refactor-final https://github.com/interactive-structures/dynamic-metamaterial-mechanisms`
@@ -23,7 +24,7 @@ Then run:
 
 For Windows: open the project in Visual Studio and run it.
 
-# Sensible Values for Simulation Parameters:
+## Sensible Values for Simulation Parameters:
 | name | meaning | value |
 | -- | -- | -- |
 | linkLength | length of simulated links | 0.4 |
