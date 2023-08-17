@@ -1,14 +1,13 @@
 #include "ControlLoop.h"
 
 // number of active cells
-int CellNum = 6;
-const int CN = 6;
+// const int CellNum = 6;
 
 // assign sensor pins
-int readPin[CN] = {A4,A2,A0,A3,A1,A6};
+int readPin[CellNum] = {A4,A2,A0,A3,A1,A6};
 
 // assign valve pins
-int bagPin[CN*2][2] = {
+int bagPin[CellNum*2][2] = {
     {40,39},{42,43},
     {34,35},{36,37},
     {6,7},{8,9},
@@ -18,11 +17,11 @@ int bagPin[CN*2][2] = {
 };
 
 // adapted to 13V power supply, 15~20 psi air pressure
-unsigned long constCellsPulseLength[CN][2] = {{4500, 4500}, {4500, 4500}, {4500, 4500}, {4500, 4500}, {4500, 4500}, {4500, 4500}};
-unsigned long cellsPulseLength[CN][2] = {{4500, 4500}, {4500, 4500}, {4500, 4500}, {4500, 4500}, {4500, 4500}, {4500, 4500}};
+unsigned long constCellsPulseLength[CellNum][2] = {{4500, 4500}, {4500, 4500}, {4500, 4500}, {4500, 4500}, {4500, 4500}, {4500, 4500}};
+unsigned long cellsPulseLength[CellNum][2] = {{4500, 4500}, {4500, 4500}, {4500, 4500}, {4500, 4500}, {4500, 4500}, {4500, 4500}};
 
 // target angles
-float angleSteps[25][CN] = {
+float angleSteps[25][CellNum] = {
     // stored in degrees, pre-computed to save calculation time
     {90.00,	90.00,	90.00,	90.00,	90.00,	90.00},
     {92.47,	86.39,	85.07,	85.07,	92.42,	88.68},
@@ -51,7 +50,7 @@ float angleSteps[25][CN] = {
     {89.65,	90.57,	91.36,	91.36,	88.21,	91.01}
 };
 
-float mAngleSteps[24][CN] = {
+float mAngleSteps[24][CellNum] = {
     {90.00, 90.00,  90.00, 90.00, 90.00,  90.00},
     {93.25, 91.95,  84.14, 84.14, 99.44,  95.53},
     {91.95,	93.91,  84.79, 81.54,	97.81,  96.84},
@@ -78,23 +77,22 @@ float mAngleSteps[24][CN] = {
     {94.56,	94.88,	84.14, 81.21,	98.46,  99.11}
 };
 
-int stepSize = 24;
-ControlLoop cl(CellNum, readPin, bagPin, constCellsPulseLength, cellsPulseLength, stepSize);
+const int stepSize = 24;
+ControlLoop cl(readPin, bagPin, constCellsPulseLength, cellsPulseLength, stepSize);
 
 void setup() {
-    // use a high baud rate for quicker serial communication
-    Serial.begin(2000000);
-    
-    for (int i=0; i<stepSize; ++i) {
-        for (int j=0; j<CellNum; ++j) {
-            cl.angleSteps[i][j] = mAngleSteps[i][j];
-            Serial.println(cl.angleSteps[i][j]);
-        }
+  // use a high baud rate for quicker serial communication
+  Serial.begin(2000000);
+  
+  for (int i=0; i<stepSize; ++i) {
+    for (int j=0; j<CellNum; ++j) {
+      cl.angleSteps[i][j] = mAngleSteps[i][j];
+      Serial.println(cl.angleSteps[i][j]);
     }
-    
-    // cl.setup();
+  }
+  cl.setup();
 }
 
 void loop() {
-    // cl.loop();
+  // cl.loop();
 }

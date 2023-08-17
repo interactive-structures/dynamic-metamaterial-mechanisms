@@ -1,27 +1,29 @@
 #ifndef CONTROLLOOP_H
 #define CONTROLLOOP_H
 
+// number of active cells
+const int CellNum = 6;
+
 class ControlLoop
 {
 private:
-    int CellNum;
-    int* readPin;
-    int (*bagPin)[2];
-    unsigned long (*constCellsPulseLength)[2];
-    unsigned long (*cellsPulseLength)[2];
+    int readPin[CellNum];
+    int bagPin[CellNum*2][2];
+    unsigned long constCellsPulseLength[CellNum][2];
+    unsigned long cellsPulseLength[CellNum][2];
     int stepIndex = 0;
     int stepSize = 0;
     
-    unsigned long* lastUpdated;
-    long* timeDiffs;
-    bool* actuated;
-    bool* cellsState;
-    float* angleDiffs;
-    float* prevAngleDiffs;
-    float* targetAngle;
-    float* currentAngle;
+    unsigned long lastUpdated[CellNum];
+    long timeDiffs[CellNum];
+    bool actuated[CellNum];
+    bool cellsState[CellNum];
+    float angleDiffs[CellNum];
+    float prevAngleDiffs[CellNum];
+    float targetAngle[CellNum];
+    float currentAngle[CellNum];
+    uint8_t numUnchangedAngleDiff[CellNum];
     uint8_t numUnchanged = 0;
-    uint8_t* numUnchangedAngleDiff;
     
     bool update;
     bool allReached;
@@ -35,11 +37,12 @@ private:
     
 public:
     float** angleSteps;
-    ControlLoop(int CellNum, int* readPin, int (*bagPin)[2], unsigned long (*constCellsPulseLength)[2], unsigned long (*cellsPulseLength)[2], int stepSize);
+    ControlLoop(int readPin[CellNum], int bagPin[CellNum*2][2], unsigned long constCellsPulseLength[CellNum][2], unsigned long cellsPulseLength[CellNum][2], int stepSize);
     ~ControlLoop();
 
     float getSensorAngleInDegs(int sensorIndex);
     void testSensorSignal();
+    void testSensorSignal(int sensorIndex);
     void inflate(int index);
     void lock(int index);
     void vent(int index);
@@ -53,43 +56,35 @@ public:
     void loop();
 };
 
-ControlLoop::ControlLoop(int CellNum, int* readPin, int (*bagPin)[2], unsigned long (*constCellsPulseLength)[2], unsigned long (*cellsPulseLength)[2], int stepSize) {
-    this->CellNum = CellNum;
-    
-    this->readPin = new int[CellNum];
-    for (int i=0; i<CellNum; ++i) {
-        this->readPin[i] = readPin[i];
-    }
-    
-    this->bagPin = new int[CellNum*2][2];
-    for (int i=0; i<CellNum*2; ++i) {
-        this->bagPin[i][0] = bagPin[i][0];
-        this->bagPin[i][1] = bagPin[i][1];
-    }
-    
-    this->constCellsPulseLength = new unsigned long[CellNum][2];
-    memcpy(this->constCellsPulseLength, constCellsPulseLength, sizeof(unsigned long)*CellNum*2);
-    
-    this->cellsPulseLength = new unsigned long[CellNum][2];
-    memcpy(this->cellsPulseLength, cellsPulseLength, sizeof(unsigned long)*CellNum*2);
-    
-    this->stepSize = stepSize;
-    
-    // allocate dynamic memory
-    angleSteps = new float*[stepSize];
-    for (int i=0; i<stepSize; ++i) {
-        angleSteps[i] = new float[CellNum];
-    }
-    
-    lastUpdated = new unsigned long[CellNum];
-    timeDiffs = new long[CellNum];
-    actuated = new bool[CellNum];
-    cellsState = new bool[CellNum];
-    angleDiffs = new float[CellNum];
-    prevAngleDiffs = new float[CellNum];
-    targetAngle = new float[CellNum];
-    currentAngle = new float[CellNum];
-    numUnchangedAngleDiff = new uint8_t[CellNum];
+#include "ControlLoop.h"
+
+ControlLoop::ControlLoop(int readPin[CellNum], int bagPin[CellNum*2][2], unsigned long constCellsPulseLength[CellNum][2], unsigned long cellsPulseLength[CellNum][2], int stepSize) {
+  for (int i=0; i<CellNum; ++i) {
+    this->readPin[i] = readPin[i];
+  }
+  
+  for (int i=0; i<CellNum*2; ++i) {
+    this->bagPin[i][0] = bagPin[i][0];
+    this->bagPin[i][1] = bagPin[i][1];
+  }
+  
+  for (int i=0; i<CellNum; ++i) {
+    this->constCellsPulseLength[i][0] = constCellsPulseLength[i][0];
+    this->constCellsPulseLength[i][1] = constCellsPulseLength[i][1];
+  }
+  
+  for (int i=0; i<CellNum; ++i) {
+    this->cellsPulseLength[i][0] = cellsPulseLength[i][0];
+    this->cellsPulseLength[i][1] = cellsPulseLength[i][1];
+  }
+  
+  this->stepSize = stepSize;
+  
+  // allocate dynamic memory
+  angleSteps = new float*[stepSize];
+  for (int i=0; i<stepSize; ++i) {
+      angleSteps[i] = new float[CellNum];
+  }
 }
 
 ControlLoop::~ControlLoop() {
@@ -115,28 +110,37 @@ inline void ControlLoop::testSensorSignal() {
     Serial.println();
 }
 
+inline void ControlLoop::testSensorSignal(int sensorIndex) {
+  Serial.print("Sensor "); Serial.print(sensorIndex); Serial.print(": ");
+  // float incomingByte = analogRead(readPin[sensorIndex]) - 31;
+  // float calibrateAngle = (incomingByte / 1024) * 333.3 - 76.65;
+  Serial.println(getSensorAngleInDegs(sensorIndex));
+  delay(500);
+  Serial.println();
+}
+
 inline void ControlLoop::inflate(int index) {
     digitalWrite(bagPin[index][0], LOW);
     digitalWrite(bagPin[index][1], HIGH);
 }
 
 inline void ControlLoop::lock(int index) {
-    digitalWrite(bagPin[index][0], LOW);
-    digitalWrite(bagPin[index][1], LOW);
+  digitalWrite(bagPin[index][0], LOW);
+  digitalWrite(bagPin[index][1], LOW);
 }
 
 inline void ControlLoop::vent(int index) {
-    digitalWrite(bagPin[index][0], HIGH);
-    digitalWrite(bagPin[index][1], LOW);
+  digitalWrite(bagPin[index][0], HIGH);
+  digitalWrite(bagPin[index][1], LOW);
 }
 
 inline void ControlLoop::ventAllAirbags() {
-    for (int i=0; i<CellNum; i++) {
-        int cellLeftBagIndex = i * 2;
-        int cellRightBagIndex = i * 2 + 1;
-        vent(cellLeftBagIndex);
-        vent(cellRightBagIndex);
-    }
+  for (int i=0; i<CellNum; i++) {
+    int cellLeftBagIndex = i * 2;
+    int cellRightBagIndex = i * 2 + 1;
+    vent(cellLeftBagIndex);
+    vent(cellRightBagIndex);
+  }
 }
 
 void ControlLoop::separateUpdate(int start, int end, float target) {
@@ -150,7 +154,7 @@ void ControlLoop::separateUpdate(int start, int end, float target) {
         numUnchangedAngleDiff[i] = 0;
       }
       actuationTime = cellsPulseLength[i][1];
-      
+    
     } else {
       if (numUnchangedAngleDiff[i] >= 2) {
         cellsPulseLength[i][0] += 200;
@@ -164,8 +168,14 @@ void ControlLoop::separateUpdate(int start, int end, float target) {
     lastUpdated[i] = currentTime;
     
     currentAngle[i] = getSensorAngleInDegs(i);
+    Serial.println(currentAngle[i]);
     targetAngle[i] = target;
-    angleDiffs[i] = targetAngle[i] - currentAngle[i];
+    // Serial.println(&targetAngle[i]);
+    // angleDiffs[i] = targetAngle[i] - currentAngle[i];
+    Serial.println(currentAngle[i]);
+    Serial.println(target);
+    // Serial.println(targetAngle[i] - currentAngle[i]);
+    // Serial.println(angleDiffs[i]);
     
     uint8_t cellLeftBagIndex = i * 2;
     uint8_t cellRightBagIndex = i * 2 + 1;
@@ -203,20 +213,21 @@ void ControlLoop::separateUpdate(int start, int end, float target) {
     currentAngle[j] = getSensorAngleInDegs(j);
     angleDiffs[j] = targetAngle[j] - currentAngle[j];
     cellsState[j] = (abs(angleDiffs[j]) < tolerance) ? 1 : 0;
-    
-    Serial.print("currentAngle:");
-    Serial.println(currentAngle[j]);
-    Serial.print("targetAngle:");
-    Serial.println(targetAngle[j]);
-    
-    // Serial.print(j); Serial.print(" timeDiff "); Serial.println(timeDiffs[j]);
-    
-    // Serial.print("Diff");
-    // Serial.print(j);
-    // Serial.print(":");
-    // Serial.println(angleDiffs[j]);
   }
-  Serial.println();
+  
+  loopCount++;
+  if ((loopCount % 1000) == 0) {
+    for (int j=start; j<end; j++) {
+      // copy the data from the console to excel for visualization
+      Serial.print("CA: ");
+      Serial.print(currentAngle[j]);
+      Serial.print(";");
+      Serial.print(" TA: ");
+      Serial.print(targetAngle[j]);
+    }
+    Serial.println();
+    loopCount = 0;
+  }
   
   allReached = true;
   for (int j=start; j<end; j++) {
@@ -227,15 +238,18 @@ void ControlLoop::separateUpdate(int start, int end, float target) {
   }
   
   if (allReached) {
+    Serial.println("allReached for test");
     for (int j=start; j<end; j++) {
-      // 可能是之前allReach之后没有及时锁住会导致角度偏移不准确？
+      // lock all airbags in case over-shooting
       uint8_t cellLeftBagIndex = j * 2;
       uint8_t cellRightBagIndex = j * 2 + 1;
       lock(cellLeftBagIndex);
       lock(cellRightBagIndex);
     }
-    delay(10000);
+    
+    if (initializeInflation) { delay(10000); } // maintain the target angle for a while
     for (int j=start; j<end; j++) {
+      // reset actuation speed
       cellsPulseLength[j][0] = constCellsPulseLength[j][0];
       cellsPulseLength[j][1] = constCellsPulseLength[j][1];
       uint8_t cellLeftBagIndex = j * 2;
@@ -245,7 +259,7 @@ void ControlLoop::separateUpdate(int start, int end, float target) {
         vent(cellRightBagIndex);
       }
     }
-    delay(3000);
+    if (initializeInflation) { delay(5000); } // maintain the vent state for a while and then restart
   }
 }
 
@@ -266,7 +280,7 @@ void ControlLoop::initializeAirbags(int start, int end) {
     }
   }
   
-  delay(2000);
+  delay(500);
   while(!allReached) { separateUpdate(start, end, 90.0); }
   
   initializeInflation = true;
@@ -352,13 +366,6 @@ void ControlLoop::unifiedUpdate() {
       // Serial.print(j); Serial.print(" timeDiff "); Serial.println(timeDiffs[j]);
     }
     
-    // for (int k=0; k < CellNum; k++) {
-    //   Serial.print("Diff");
-    //   Serial.print(k);
-    //   Serial.print(":");
-    //   Serial.println(angleDiffs[k]);
-    // }
-    
     Serial.println();
     loopCount = 0;
     tryLimitNum += 1;
@@ -409,38 +416,39 @@ void ControlLoop::unifiedUpdate() {
   }
 }
 
-void ControlLoop::setup() {
-    // set sensor signal pin as INPUT
-    for (int i=0; i<CellNum; i++) {
-        pinMode(readPin[i], INPUT);
-    }
-    
-    // set valve control pin as OUTPUT
-    for (int i=0; i<CellNum * 2; i++) {
-        pinMode(bagPin[i][0], OUTPUT);
-        digitalWrite(bagPin[i][0], LOW);
-        pinMode(bagPin[i][1], OUTPUT);
-        digitalWrite(bagPin[i][1], LOW);
-    }
-    
-    delay(100);
+void ControlLoop::setup() {  
+  // set sensor signal pin as INPUT
+  for (int i=0; i<CellNum; i++) {
+    pinMode(readPin[i], INPUT);
+  }
+  
+  // set valve control pin as OUTPUT
+  for (int i=0; i<CellNum * 2; i++) {
+    pinMode(bagPin[i][0], OUTPUT);
+    digitalWrite(bagPin[i][0], LOW);
+    pinMode(bagPin[i][1], OUTPUT);
+    digitalWrite(bagPin[i][1], LOW);
+  }
+  
+  delay(100);
 }
 
 void ControlLoop::loop() {
-  int start = 5;
-  int end = 6;
-  update = 1;
+  int evalCell = 2;
+  int start = 2;
+  int end = 3;
+  update = 0;
   if (update) {
     if (!initializeInflation) {
       initializeAirbags(start, end);
       delay(2000);
     }
-    float target = 105.0;
-    separateUpdate(start, end, target);
+    // float target = 105.0;
+    // separateUpdate(start, end, target);
     // unifiedUpdate();
   } else {
-    // testSensorSignal();
-    ventAllAirbags();
+    testSensorSignal(evalCell);
+    // ventAllAirbags();
   }
 }
 
