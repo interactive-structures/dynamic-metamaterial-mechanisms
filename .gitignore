@@ -12,3 +12,4 @@ Ipopt-install/*
 example-data/inputs/ignore/*
 control-code-struct/.vs/*
 control-code-struct/control-code-smooth/*
+control-code-struct/control-code-struct/*

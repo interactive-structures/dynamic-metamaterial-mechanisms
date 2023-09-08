@@ -3,8 +3,12 @@
 #define INPUT_H
 
 
-
 // global parameters
+
+#define BAG_IN 0
+#define BAG_OUT 1
+#define BAG_LEFT 0
+#define BAG_RIGHT 1
 
 float gTolerance = 1.5f; // [deg]; tolerance for considering target angle reached
 int gMinInflateDuration = 4500; // [ms]; how long the bag should be inflated at the minimum
