@@ -10,3 +10,5 @@ external/Chipmunk2D/*
 Ipopt-install/*
 .vscode/*
 example-data/inputs/ignore/*
+control-code-struct/.vs/*
+control-code-struct/control-code-smooth/*
