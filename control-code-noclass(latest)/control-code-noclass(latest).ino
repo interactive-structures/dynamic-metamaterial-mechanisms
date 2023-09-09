@@ -1,13 +1,12 @@
 // Setup-3
-const int CellNum = 6;
-int readPin[CellNum] = {A6,A4,A3,A2,A1,A0};
+const int CellNum = 5;
+int readPin[CellNum] = {A6,A4,A3,A0,A2};
 int bagPin[CellNum*2][2] = {
   {3,2}, {5,4}, //1
   {40,41}, {42,43}, //2
   {44,45}, {46,47}, //3
-  {28,31}, {32,33}, //4
-  {34,35}, {36,37}, //5
-  {7,6}, {9,8} //6
+  {7,6}, {9,8}, //4
+  {34,35}, {36,37} //5
 };
 
 // Setup-1
@@ -24,12 +23,12 @@ int bagPin[CellNum*2][2] = {
 //   {34,35},{36,37}
 // };
 
-const float tolerance = 1.5; // adjust this for application
+const float tolerance = 2.0; // adjust this for application
 bool initializeInflation = false;
 unsigned long constCellsPulseLength[CellNum][2];
 unsigned long cellsPulseLength[CellNum][2];
-int minActuation = 4500; // adjust this for application
-unsigned long actuationInverval = 200000;
+int minActuation = 4000; // adjust this for application
+unsigned long actuationInverval = 100000;
 unsigned int loopCount = 0;
 unsigned long lastUpdated[CellNum];
 long timeDiffs[CellNum];
@@ -46,8 +45,15 @@ bool allReached;
 bool updateFinished;
 uint8_t tryLimitNum;
 bool tryLimitReached; // give a limit tries in case never satisfied
-int stepIndex = 8;
+int stepIndex = 0;
 const int pathStepSize = 99; // number of points on the path defined in software
+
+// moving average filter for sensor readings
+bool useRawSignal = false;
+const int windowSize = 10;
+float sensorAngleReadings[CellNum][windowSize];
+float readingsSum[CellNum];
+int windowIndex[CellNum];
 
 // user input interaction
 bool targetRecorded;
@@ -56,27 +62,30 @@ unsigned long lastRecordingTime;
 unsigned long pathRecordingInterval = 1000;
 uint8_t pathPointIndex = 0;
 const int mPointStepSize = 1;
-float mAngleSteps[mPointStepSize][CellNum] = {{86.42, 99.76, 94.56, 101.72, 93.91, 90.33}};
-const int mPathStepSize = 17; // number of sampling points on a user-defined path
+float mAngleSteps[mPointStepSize][CellNum] = {{86.42, 99.76, 94.56, 101.72, 93.91}};
+const int mPathStepSize = 20; // number of sampling points on a user-defined path
 
 float mPathAngleSteps[mPathStepSize][CellNum] = {
-  {89.67, 89.35, 82.19, 85.12, 94.80, 96.25}, //0
-  {85.12, 99.44, 94.23, 102.37, 93.58, 93.25}, //1
-  {80.56, 103.02, 103.02, 112.46, 101.39, 89.02}, //2
-  {75.98, 100.23, 98.46, 117.02, 103.02, 91.60}, //3
-  {73.07, 97.81, 100.74, 97.76, 97.49, 88.65}, //4
-  {78.61, 88.05, 92.28, 90.98, 91.30, 90.33}, //5
-  {83.56, 89.35, 94.18, 69.19, 85.61, 93.91}, //6
-  {83.14, 84.07, 92.21, 66.52, 82.61, 100.84}, //7
-  {89.00, 81.02, 81.15, 68.98, 70.40, 101.42}, //8
-  {90.98, 87.14, 77.68, 75.77, 78.54, 99.49}, //9
-  {100.09, 82.84, 81.73, 65.01, 66.70, 98.44}, //10
-  {100.42, 82.61, 83.03, 58.38, 60.31, 101.44}, //11
-  {100.74, 90.12, 88.42, 73.12, 63.54, 101.51}, //12
-  {96.98, 87.07, 86.16, 85.12, 86.98, 96.93}, //13
-  {96.18, 91.30, 94.72, 99.56, 108.21, 89.21}, //14
-  {88.35, 91.05, 96.51, 103.93, 107.49, 90.00}, //15
-  {86.42, 89.35, 83.49, 89.02, 94.56, 93.58} //16
+  {88.98, 85.65, 90.23, 93.93, 93.58},     //0
+  {82.86, 103.67, 110.58, 98.53, 113.71},  //1
+  {74.96, 112.20, 119.71, 99.11, 120.67},  //2
+  {69.00, 112.46, 115.64, 98.18, 120.90},  //3
+  {70.82, 101.11, 110.67, 95.53, 110.67},  //4
+  {91.63, 93.91, 89.67, 94.88, 93.58},     //5
+  {95.25, 84.09, 110.02, 87.25, 86.40},    //6
+  {95.53, 81.21, 85.12, 91.30, 77.96},     //7
+  {106.93, 75.03, 77.63, 87.40, 69.82},    //8
+  {102.69, 83.16, 82.84, 86.75, 80.56},    //9
+  {108.23, 74.38, 73.73, 86.75, 69.82},    //10
+  {111.81, 72.42, 73.07, 87.72, 65.91},    //11
+  {108.88, 75.35, 73.73, 89.67, 73.07},    //12
+  {102.37, 82.84, 81.86, 91.63, 81.21},    //13
+  {95.53, 86.75, 90.65, 91.63, 90.65},     //14
+  {88.05, 95.86, 97.81, 96.84, 107.90},    //15
+  {82.84, 103.35, 106.60, 100.74, 115.71}, //16
+  {80.56, 107.25, 112.13, 101.07, 117.99}, //17
+  {81.21, 104.00, 110.51, 99.44, 111.81},  //18
+  {88.70, 94.56, 93.91, 95.86, 92.53}      //19
 };
 
 float getSensorAngleInDegs(int sensorIndex) {
@@ -90,21 +99,59 @@ float getSensorAngleInDegs(int sensorIndex) {
   return 256.65 - (incomingByte / 1024) * 333.3;
 }
 
+float movingAverage(int sensorIndex, float newSensorAngle) {
+  readingsSum[sensorIndex] = readingsSum[sensorIndex] - sensorAngleReadings[sensorIndex][windowIndex[sensorIndex]];
+  sensorAngleReadings[sensorIndex][windowIndex[sensorIndex]] = newSensorAngle;
+  readingsSum[sensorIndex] = readingsSum[sensorIndex] + newSensorAngle;
+  windowIndex[sensorIndex] = (windowIndex[sensorIndex]+1) % windowSize; // increase the index, and wrap to 0 if it exceeds the window size
+  return readingsSum[sensorIndex] / float(windowSize);
+}
+
 void testSensorSignal() {
-  for (int i=0; i<CellNum; i++) {
-    Serial.print("Sensor "); Serial.print(i); Serial.print(": ");
-    Serial.println(getSensorAngleInDegs(i));
-    delay(500);
-  }
+  // for (int i=0; i<CellNum; i++) {
+  //   Serial.print("Sensor"); Serial.print(i); Serial.print(": ");
+  //   float sensorAngle = getSensorAngleInDegs(i);
+  //   if (useRawSignal) {
+  //     Serial.print(sensorAngle);
+  //   } else {
+  //     Serial.println(movingAverage(i, sensorAngle));
+  //   }
+  //   delay(50);
+  // }
+  
   Serial.println();
+  if (useRawSignal) {
+    Serial.print("SS1:");
+    Serial.println(getSensorAngleInDegs(0));
+    Serial.print("SS2:");
+    Serial.println(getSensorAngleInDegs(1));
+    Serial.print("SS3:");
+    Serial.println(getSensorAngleInDegs(2));
+    Serial.print("SS4:");
+    Serial.println(getSensorAngleInDegs(3));
+    Serial.print("SS5:");
+    Serial.println(getSensorAngleInDegs(4));
+  } else {
+    Serial.print("ASS1:");
+    Serial.println(movingAverage(0, getSensorAngleInDegs(0)));
+    Serial.print("ASS2:");
+    Serial.println(movingAverage(1, getSensorAngleInDegs(1)));
+    Serial.print("ASS3:");
+    Serial.println(movingAverage(2, getSensorAngleInDegs(2)));
+    Serial.print("ASS4:");
+    Serial.println(movingAverage(3, getSensorAngleInDegs(3)));
+    Serial.print("ASS5:");
+    Serial.println(movingAverage(4, getSensorAngleInDegs(4)));
+  }
+  delay(50);
 }
 
 void testSensorSignal(int sensorIndex) {
   Serial.print("Sensor "); Serial.print(sensorIndex); Serial.print(": ");
   float incomingByte = analogRead(readPin[sensorIndex]);
-  // float calibrateAngle = (incomingByte / 1024) * 333.3 - 76.65;
-  float calibrateAngle = 256.65 - (incomingByte / 1024) * 333.3;
-  Serial.println(calibrateAngle);
+  // float calibratedAngle = (incomingByte / 1024) * 333.3 - 76.65;
+  float calibratedAngle = 256.65 - (incomingByte / 1024) * 333.3;
+  Serial.println(calibratedAngle);
   delay(500);
   Serial.println();
 }
@@ -277,18 +324,39 @@ void initializeAirbags(int start, int end) {
 void unifiedUpdate(float angleSteps[][CellNum], int stepSize, int waiting) {
   for (int i=0; i<CellNum; i++) {
     unsigned long currentTime = micros();
-    // timeDiffs[i] = (long)currentTime - lastUpdated[i]; // calculate the duration of single forloop (unit is microsecond)
+    timeDiffs[i] = (long)currentTime - lastUpdated[i]; // calculate the duration of single forloop (unit is microsecond)
+                
+    // currentAngle[i] = getSensorAngleInDegs(i); // raw signal
+    currentAngle[i] = movingAverage(i, getSensorAngleInDegs(i)); // smooth signal
+    targetAngle[i] = angleSteps[stepIndex][i];
+    angleDiffs[i] = targetAngle[i] - currentAngle[i];
     
     unsigned long actuationTime;
     if (angleDiffs[i] > 0) {
       if (numUnchangedAngleDiff[i] >= 3) { // *changed to 3
-        cellsPulseLength[i][1] += 200;
+        // cellsPulseLength[i][1] += 200;
+        // if (abs(angleDiffs[i]) > 5.0) {
+        //   cellsPulseLength[i][1] = cellsPulseLength[i][1] * 1.05;
+        // } else {
+        //   cellsPulseLength[i][1] = cellsPulseLength[i][1] * 1.03;
+        // }
+        // proportional control
+        float prop_p = (abs(angleDiffs[i]) * 1.1 + currentAngle[i]) / currentAngle[i];
+        cellsPulseLength[i][1] = cellsPulseLength[i][1] * prop_p;
         numUnchangedAngleDiff[i] = 0;
       }
       actuationTime = cellsPulseLength[i][1];
     } else {
       if (numUnchangedAngleDiff[i] >= 3) {
-        cellsPulseLength[i][0] += 200;
+        // cellsPulseLength[i][0] += 200;
+        // if (abs(angleDiffs[i]) > 5.0) {
+        //   cellsPulseLength[i][0] = cellsPulseLength[i][0] * 1.05;
+        // } else {
+        //   cellsPulseLength[i][0] = cellsPulseLength[i][0] * 1.03;
+        // }
+        // proportional control
+        float prop_p = (abs(angleDiffs[i]) * 1.1 + currentAngle[i]) / currentAngle[i];
+        cellsPulseLength[i][0] = cellsPulseLength[i][0] * prop_p;
         numUnchangedAngleDiff[i] = 0;
       }
       actuationTime = cellsPulseLength[i][0];
@@ -297,10 +365,6 @@ void unifiedUpdate(float angleSteps[][CellNum], int stepSize, int waiting) {
     if (currentTime < actuationTime + lastUpdated[i]) { continue; }
     
     lastUpdated[i] = currentTime;
-    
-    currentAngle[i] = getSensorAngleInDegs(i);
-    targetAngle[i] = angleSteps[stepIndex][i];
-    angleDiffs[i] = targetAngle[i] - currentAngle[i];
     
     uint8_t cellLeftBagIndex = i * 2;
     uint8_t cellRightBagIndex = i * 2 + 1;
@@ -317,55 +381,64 @@ void unifiedUpdate(float angleSteps[][CellNum], int stepSize, int waiting) {
       }
       
     } else {
-      if (angleDiffs[i] < 0) { 
-        lock(cellLeftBagIndex); 
-      } else {
-        lock(cellRightBagIndex);
-      }
+      lock(cellLeftBagIndex);
+      lock(cellRightBagIndex);
       // wait for a period for next control (important, thus needs actuated[i] to check)
       lastUpdated[i] += actuationInverval;
       actuated[i] = false;
       
       if (abs(angleDiffs[i]) > tolerance) {
-        if (angleDiffs[i] == prevAngleDiffs[i]) {
+        if (abs(angleDiffs[i] - prevAngleDiffs[i]) < 1.0) { // =? or <1
           numUnchangedAngleDiff[i] += 1;
         } else {
-          numUnchangedAngleDiff[i] = 0;
-          // *reset the actuation puleseLength
-          cellsPulseLength[i][0] = constCellsPulseLength[i][0];
-          cellsPulseLength[i][1] = constCellsPulseLength[i][1];
+          numUnchangedAngleDiff[i] = 0;  
         }
+      } else {
+        // *reset the actuation puleseLength
+        cellsPulseLength[i][0] = constCellsPulseLength[i][0];
+        cellsPulseLength[i][1] = constCellsPulseLength[i][1];
       }
       prevAngleDiffs[i] = angleDiffs[i];
     }
   }
   
   for (int j=0; j<CellNum; j++) {
-    currentAngle[j] = getSensorAngleInDegs(j);
+    // currentAngle[j] = getSensorAngleInDegs(j);
+    currentAngle[j] = movingAverage(j, getSensorAngleInDegs(j));
     angleDiffs[j] = targetAngle[j] - currentAngle[j];
     cellsState[j] = (abs(angleDiffs[j]) < tolerance) ? 1 : 0;
   }
   
   loopCount++;
-  if ((loopCount % 1000) == 0) {
-    for (int j=0; j<CellNum; j++) {
-      // Serial.print(j); Serial.print(" cell state: "); Serial.println(cellsState[j]);
-      // if (!cellsState[j]) {
-      Serial.print("CA: ");
-      Serial.print(currentAngle[j]);
-      Serial.print(";");
-      Serial.print(" TA: ");
-      Serial.println(targetAngle[j]);
+  if ((loopCount % 100) == 0) {
+    // for (int j=0; j<CellNum; j++) {
+    //   // Serial.print(j); Serial.print(" cell state: "); Serial.println(cellsState[j]);
+    //   // if (!cellsState[j]) {
+    //   //   Serial.print("CA: ");
+    //   //   Serial.print(currentAngle[j]);
+    //   //   Serial.print(";");
+    //   //   Serial.print(" TA: ");
+    //   //   Serial.println(targetAngle[j]);
+    //   // }  
       
-      // Serial.println(angleDiffs[j]);
-      // }
-      // Serial.println();
-      // Serial.print(j); Serial.print(" timeDiff "); Serial.println(timeDiffs[j]);
-    }
+    //   // Serial.print(j); Serial.print(" timeDiff "); Serial.println(timeDiffs[j]);
+    // }
+    // Serial.println();
+    
+    Serial.print("AD1:");
+    Serial.println(angleDiffs[0]);
+    Serial.print("AD2:");
+    Serial.println(angleDiffs[1]);
+    Serial.print("AD3:");
+    Serial.println(angleDiffs[2]);
+    Serial.print("AD4:");
+    Serial.println(angleDiffs[3]);
+    Serial.print("AD5:");
+    Serial.println(angleDiffs[4]);
     
     loopCount = 0;
     tryLimitNum += 1;
-    if (tryLimitNum == 50) { tryLimitReached = true; }
+    if (tryLimitNum == 500) { tryLimitReached = true; }
   }
   
   allReached = true;
@@ -386,10 +459,9 @@ void unifiedUpdate(float angleSteps[][CellNum], int stepSize, int waiting) {
       cellsPulseLength[j][0] = constCellsPulseLength[j][0];
       cellsPulseLength[j][1] = constCellsPulseLength[j][1];
     }
+    
     Serial.print("Point "); Serial.print(stepIndex); Serial.println(" is satisfied!"); Serial.println();
-    for (int j=0; j<CellNum; j++) {
-      Serial.print(getSensorAngleInDegs(j)); Serial.print("; ");
-    }
+    for (int j=0; j<CellNum; j++) { Serial.print(movingAverage(j, getSensorAngleInDegs(j))); Serial.print("; "); }
     Serial.println();
     stepIndex += 1;
     tryLimitNum = 0;
@@ -404,6 +476,7 @@ void unifiedUpdate(float angleSteps[][CellNum], int stepSize, int waiting) {
       cellsPulseLength[j][0] = constCellsPulseLength[j][0];
       cellsPulseLength[j][1] = constCellsPulseLength[j][1];
     }
+
     Serial.print("The point "); Serial.print(stepIndex); Serial.println(" is passed");
     stepIndex += 1;
     tryLimitReached = false;
@@ -538,18 +611,27 @@ void setup() {
     constCellsPulseLength[i][1] = minActuation;
     cellsPulseLength[i][0] = minActuation;
     cellsPulseLength[i][1] = minActuation;
-    numUnchangedAngleDiff[i] = 0;
   }
   
-  delay(100);
+  // get initial sensor readings
+  if (!useRawSignal) {
+    unsigned currentTime = millis();
+    while (millis() - currentTime < 100) {
+      for (int i=0; i<CellNum; i++) {
+        currentAngle[i] = movingAverage(i, getSensorAngleInDegs(i));
+      }
+    }
+  } else {
+    delay(100);
+  }
 }
 
 void loop() {
   update = 1;
   
   if (update == 1) {
-    // int start = 3;
-    // int end = 4;
+    // int start = 4;
+    // int end = 5;
     // draw a path according to angle data from the software (flower)
     // if (!initializeInflation) {
     //   delay(1000);
@@ -557,12 +639,12 @@ void loop() {
     //   delay(1000);
     // }
     // initializeInflation = true;
-    // separateUpdate(start, end, 70.0);
+    // separateUpdate(start, end, 80.0);
     
-    unifiedUpdate(mPathAngleSteps, mPathStepSize, 500);
+    unifiedUpdate(mPathAngleSteps, mPathStepSize, 100);
     
   } else if (update == 2) {
-    // int evalCell = 5;
+    // int evalCell = 4;
     // testSensorSignal(evalCell);
     testSensorSignal();
     
