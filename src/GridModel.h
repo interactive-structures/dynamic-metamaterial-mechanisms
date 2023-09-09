@@ -23,6 +23,9 @@ enum EXPORT_DLL_COMMAND CellType
 	ACTIVE = 4
 };
 
+static const char* enumString[] =
+{ "RIGID", "SHEAR", "VOID", "BROKEN", "ACTIVE"};
+
 // Representing a cell in the grid by the indizes
 // of its wertices and specified CellType.
 struct EXPORT_DLL_COMMAND GridCell

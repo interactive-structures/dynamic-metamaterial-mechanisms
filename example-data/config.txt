@@ -6,57 +6,16 @@
 ## function files that define the target paths
 ## --------
 
+function: D:/alex/Repositories/2023-robotic-mm-IPOPT/example-data/inputs/2023-09-08 5x5/__input/flower.txt
+function: D:/alex/Repositories/2023-robotic-mm-IPOPT/example-data/inputs/2023-09-08 5x5/__input/heart.txt
+function: D:/alex/Repositories/2023-robotic-mm-IPOPT/example-data/inputs/2023-09-08 5x5/__input/drop.txt
+
 # ---- WORKING ----
-#function: D:/alex/Repositories/2021-dynamic-metamaterial-mechanisms/example-data/results_local/2022-09-12 8x8 - quadrifolium, envelope/2022-09-12 8x8 envelope.txt
-#function: D:/alex/Repositories/2021-dynamic-metamaterial-mechanisms/example-data/results_local/2022-09-12 8x8 - quadrifolium, envelope/2022-09-12 8x8 quadrifolium.txt
-#function: D:/alex/Repositories/2021-dynamic-metamaterial-mechanisms/example-data/inputs/UIST2022 (reject)/applications/cells_cut_notifier_move.txt
-
-
-#2022-09-13
-#function: D:/alex/Repositories/2021-dynamic-metamaterial-mechanisms/example-data/inputs/2022-09-13/8x8 quarifolium.txt
-#function: D:/alex/Repositories/2021-dynamic-metamaterial-mechanisms/example-data/inputs/2022-09-13/8x8 envelope.txt
-#function: D:/alex/Repositories/2021-dynamic-metamaterial-mechanisms/example-data/inputs/2022-09-13/8x8 heart.txt
-
-#function: D:/alex/Repositories/2021-dynamic-metamaterial-mechanisms/example-data/inputs/2022-09-13 closed paths/envelope.txt
-#function: D:/alex/Repositories/2021-dynamic-metamaterial-mechanisms/example-data/inputs/2022-09-13 closed paths/heart.txt
-#function: D:/alex/Repositories/2021-dynamic-metamaterial-mechanisms/example-data/inputs/2022-09-13 closed paths/quadrifolium.txt
-
-
-
-#examples tried, results with 2 cells
-#function: D:/alex/Repositories/2021-dynamic-metamaterial-mechanisms/example-data/inputs/2022-09-13 same vertex/envelope.txt
-#function: D:/alex/Repositories/2021-dynamic-metamaterial-mechanisms/example-data/inputs/2022-09-13 same vertex/heart.txt
-#function: D:/alex/Repositories/2021-dynamic-metamaterial-mechanisms/example-data/inputs/2022-09-13 same vertex/quadrifolium.txt
-
-
-# -----------------
-
-#function: D:/alex/Repositories/2021-dynamic-metamaterial-mechanisms/example-data/inputs/2022-09-15 same vertex/envelope.txt
-#function: D:/alex/Repositories/2021-dynamic-metamaterial-mechanisms/example-data/inputs/2022-09-15 same vertex/heart.txt
-#function: D:/alex/Repositories/2021-dynamic-metamaterial-mechanisms/example-data/inputs/2022-09-15 same vertex/quad.txt
-
-
-function: D:/alex/Repositories/2021-dynamic-metamaterial-mechanisms/example-data/inputs/2022-09-15 same vertex-waterdrop, flower, heart/waterdrop.txt
-function: D:/alex/Repositories/2021-dynamic-metamaterial-mechanisms/example-data/inputs/2022-09-15 same vertex-waterdrop, flower, heart/quad.txt
-function: D:/alex/Repositories/2021-dynamic-metamaterial-mechanisms/example-data/inputs/2022-09-15 same vertex-waterdrop, flower, heart/heart.txt
-
-
-#function: D:/alex/Repositories/2021-dynamic-metamaterial-mechanisms/example-data/inputs/2022-09-12 8x8 envelope.txt
-
-# function: D:/alex/Repositories/2021-dynamic-metamaterial-mechanisms/example-data/inputs/2022-09-12 8x8 envelope.txt
-# function: D:/alex/Repositories/2021-dynamic-metamaterial-mechanisms/example-data/inputs/2022-09-12 8x8 heart.txt
-
-
-#function: D:/alex/Repositories/2021-dynamic-metamaterial-mechanisms/example-data/inputs/2022-09-13/8x8 quarifolium, rigid.txt
-#^^ works but did not keep the rigid cells
-
-#function: D:/alex/Repositories/2021-dynamic-metamaterial-mechanisms/example-data/inputs/2022-09-13/8x8 heart, 4a.txt
-#^^ not working with 3 or 4 anchors. 2 anchors work fine.
 
 
 ## output folder for the results
 ## ------
-output_folder: D:/alex/Repositories/2021-dynamic-metamaterial-mechanisms/example-data/results_local/current/
+output_folder: D:/alex/Repositories/2023-robotic-mm-IPOPT/example-data/results_local/current/
 
 
 ## optimization settings
@@ -69,7 +28,7 @@ number_iterations: 100
 accuracy_weight: 4
 
 ## a higher weight causes less actuators
-complexity_weight: 8
+complexity_weight: 6
 
 ## display pseudo ground for vertical applications (e.g. crawler)
 show_ground: 0

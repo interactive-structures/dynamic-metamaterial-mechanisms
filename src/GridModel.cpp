@@ -103,9 +103,20 @@ bool GridModel::loadFromFile(const std::string fname)
 		cout << "file " << fname << " not found!" << endl;
 		return false;
 	}
+	
 	char tmp[1024];
-
 	file.getline(tmp, 1024);
+
+	//while (file.getline(tmp, 1024))
+	//{
+	//	if (tmp[0] == '#')
+	//		continue;
+	//	if (tmp == "")
+	//		continue;
+	//	else
+	//		break;
+	//}
+
 
 	int nv, nc, na, nconstr, npath;
 

@@ -8,9 +8,21 @@
 #include <fstream>
 #include <filesystem>
 #include <sstream>
+#include <time.h>
 
 #define PI 3.14159265
 
+std::string get_time_string()
+{
+    time_t rawtime;
+    time(&rawtime);
+    struct tm* timeinfo = localtime(&rawtime);
+
+    char buffer[80];
+    strftime(buffer, 80, "%Y-%m-%d_%H-%M-%S", timeinfo);
+
+    return buffer;
+}
 
 std::string get_folder_path(std::string file)
 {
@@ -47,8 +59,6 @@ int parse_int(std::string content)
 
     return variable;
 }
-
-
 
 void printConstraintGraph(GridModel gm)
 {
@@ -190,6 +200,73 @@ std::vector<std::vector<double> > anglesFromFolder(std::string anglesFolder)
     i++;
   }
   return angles;
+}
+
+void write_active_angles_csv(std::string file, GridModel gm, CellType cellType, std::string anglesFolder) {
+    // Write angles of active cells as csv to new file
+    std::ofstream angleOutFile;
+    angleOutFile.open(file, std::ofstream::out | std::ofstream::trunc);
+
+    std::string delim = "";
+    std::vector<int> cells;
+
+    // Write header
+    for (int i = 0; i < gm.cells.size(); i++)
+    {
+        if (gm.cells[i].type == cellType)
+        {
+            cells.push_back(i);
+            angleOutFile << delim << enumString[cellType] << " " << i;
+            delim = ",";
+        }
+    }
+    
+    // Write angles
+    angleOutFile << "\n";
+    auto angles = anglesFromFolder(anglesFolder);
+    for (auto frame : angles)
+    {
+        delim = "";
+        for (int cell : cells)
+        {
+            angleOutFile << delim << (frame[cell] / PI * 180.0);
+            delim = ",";
+        }
+        angleOutFile << "\n";
+    }
+    angleOutFile.close();
+}
+
+void write_all_angles_csv(std::string file, GridModel gm, std::string anglesFolder) {
+    // Write angles of active cells as csv to new file
+    std::ofstream angleOutFile;
+    angleOutFile.open(file, std::ofstream::out | std::ofstream::trunc);
+
+    std::string delim = "";
+    std::vector<int> cells;
+
+    // Write header
+    for (int i = 0; i < gm.cells.size(); i++)
+    {
+        cells.push_back(i);
+        angleOutFile << delim << enumString[gm.cells[i].type] << " " << i;
+        delim = ",";
+    }
+
+    // Write angles
+    angleOutFile << "\n";
+    auto angles = anglesFromFolder(anglesFolder);
+    for (auto frame : angles)
+    {
+        delim = "";
+        for (int cell : cells)
+        {
+            angleOutFile << delim << (frame[cell]/PI*180.0);
+            delim = ",";
+        }
+        angleOutFile << "\n";
+    }
+    angleOutFile.close();
 }
 
 // Some simulation debug code
@@ -598,7 +675,12 @@ int main(int argc, char *argv[])
     if (!std::filesystem::exists(output_folder))
         std::filesystem::create_directory(output_folder);
 
-  SimAnnMan sa(gms, output_folder, path_weight, dof_weight);            // Initialize simulated annealing, specifying output folder
+    std::string datetime = get_time_string();
+    std::string current_output_folder = output_folder + "/" + datetime + "/";
+    if (!std::filesystem::exists(current_output_folder))
+        std::filesystem::create_directory(current_output_folder);
+
+  SimAnnMan sa(gms, current_output_folder, path_weight, dof_weight);            // Initialize simulated annealing, specifying output folder
   sa.runSimulatedAnnealing(num_iters, 0.97); // Run simulated annealing
   //sa.runSimulatedAnnealing(100, 0.97); // Run simulated annealing
 
@@ -610,10 +692,13 @@ int main(int argc, char *argv[])
   std::vector<std::vector<std::vector<GridModel::Point>>> combined_target_paths;
   std::vector<std::vector<int>> combined_targets;
 
+
   for (int i = 0; i < gms.size(); i++) {
     GridModel gm = GridModel(gms[i]);
 
-    std::string functionFolder = output_folder + "function_" + std::to_string(i) + "/";
+
+
+    std::string functionFolder = current_output_folder + "function_" + std::to_string(i) + "/";
     std::string pointsFolder = functionFolder + "points/";
     std::string anglesFolder = functionFolder + "angles/";
 
@@ -628,7 +713,7 @@ int main(int argc, char *argv[])
     GridModel gm_active = GridModel(gm);
     gm_active.cells = gm_active_base.cells;                                               // add active cells
     auto active_ret = optimizeActive(gm_active, cell_angles, pointsFolder, anglesFolder); // Call optimizeActive to verify results with only control of actuating cells
-    storeModel(gm_active, output_folder);                                                        // Store best model with actuating cells in results folder
+    storeModel(gm_active, current_output_folder);                                         // Store best model with actuating cells in results folder
 
     // set up animation: pass in as vector
     std::vector<GridModel> animation_gms;
@@ -651,33 +736,10 @@ int main(int argc, char *argv[])
     MultiAnimation animation(animation_gms, animation_results, animation_target_paths, 2, animation_targets, ground); 
     animation.animate_mesh();                                                       
 
-    // Write angles of active cells as csv to new file
-    std::ofstream activeAngleOutFile;
-    activeAngleOutFile.open(anglesFolder + "active.csv", std::ofstream::out | std::ofstream::trunc);
-    std::vector<int> activeCells;
-    std::string delim = "";
-    for (int i = 0; i < gm_active.cells.size(); i++)
-    {
-      if (gm_active.cells[i].type == ACTIVE)
-      {
-        activeCells.push_back(i);
-        activeAngleOutFile << delim << "Cell " << i;
-        delim = ",";
-      }
-    }
-    activeAngleOutFile << "\n";
-    auto angles = anglesFromFolder(anglesFolder);
-    for (auto frame : angles)
-    {
-      delim = "";
-      for (int cell : activeCells)
-      {
-        activeAngleOutFile << delim << frame[cell];
-        delim = ",";
-      }
-      activeAngleOutFile << "\n";
-    }
-    activeAngleOutFile.close();
+    write_active_angles_csv(current_output_folder + "angles_active.csv", gm_active, CellType::ACTIVE, anglesFolder);
+    write_all_angles_csv(current_output_folder + "angles_all.csv", gm_active, anglesFolder);
+    //write_angles(anglesFolder + "all.csv", gm_active, anglesFolder);
+
   }
 
   // run combined

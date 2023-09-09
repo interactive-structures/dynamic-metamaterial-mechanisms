@@ -10,3 +10,6 @@ dependencies/Ipopt/*
 Ipopt-install/*
 .vscode/*
 example-data/inputs/ignore/*
+*/desktop.ini*
+example-data/inputs/2023-09-08 Desk symbols 5x5 flower heart drop/__input/desktop.ini
+*.ini
