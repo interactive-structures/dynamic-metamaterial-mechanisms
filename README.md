@@ -2,7 +2,7 @@
 ## Build Instructions
 Clone this branch of the repo!
 
-`git clone --recursive -b chipmunk-refactor-final https://github.com/interactive-structures/dynamic-metamaterial-mechanisms`
+`git clone --recursive https://github.com/interactive-structures/dynamic-metamaterial-mechanisms`
 
 In a terminal in your local copy of the repo,  make and enter `build` directory.
 
