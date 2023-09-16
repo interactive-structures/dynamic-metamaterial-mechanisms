@@ -397,7 +397,8 @@ void MMGrid::updateMesh()
 
     std::vector<std::pair<MatrixX3d, MatrixX3i>> meshes;
 
-    MatrixX3d groundV = MatrixX3d::Zero(4, 3);
+    //ground:
+    /*MatrixX3d groundV = MatrixX3d::Zero(4, 3);
     groundV << -10, 0, -10,
         -10, 0, 10,
         10, 0, -10,
@@ -405,7 +406,7 @@ void MMGrid::updateMesh()
     MatrixX3i groundF = MatrixX3i::Zero(2, 3);
     groundF << 0, 1, 2,
         2, 1, 3;
-    meshes.push_back(std::make_pair(groundV, groundF));
+    meshes.push_back(std::make_pair(groundV, groundF));*/
 
     for (int i = 0; i < numRowLinks(); i++)
     {
@@ -1259,6 +1260,7 @@ vector<cpVect> MMGrid::readPath(const std::string fname)
 
     int numVertRows = 0;
     int numEdgeRows = 0;
+    path.clear();
 
     for (int i = 0; i < npath; ++i)
     {
