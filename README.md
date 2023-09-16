@@ -16,11 +16,11 @@ Run cmake
 
 For linux/macos, make:
 
-`make dynamic_mm_gui`
+`make dynamic_mm_ui`
 
 Then run:
 
-`./dynamic_mm_gui`
+`./dynamic_mm_ui`
 
 For Windows: open the project in Visual Studio and run it.
 
