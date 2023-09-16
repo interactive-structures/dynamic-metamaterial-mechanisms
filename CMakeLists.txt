@@ -21,3 +21,6 @@ target_link_libraries(${PROJECT_NAME}_gui chipmunk_static igl::glfw igl::imgui)
 
 add_executable(${PROJECT_NAME}_play ${COMMON_FILES} src/play.cpp)
 target_link_libraries(${PROJECT_NAME}_play chipmunk_static igl::glfw igl::imgui)
+
+add_executable(${PROJECT_NAME}_ui ${COMMON_FILES} src/ui.cpp)
+target_link_libraries(${PROJECT_NAME}_ui chipmunk_static igl::glfw igl::imgui)

@@ -4,6 +4,8 @@
 #include <memory>
 #include "Position.hpp"
 
+#pragma once
+
 class SimulationBody {
     friend class SimulationSpace;
     //wrapper class for cpBody

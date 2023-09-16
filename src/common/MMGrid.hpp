@@ -9,12 +9,16 @@
 
 #define SQRT_2 1.4142135623730950488016887242
 
+#pragma once
+
 using namespace std;
 using namespace Eigen;
 
 class MMGrid
 {
 private:
+    static int counter;
+    int mycounter;
     int rows;
     int cols;
     vector<int> cells;
@@ -28,14 +32,17 @@ private:
     vector<cpConstraint *> controllerConstraints;
     MatrixX2d vertices;
     MatrixX2d targetVerts;
+    MatrixX2d calcVerts;
     MatrixX2i edges;
     MatrixX2i targetEdges;
+    MatrixX2i calcEdges;
     MatrixX3d pointColors;
     MatrixX3d edgeColors;
     cpVect bottomLeft;
     vector<cpVect> path;
     vector<int> targets;
     vector<vector<cpVect>> targetPaths;
+    vector<vector<cpVect>> calculatedPaths;
     vector<int> anchors;
     int resolution = 6;
     int shrink_factor = 2;
@@ -120,12 +127,18 @@ private:
     void updateMesh();
     void updateMeshUnified();
     void updateEdges();
+    void updateTargetRenderPaths();
+    void recordPoints();
+    void updateCalculatedRenderPaths();
     void removeAllJointControllers();
 
 public:
     bool changingStructure = false;
     MMGrid(int rows, int cols, vector<int> cells);
     MMGrid(const MMGrid& other) {
+        cout << "Constructing Copy! " << counter << " of " << other.mycounter << endl;
+        mycounter = counter;
+        counter++;
         rows = other.rows;
         cols = other.cols;
         cells = other.cells;
@@ -177,6 +190,18 @@ public:
     int getRows() {return rows;};
     int getCols() {return cols;};
     vector<int> getCells() {return cells;}
+    void nextPoint() {
+        pointIndex++;
+        if (targetPaths.size() > 0) {
+            pointIndex %= targetPaths[0].size();
+        }
+    };
+    void prevPoint() {
+        pointIndex--;
+        if (targetPaths.size() > 0) {
+            pointIndex %= targetPaths[0].size();
+        }
+    };
     void addJointController(int jointIndex);
     void removeJointController(int jointIndex);
     cpVect getPos(int jointIndex);
@@ -184,9 +209,29 @@ public:
     bool isConstrained(int jointIndex);
     void setJointMaxForce(int jointIndex, cpFloat force);
     void loadFromFile(const std::string fname);
+    void loadPath(const std::string fname, int target);
+    void setPath(vector<cpVect> path, int target);
+    void scalePath(float scale, int target);
+    void removePath(int target);
+    vector<cpVect> readPath(const std::string fname);
+    vector<cpVect> getPathFor(int jointIndex);
     double getPathError();
     double getCurrentError();
     void resetAnimation();
     vector<vector<double>> getAnglesFor(vector<int> cellIndices);
+    double getCurrentAngle(int cellIndex);
     void writeConfig(string filePath);
+    void writeModel(string filePath);
+    void anchor(int jointIndex);
+    void unanchor(int jointIndex);
+
+    vector<vector<cpVect>> getCalculatedPaths() {
+        return calculatedPaths;
+    }
+
+    void setCalculatedPaths(vector<vector<cpVect>> calcPaths) {
+        cout << "Got calculated path of size " << calcPaths.size() << endl;
+        calculatedPaths = calcPaths;
+        updateCalculatedRenderPaths();
+    }
 };

@@ -1,5 +1,7 @@
 #include<vector>
 
+#pragma once
+
 using std::vector;
 
 class PRand {

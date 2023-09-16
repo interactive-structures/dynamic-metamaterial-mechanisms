@@ -1,6 +1,7 @@
 #include "SimulationSpace.hpp"
 #include <iostream>
 
+
 SimulationSpace::SimulationSpace(double timeStep) : timeStep(timeStep) {
     mySpace = cpSpaceNew();
 }

@@ -1,10 +1,16 @@
 #define _USE_MATH_DEFINES
 #include "MMGrid.hpp"
+#include "UIModelData.hpp"
 
 const int JOINT_MAX_FORCE = 100;
 
+int MMGrid::counter = 0;
+
 MMGrid::MMGrid(int rows, int cols, vector<int> cells)
 {
+    cout << "Constructing MMGrid! "  << counter << endl;
+    mycounter = counter;
+    counter++;
     changingStructure = true;
     this->rows = rows;
     this->cols = cols;
@@ -39,6 +45,7 @@ void MMGrid::setCells(int rows, int cols, vector<int> cells)
 
 void MMGrid::setupSimStructures()
 {
+    cout << "Setting up structures for " << mycounter << endl;
     this->space = cpSpaceNew();
     setupSpace();
     rowLinks.resize(numRowLinks());
@@ -112,7 +119,6 @@ void MMGrid::setupSimStructures()
             cpSpaceAddConstraint(space, pivot3);
             cpSpaceAddConstraint(space, pivot4);
         }
-
     // make pivot constraints
     // first row
     for (int i = 0; i < cols; i++)
@@ -354,7 +360,8 @@ void MMGrid::updateVertices()
         if (isConstrained(i))
         {
             cpVect posC = cpBodyGetPosition(controllers[i]);
-            vertices.row(i) = (Vector2d() << posC.x, posC.y).finished();
+            //vertices.row(i) = (Vector2d() << posC.x, posC.y).finished();
+            vertices.row(i) = (Vector2d() << pos.x, pos.y).finished();
         }
         else
         {
@@ -428,48 +435,6 @@ void MMGrid::updateMeshUnified()
     rowBevOffset = rowBevOffset * shrink_factor;
 
     std::vector<std::pair<MatrixX3d, MatrixX3i>> meshes;
-
-    // MatrixX3d groundV = MatrixX3d::Zero(4, 3);
-    // groundV << -10, 0, -10,
-    //     -10, 0, 10,
-    //     10, 0, -10,
-    //     10, 0, 10;
-    // MatrixX3i groundF = MatrixX3i::Zero(2, 3);
-    // groundF << 0, 1, 2,
-    //     2, 1, 3;
-    // meshes.push_back(std::make_pair(groundV, groundF));
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
     for (int i = 0; i < numRowLinks(); i++)
     {
@@ -610,24 +575,55 @@ void MMGrid::render(igl::opengl::glfw::Viewer *viewer, int selected_cell, int se
     }
     else
     {
-        MatrixX2d intermediate = MatrixXd::Zero(vertices.rows() + targetVerts.rows(), 2);
-        intermediate << vertices, targetVerts;
-        edgePoints = MatrixXd::Zero(intermediate.rows(), 3);
-        edgePoints << intermediate, MatrixXd::Zero(intermediate.rows(), 1);
-        edges2 = MatrixXi::Zero(edges.rows() + targetEdges.rows(), 2);
-        edges2 << edges, targetEdges + MatrixXi::Constant(targetEdges.rows(), 2, vertices.rows());
-        edgeColors2 = MatrixXd::Zero(edges.rows() + targetEdges.rows(), 3);
-        edgeColors2 << edgeColors, MatrixXd::Zero(targetEdges.rows(), 3);
+        if (calcVerts.rows() == 0) {
+            //cout << "No calc" << endl;
+            MatrixX2d intermediate = MatrixXd::Zero(vertices.rows() + targetVerts.rows(), 2);
+            intermediate << vertices, targetVerts;
+            edgePoints = MatrixXd::Zero(intermediate.rows(), 3);
+            edgePoints << intermediate, MatrixXd::Zero(intermediate.rows(), 1);
+            edges2 = MatrixXi::Zero(edges.rows() + targetEdges.rows(), 2);
+            edges2 << edges, targetEdges + MatrixXi::Constant(targetEdges.rows(), 2, vertices.rows());
+            edgeColors2 = MatrixXd::Zero(edges.rows() + targetEdges.rows(), 3);
+            edgeColors2 << edgeColors, MatrixXd::Zero(targetEdges.rows(), 3);
+        }
+        else {
+            //cout << "No calc" << endl;
+            MatrixX2d intermediate = MatrixXd::Zero(vertices.rows() + targetVerts.rows() + calcVerts.rows(), 2);
+            intermediate << vertices, targetVerts, calcVerts;
+            edgePoints = MatrixXd::Zero(intermediate.rows(), 3);
+            edgePoints << intermediate, MatrixXd::Zero(intermediate.rows(), 1);
+            edges2 = MatrixXi::Zero(edges.rows() + targetEdges.rows() + calcEdges.rows(), 2);
+            edges2 << edges, targetEdges + MatrixXi::Constant(targetEdges.rows(), 2, vertices.rows()), calcEdges + MatrixXi::Constant(calcEdges.rows(), 2, vertices.rows() + targetVerts.rows());
+            edgeColors2 = MatrixXd::Zero(edges.rows() + targetEdges.rows() + calcEdges.rows(), 3);
+            edgeColors2 << edgeColors, MatrixXd::Zero(targetEdges.rows() + calcEdges.rows(), 3);
+        }
+    }
+    MatrixX3d faceColors(mesh.second.rows(), 3);
+    for (int i = 0; i < faceColors.rows(); i++) {
+        faceColors.row(i) = Vector3d(.231, .231, .231);
     }
     viewer->data().clear();
     viewer->data().set_points(points, pointColors);
     viewer->data().set_edges(edgePoints, edges2, edgeColors2);
     viewer->data().set_mesh(mesh.first, mesh.second);
+    viewer->data().set_colors(faceColors);
 }
 
 void MMGrid::resetAnimation() {
     pointIndex = 0;
     frameTime = 0;
+}
+
+void MMGrid::removePath(int target)
+{
+    for (int i = 0; i < targets.size(); i++) {
+        if (targets[i] == target) {
+            targets.erase(targets.begin() + i);
+            targetPaths.erase(targetPaths.begin() + i);
+            updateTargetRenderPaths();
+            return;
+        }
+    }
 }
 
 vector<vector<double>> MMGrid::getAnglesFor(vector<int> cellIndices)
@@ -657,8 +653,6 @@ vector<vector<double>> MMGrid::getAnglesFor(vector<int> cellIndices)
     {
         int numIterations = 0;
         double curError, prevError = INT8_MAX;
-        clock_t start, end;
-        start = clock();
         while(pointIndex < pathStep) {
             update_follow_path(timeStep, pathStepsPerSec);
             numIterations++;
@@ -675,6 +669,34 @@ vector<vector<double>> MMGrid::getAnglesFor(vector<int> cellIndices)
         }
     }
     return out;
+}
+
+void MMGrid::scalePath(float scale, int target)
+{
+    vector<cpVect> path;
+    int i;
+    for (i = 0; i < targets.size(); i++) {
+        if (targets[i] == target) {
+            path = targetPaths[i];
+            break;
+        }
+    }
+    cpVect targPos = bottomLeft + getJointOffset(target);
+    cpVect startPoint = path[0];
+    vector<cpVect> targetPath = {};
+    for (auto point : path) {
+        targetPath.push_back(((point - startPoint) * scale ) + targPos);
+    }
+    targetPaths[i] = targetPath;
+    updateTargetRenderPaths();
+}
+
+double MMGrid::getCurrentAngle(int cellIndex)
+{
+    int rowLinkIndex = cellIndex;
+    int colLinkIndex = cellIndex - cellIndex / cols;
+    return cpvtoangle(cpBodyGetRotation(colLinks[colLinkIndex])) + M_PI_2 - cpvtoangle(cpBodyGetRotation(rowLinks[rowLinkIndex]));
+
 }
 
 void MMGrid::writeConfig(string filePath)
@@ -759,6 +781,92 @@ void MMGrid::writeConfig(string filePath)
     file.close();
 }
 
+void MMGrid::writeModel(string filePath)
+{
+    ofstream file(filePath);
+
+    if (!file.good())
+    {
+        cout << "file " << filePath << " not found!" << endl;
+        return;
+    }
+    file << std::endl;
+
+    int pathLength = targetPaths.size() == 0 ? 0 : targetPaths[0].size();
+
+    file << (rows + 1) * (cols + 1) << " " << rows * cols << " " << anchors.size() << " " << targetPaths.size() << " " << pathLength << std::endl;
+
+    file << std::endl;
+    file << std::endl;
+
+    double x = bottomLeft.x, y = bottomLeft.y;
+
+    for (int i = 0; i < (rows + 1) * (cols + 1); ++i)
+    {
+        file << x << " " << y << std::endl;
+    }
+
+    file << std::endl;
+    file << std::endl;
+
+    for (int x : anchors)
+    {
+        file << x << " ";
+    }
+
+    // shift = vertices[anchors.front()];
+    //  anchors.pop_back();
+
+    file << std::endl;
+    file << std::endl;
+    file << std::endl;
+
+    int l_rows = -1, l_cols = -1;
+    int prev_bottomleft = 0;
+    vector<int> l_cells;
+
+    int offset = 0;
+
+    for (int i = 0; i < cells.size(); ++i)
+    {
+        if (cells[i] == 0) {
+            file << "s";
+        }
+        else if (cells[i] == 2) {
+            file << "a";
+        }
+        else {
+            file << "r";
+        }
+
+        if (i != 0 && i % cols == 0) offset++;
+
+        file << " " << i + offset << " 0 0 0" << std::endl;
+    }
+
+    file.close();
+}
+
+void MMGrid::anchor(int jointIndex)
+{
+    for (int x : anchors)
+        if (x == jointIndex)
+            return;
+    anchors.push_back(jointIndex);
+}
+
+void MMGrid::unanchor(int jointIndex)
+{
+    int ancIndex = -1;
+    for (int i = 0; i < anchors.size(); i++) {
+        if (anchors[i] == jointIndex) {
+            ancIndex = i;
+            break;
+        }
+    }
+    anchors.erase(anchors.begin() + ancIndex);
+}
+
 void MMGrid::update(cpFloat dt)
 {
     changingStructure = true;
@@ -769,11 +877,22 @@ void MMGrid::update(cpFloat dt)
 }
 MMGrid::~MMGrid()
 {
-    cout << "Destroying / freeing" << endl;
+    cout << "Destroying / freeing " << mycounter << endl;
     removeSimStructures();
 }
 void MMGrid::removeSimStructures()
 {
+    cout << "Removing structures for " << mycounter << endl;
+    /*cpSpaceEachConstraint(space, [](cpConstraint * constraint, void* data) {
+        cpConstraintFree(constraint);
+    }, nullptr);
+    cpSpaceEachShape(space, [](cpShape* shape, void* data) {
+        cpShapeFree(shape);
+        }, nullptr);
+    cpSpaceEachBody(space, [](cpBody* body, void* data) {
+        cpBodyFree(body);
+        }, nullptr);*/
+    cout << "All Freed, freeing space..." << endl;
     cpSpaceFree(space);
     rowLinks.clear();
     colLinks.clear();
@@ -849,6 +968,67 @@ void MMGrid::removeAllJointControllers()
     controllerConstraints.clear();
 }
 
+
+void MMGrid::updateTargetRenderPaths()
+{
+    int numPathPoints = 0;
+    for (auto tP : targetPaths)
+    {
+        int start_index = 0;
+        for (auto pv : tP)
+        {
+            numPathPoints++;
+        }
+    }
+    targetVerts = MatrixXd::Zero(numPathPoints, 2);
+    targetEdges = MatrixXi::Zero(numPathPoints, 2);
+
+    int vert_index = 0;
+    int edge_index = 0;
+    int start_index = 0;
+    for (auto tP : targetPaths)
+    {
+        for (auto pv : tP)
+        {
+            targetVerts.row(vert_index) = (Vector2d() << pv.x, pv.y).finished();
+            targetEdges.row(edge_index) = (Vector2i() << vert_index, (vert_index + 1 - start_index) % tP.size() + start_index).finished();
+            vert_index++;
+            edge_index++;
+        }
+        start_index = vert_index;
+    }
+}
+
+void MMGrid::updateCalculatedRenderPaths()
+{
+    int numPathPoints = 0;
+    for (auto tP : calculatedPaths)
+    {
+        int start_index = 0;
+        for (auto pv : tP)
+        {
+            numPathPoints++;
+        }
+    }
+    calcVerts = MatrixXd::Zero(numPathPoints, 2);
+    calcEdges = MatrixXi::Zero(numPathPoints, 2);
+
+    int vert_index = 0;
+    int edge_index = 0;
+    int start_index = 0;
+    for (auto tP : calculatedPaths)
+    {
+        for (auto pv : tP)
+        {
+            calcVerts.row(vert_index) = (Vector2d() << pv.x, pv.y).finished();
+            calcEdges.row(edge_index) = (Vector2i() << vert_index, (vert_index + 1 - start_index) % tP.size() + start_index).finished();
+            vert_index++;
+            edge_index++;
+        }
+        start_index = vert_index;
+    }
+}
+
 cpVect MMGrid::getPos(int jointIndex)
 {
     return cpBodyGetPosition(controllers[jointIndex]);
@@ -905,6 +1085,9 @@ void MMGrid::loadFromFile(const std::string fname)
         cout << "file " << fname << " not found!" << endl;
         return;
     }
+
+    path.clear();
+
     char tmp[1024];
 
     file.getline(tmp, 1024);
@@ -1013,27 +1196,94 @@ void MMGrid::loadFromFile(const std::string fname)
         }
 
         targetPaths.push_back(path);
+        UIModelData::paths.insert(std::make_pair(fname + "(" + std::to_string(c) + ")", path));
         path.clear();
     }
 
-    targetVerts = MatrixXd::Zero(numVertRows, 2);
-    targetEdges = MatrixXi::Zero(numEdgeRows, 2);
+    file.close();
+    updateTargetRenderPaths();
+}
 
-    int vert_index = 0;
-    int edge_index = 0;
-    for (auto tP : targetPaths)
+void MMGrid::loadPath(const std::string fname, int target)
+{
+    ifstream file(fname);
+
+    if (!file.good())
     {
-        int start_index = 0;
-        for (auto pv : tP)
+        cout << "file " << fname << " not found!" << endl;
+        return;
+    }
+
+    path.clear();
+
+    char tmp[1024];
+
+    int npath;
+
+    file >> npath;
+    file.getline(tmp, 1024);
+
+        targets.push_back(target);
+
+        for (int i = 0; i < npath; ++i)
         {
-            targetVerts.row(vert_index) = (Vector2d() << pv.x, pv.y).finished();
-            targetEdges.row(edge_index) = (Vector2i() << vert_index, (vert_index + 1) % tP.size() + start_index).finished();
-            vert_index++;
-            edge_index++;
+            double x, y;
+            file >> x;
+            file >> y;
+
+            path.push_back(cpv(x, y));
         }
+
+        targetPaths.push_back(path);
+        path.clear();
+
+    file.close();
+    updateTargetRenderPaths();
+}
+
+vector<cpVect> MMGrid::readPath(const std::string fname)
+{
+    ifstream file(fname);
+
+    if (!file.good())
+    {
+        cout << "file " << fname << " not found!" << endl;
+        return {};
+    }
+    char tmp[1024];
+
+    int npath;
+
+    file >> npath;
+    file.getline(tmp, 1024);
+
+    int numVertRows = 0;
+    int numEdgeRows = 0;
+
+    for (int i = 0; i < npath; ++i)
+    {
+        double x, y;
+        file >> x;
+        file >> y;
+
+        path.push_back(cpv(x, y));
+
+        numVertRows++;
+        numEdgeRows++;
     }
 
     file.close();
+    return path;
+}
+
+vector<cpVect> MMGrid::getPathFor(int jointIndex)
+{
+    for (int i = 0; i < targets.size(); i++) {
+        if (targets[i] == jointIndex) {
+            return targetPaths[i];
+        }
+    }
+    return {};
 }
 
 double MMGrid::getCurrentError() {
@@ -1049,6 +1299,40 @@ double MMGrid::getCurrentError() {
     return pointError;
 }
 
+void MMGrid::setPath(vector<cpVect> path, int target)
+{
+    cpVect targPos = bottomLeft + getJointOffset(target);
+    cpVect startPoint = path[0];
+    vector<cpVect> targetPath = {};
+    cout << "Modifying path" << endl;
+    for (auto point : path) {
+        cpVect newPoint = point - startPoint + targPos;
+        cout << point.x << ", " << point.y << " | " << newPoint.x << ", " << newPoint.y << endl;
+        targetPath.push_back(point - startPoint + targPos);
+    }
+    for (int i = 0; i < targets.size(); i++) {
+        if (targets[i] == target) {
+            targetPaths[i] = targetPath;
+            updateTargetRenderPaths();
+            return;
+        }
+    }
+    targets.push_back(target);
+    targetPaths.push_back(targetPath);
+    updateTargetRenderPaths();
+}
+
+void MMGrid::recordPoints() {
+    for (int i = 0; i < targetPaths.size(); i++)
+    {
+        cout << "recording point" << i << endl;
+        int targetIndex = targets[i];
+        vector<cpVect> targetPath = targetPaths[i];
+        cpVect posActual = cpBodyGetPosition(joints[targetIndex]);
+        calculatedPaths[i].push_back(posActual);
+    }
+}
+
 double MMGrid::getPathError()
 {
     int pathStepsPerSec = 3;
@@ -1056,6 +1340,10 @@ double MMGrid::getPathError()
     double totError = 0;
     double haltDelta = 1e-4;
     update_follow_path(timeStep, pathStepsPerSec);
+    calculatedPaths.clear();
+    for (int i = 0; i < targetPaths.size(); i++) {
+        calculatedPaths.push_back({});
+    }
     for(int i = 0; i < (rows + 1) * (cols + 1); i++) {
         if(!isConstrained(i)) {
             cpSpaceRemoveBody(space, joints[i]);
@@ -1067,7 +1355,7 @@ double MMGrid::getPathError()
     for (int pathStep = 0; pathStep < targetPaths[0].size(); pathStep++)
     {
         int numIterations = 0;
-        double curError, prevError = INT8_MAX;
+        double curError = INT8_MAX, prevError = INT8_MAX;
         clock_t start, end;
         start = clock();
         while(pointIndex < pathStep) {
@@ -1080,6 +1368,7 @@ double MMGrid::getPathError()
             }
             prevError = curError;
         }
+        recordPoints();
         end = clock();
         cout << "For path step " << pathStep << " error is " << curError << " with " << numIterations << " iterations in " << double(end - start) / double(CLOCKS_PER_SEC) << " seconds." << endl;
         totError += curError;

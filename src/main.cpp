@@ -483,7 +483,7 @@ void main_verify()
 			ImGui::InputInt("Optimization Iterations", &iterations);
 			if (ImGui::Button("Generate Cell Placement"))
 			{
-				SimulatedAnnealing sa(myGrid);
+				SimulatedAnnealing sa(myGrid, 2, 3);
 				MMGrid newGrid = sa.simulate(iterations);
 				rows = newGrid.getRows();
 				cols = newGrid.getCols();
@@ -871,8 +871,8 @@ void main_verify()
 
 int main()
 {
-	// main_draw_debug();
+	main_draw_debug();
 	// main_sa();
-	main_verify();
+	// main_verify();
 	return 0;
 }

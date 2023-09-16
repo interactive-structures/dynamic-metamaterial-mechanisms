@@ -2,6 +2,8 @@
 #include <vector>
 #include <unordered_map>
 
+#pragma once
+
 using std::unordered_map;
 using std::vector;
 
