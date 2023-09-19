@@ -1,15 +1,19 @@
 const int CellNum = 6;
 int readPin[CellNum] = {A0,A1,A2,A4,A3,A6};
 int bagPin[CellNum*2][2] = {
-  {28,31}, {32,33},
-  {9,8}, {7,6},
-  {5,4}, {3,2},
   {40,41}, {42,43},
   {44,45}, {46,47},
-  {34,35}, {36,37}
+  {28,31}, {32,33},
+  {34,35}, {36,37},
+  {9,8}, {7,6},
+  {5,4}, {3,2}
 };
 
-const float tolerance = 1.0; // adjust this for application
+// const int CellNum = 1;
+// int readPin[CellNum] = {A0};
+// int bagPin[CellNum*2][2] = {{2,3},{4,5}};
+
+const float tolerance = 2.0; // adjust this for application
 bool initializeInflation = false;
 unsigned long constCellsPulseLength[CellNum][2];
 unsigned long cellsPulseLength[CellNum][2];
@@ -147,16 +151,16 @@ float getSensorAngleInDegs(int sensorIndex) {
   // CJMCU-103 Rotary Angle Module SV01A103AEA01R00 has effective rotation angle 333.3 which can guarantee linearity
   // 512 indicates 90 degs
   
-  float incomingByte = analogRead(readPin[sensorIndex]);
-  return (incomingByte / 1024) * 333.3 - 76.65;
+  // float incomingByte = analogRead(readPin[sensorIndex]);
+  // return 256.65 - (incomingByte / 1024) * 333.3;
   
-  // if (sensorIndex == 3) {
-  //   float incomingByte = analogRead(readPin[sensorIndex]);
-  //   return 256.65 - (incomingByte / 1024) * 333.3;
-  // } else {
-  //   float incomingByte = analogRead(readPin[sensorIndex]);
-  //   return (incomingByte / 1024) * 333.3 - 76.65;
-  // }
+  if (sensorIndex == 0) {
+    float incomingByte = analogRead(readPin[sensorIndex]);
+    return 256.65 - (incomingByte / 1024) * 333.3;
+  } else {
+    float incomingByte = analogRead(readPin[sensorIndex]);
+    return (incomingByte / 1024) * 333.3 - 76.65;
+  }
 }
 
 float movingAverage(int sensorIndex, float newSensorAngle) {
@@ -196,14 +200,14 @@ void testSensorSignal() {
     Serial.println(movingAverage(0, getSensorAngleInDegs(0)));
     Serial.print("ASS2:");
     Serial.println(movingAverage(1, getSensorAngleInDegs(1)));
-    Serial.print("ASS3:");
-    Serial.println(movingAverage(2, getSensorAngleInDegs(2)));
-    Serial.print("ASS4:");
-    Serial.println(movingAverage(3, getSensorAngleInDegs(3)));
-    Serial.print("ASS5:");
-    Serial.println(movingAverage(4, getSensorAngleInDegs(4)));
-    Serial.print("ASS6:");
-    Serial.println(movingAverage(5, getSensorAngleInDegs(5)));
+    // Serial.print("ASS3:");
+    // Serial.println(movingAverage(2, getSensorAngleInDegs(2)));
+    // Serial.print("ASS4:");
+    // Serial.println(movingAverage(3, getSensorAngleInDegs(3)));
+    // Serial.print("ASS5:");
+    // Serial.println(movingAverage(4, getSensorAngleInDegs(4)));
+    // Serial.print("ASS6:");
+    // Serial.println(movingAverage(5, getSensorAngleInDegs(5)));
   }
   delay(200);
 }
@@ -211,10 +215,10 @@ void testSensorSignal() {
 void testSensorSignal(int sensorIndex) {
   Serial.print("Sensor "); Serial.print(sensorIndex); Serial.print(": ");
   float incomingByte = analogRead(readPin[sensorIndex]);
-  float calibratedAngle = (incomingByte / 1024) * 333.3 - 76.65;
-  // float calibratedAngle = 256.65 - (incomingByte / 1024) * 333.3;
+  // float calibratedAngle = (incomingByte / 1024) * 333.3 - 76.65;
+  float calibratedAngle = 256.65 - (incomingByte / 1024) * 333.3;
   Serial.println(calibratedAngle);
-  delay(500);
+  delay(200);
   Serial.println();
 }
 
@@ -395,7 +399,7 @@ void unifiedUpdate(float angleSteps[][CellNum], int stepSize, int waiting) {
     
     unsigned long actuationTime;
     if (angleDiffs[i] > 0) {
-      if (numUnchangedAngleDiff[i] >= 10) { // *changed to 3
+      if (numUnchangedAngleDiff[i] >= 10) {
         // linear control
         // if (abs(angleDiffs[i]) > 5.0) {
         //   cellsPulseLength[i][1] = cellsPulseLength[i][1] * 1.05;
@@ -463,13 +467,12 @@ void unifiedUpdate(float angleSteps[][CellNum], int stepSize, int waiting) {
         vent(cellLeftBagIndex);
         inflate(cellRightBagIndex);
       }
-          
+      
     } else {
       // in case vent not happened
       if (overShoot[i]) {
         lock(cellLeftBagIndex);
         lock(cellRightBagIndex);
-        
       } else {
         if (angleDiffs[i] < 0) {
           lock(cellLeftBagIndex);
@@ -492,7 +495,7 @@ void unifiedUpdate(float angleSteps[][CellNum], int stepSize, int waiting) {
           numUnchangedAngleDiff[i] = 0;  
         }
       } else {
-        // *reset the actuation puleseLength in case over shooting
+        // even if only one active has reached, reset its actuation puleseLength in case over shooting
         cellsPulseLength[i][0] = constCellsPulseLength[i][0];
         cellsPulseLength[i][1] = constCellsPulseLength[i][1];
       }
@@ -725,8 +728,8 @@ void setup() {
     digitalWrite(bagPin[i][1], LOW);
   }
   
+  // adapted to 13V power supply, 20~30 psi air pressure
   for (int i=0; i<CellNum; i++) {
-    // adapted to 13V power supply, 20~30 psi air pressure
     constCellsPulseLength[i][0] = minActuation;
     constCellsPulseLength[i][1] = minActuation;
     cellsPulseLength[i][0] = minActuation;
@@ -747,19 +750,19 @@ void setup() {
 }
 
 void loop() {
-  update = 1;
+  update = 2;
   
   if (update == 1) {
     int start = 0;
-    int end = 1;
-    // // draw a path according to angle data from the software (flower)
-    // if (!initializeInflation) {
-    //   delay(1000);
-    //   initializeAirbags(start, end);
-    //   // delay(1000);
-    // }
-    initializeInflation = true;
-    separateUpdate(start, end, 75.0);
+    int end = CellNum;
+    // // draw a path according to angle data from the software (flower path)
+    if (!initializeInflation) {
+      delay(1000);
+      initializeAirbags(start, end);
+      // delay(1000);
+    }
+    // initializeInflation = true;
+    // separateUpdate(start, end, 75.0);
     
     // if (updateFinished) {
     //   // testSensorSignal();
@@ -768,12 +771,20 @@ void loop() {
     // }
     
   } else if (update == 2) {
-    int evalCell = 0;
-    testSensorSignal(evalCell);
-    // testSensorSignal();
+    // int evalCell = 1;
+    // testSensorSignal(evalCell);
+    testSensorSignal();
     
   } else if (update == 3) {
-    ventAllAirbags();
+    // ventAllAirbags();
+    
+    uint8_t i= 1;
+    uint8_t cellLeftBagIndex = i * 2;
+    uint8_t cellRightBagIndex = i * 2 + 1;
+    // vent(cellLeftBagIndex);
+    // vent(cellRightBagIndex);
+    inflate(cellLeftBagIndex);
+    inflate(cellRightBagIndex);
     
   } else if (update == 4) {
     bool loopMovement = 1;
