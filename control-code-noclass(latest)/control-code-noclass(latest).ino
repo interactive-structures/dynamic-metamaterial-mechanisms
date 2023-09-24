@@ -1,23 +1,23 @@
 const int CellNum = 6;
-int readPin[CellNum] = {A0,A1,A2,A4,A3,A6};
+int readPin[CellNum] = {A0,A1,A2,A3,A4,A6};
 int bagPin[CellNum*2][2] = {
-  {40,41}, {42,43},
-  {44,45}, {46,47},
   {28,31}, {32,33},
   {34,35}, {36,37},
   {9,8}, {7,6},
-  {5,4}, {3,2}
+  {5,4}, {3,2},
+  {40,41}, {42,43},
+  {44,45}, {46,47}
 };
 
 // const int CellNum = 1;
 // int readPin[CellNum] = {A0};
 // int bagPin[CellNum*2][2] = {{2,3},{4,5}};
 
-const float tolerance = 2.0; // adjust this for application
+const float tolerance = 3.0; // adjust this for application
 bool initializeInflation = false;
 unsigned long constCellsPulseLength[CellNum][2];
 unsigned long cellsPulseLength[CellNum][2];
-int minActuation = 3500; // adjust this for application
+int minActuation = 3000; // adjust this for application
 unsigned long actuationInverval = 100000;
 unsigned int loopCount = 0;
 unsigned long lastUpdated[CellNum];
@@ -35,7 +35,7 @@ uint8_t update;
 bool allReached;
 bool updateFinished;
 uint8_t tryLimitNum;
-uint8_t tryLimitValue = 10;
+uint8_t tryLimitValue = 3;
 bool tryLimitReached; // give a limit tries in case never satisfied
 const int pathStepSize = 99; // number of points on the path defined in software
 
@@ -56,41 +56,42 @@ float mAngleSteps[mPointStepSize][CellNum];
 const int mPathStepSize = 25; // number of sampling points on a user-defined path
 
 // control parameters
-bool useProportionalControl = false;
+bool useProportionalControl = true;
 float prop_factor = 0.1; // use 1.01 for best performance
+float intitialSensorError[CellNum] = {-6, 1.56, 2.37, -1, -12, 0.88};
 
 int stepIndex = 0;
 float collectedAngles[50][CellNum] = {};
 
-float waterDropGeneratedAngles[mPathStepSize][6] = {
-  {88.0002,100.0002,100.0002,99.0002,91.2002,89.3002},
-  {85.6522,97.4781,101.0195,95.6329,90.1803,85.7588},
-  {82.9112,94.9112,102.1849,91.7265,89.0149,82.0265},
-  {80.4423,92.4423,103.395,88.0475,87.8049,78.3475},
-  {77.5569,89.5569,104.8257,83.7315,86.3748,74.0315},
-  {75.0393,87.0393,106.3228,79.7162,84.877,70.0162},
-  {73.274,85.274,107.8686,76.4056,83.3312,66.7056},
-  {65.4198,84.4198,109.6471,73.7723,81.5527,64.0723},
-  {65.4708,84.4708,111.006,72.4642,80.1937,62.7642},
-  {65.9286,84.9286,112.43,71.4988,78.7705,61.7988},
-  {73.6929,85.6929,113.335,71.3584,77.8652,61.6584},
-  {75.0176,87.0176,114.317,71.7005,76.8826,62.0005},
-  {77.6142,89.6142,115.321,73.2939,75.8793,63.5939},
-  {79.7204,91.7204,115.759,74.9612,75.441,65.2612},
-  {82.0414,94.0414,115.607,77.4341,75.5928,67.7341},
-  {84.9355,96.9355,114.859,81.0769,76.3411,71.3769},
-  {87.4072,99.4072,113.344,85.0636,77.8566,75.3636},
-  {88.7187,100.7187,110.877,88.8417,80.3232,79.1417},
-  {88.5823,100.5823,108.5104,91.0722,82.6895,81.3722},
-  {87.3912,99.3912,107.1479,91.2429,84.052,81.5429},
-  {85.4654,97.4654,105.5201,90.9456,85.6798,81.2456},
-  {85.4935,97.4935,104.0304,92.4633,87.1695,82.7633},
-  {86.1559,98.1559,102.429,94.7271,88.7714,85.0271},
-  {87.1373,99.1373,101.0493,97.0877,90.1506,87.3877},
-  {87.9418,99.9418,100.1177,98.8243,91.0828,89.1243}
+float waterDropGeneratedAngles[25][6] = {
+  {90.0002,90.0002,90.0002,90.0002,90.0002,90.0002},
+  {87.6522,87.4781,91.0195,86.6329,88.9803,86.4588},
+  {84.9112,84.9112,92.1849,82.7265,87.8149,82.7265},
+  {82.4423,82.4423,93.395,79.0475,86.6049,79.0475},
+  {79.5569,79.5569,94.8257,74.7315,85.1748,74.7315},
+  {77.0393,77.0393,96.3228,70.7162,83.677,70.7162},
+  {75.274,75.274,97.8686,67.4056,82.1312,67.4056},
+  {74.4198,74.4198,99.6471,64.7723,80.3527,64.7723},
+  {74.4708,74.4708,101.006,63.4642,78.9937,63.4642},
+  {74.9286,74.9286,102.43,62.4988,77.5705,62.4988},
+  {75.6929,75.6929,103.335,62.3584,76.6652,62.3584},
+  {77.0176,77.0176,104.317,62.7005,75.6826,62.7005},
+  {79.6142,79.6142,105.321,64.2939,74.6793,64.2939},
+  {81.7204,81.7204,105.759,65.9612,74.241,65.9612},
+  {84.0414,84.0414,105.607,68.4341,74.3928,68.4341},
+  {86.9355,86.9355,104.859,72.0769,75.1411,72.0769},
+  {89.4072,89.4072,103.344,76.0636,76.6566,76.0636},
+  {90.7187,90.7187,100.877,79.8417,79.1232,79.8417},
+  {90.5823,90.5823,98.5104,82.0722,81.4895,82.0722},
+  {89.3912,89.3912,97.1479,82.2429,82.852,82.2429},
+  {87.4654,87.4654,95.5201,81.9456,84.4798,81.9456},
+  {87.4935,87.4935,94.0304,83.4633,85.9695,83.4633},
+  {88.1559,88.1559,92.429,85.7271,87.5714,85.7271},
+  {89.1373,89.1373,91.0493,88.0877,88.9506,88.0877},
+  {89.9418,89.9418,90.1177,89.8243,89.8828,89.8243}
 };
 
-float flowerGeneratedAngles[mPathStepSize][6] = {
+float flowerGeneratedAngles[25][6] = {
   {89.0002,99.0002,99.0002,100.0002,92.2002,88.0002},
   {96.2155,97.8801,99.4872,106.7279,91.7126,86.3931},
   {91.9847,101.9847,102.6408,99.3436,88.5591,87.3436},
@@ -118,49 +119,60 @@ float flowerGeneratedAngles[mPathStepSize][6] = {
   {85.5533,95.5533,100.9775,94.576,90.2229,82.576}
 };
 
-float heartGeneratedAngles[26][6] = {
-  {87.0002,91.0002,101.0002,99.5002,89.0002,88.0002},
-  {88.1559,92.1559,100.1746,101.4809,89.8253,89.9809},
-  {91.0046,95.0046,98.1079,106.3969,91.8919,94.8969},
-  {95.5275,99.5275,95.929,113.099,94.0709,101.599},
-  {100.936,104.936,94.1786,120.257,95.8218,108.757},
-  {105.252,109.252,94.1969,124.556,95.8029,113.056},
-  {106.517,110.517,96.1203,123.897,93.8801,112.397},
-  {105.168,109.168,99.5793,119.088,90.4206,107.588},
-  {102.168,106.168,104.0478,111.621,85.9526,100.121},
-  {97.099,101.099,109.0549,101.544,80.945,90.044},
-  {90.4042,94.4042,113.622,90.2813,76.3774,78.7813},
-  {84.8946,88.8946,116.765,81.6297,73.2347,70.1297},
-  {82.3782,86.3782,117.912,77.9667,72.0888,66.4667},
-  {80.0038,84.0038,116.52,76.9835,73.4794,65.4835},
-  {75.2403,79.2403,113.078,75.6629,76.9228,64.1629},
-  {70.6732,74.6732,108.1387,76.0347,81.8612,64.5347},
-  {69.1314,73.1314,103.5436,79.0874,86.4563,67.5874},
-  {70.2211,74.2211,99.86,83.8613,90.1404,72.3613},
-  {72.5777,76.5777,97.1402,88.9377,92.8597,77.4377},
-  {76.1369,80.1369,95.4884,94.1488,94.5115,82.6488},
-  {80.5974,84.5974,95.105,98.9926,94.8948,87.4926},
-  {84.0002,88.0002,96.3111,101.1893,93.6887,89.6893},
-  {86.0565,90.0565,98.1979,101.3589,91.802,89.8589},
-  {86.6885,90.6885,100.1866,100.0021,89.8132,88.5021},
-  {87.0002,91.0002,101.0002,99.5002,89.0002,88.0002},
-  {100.0002,105.0002,102.0002,103.5002,89.0002,90.0002}
+float heartGeneratedAngles[36][6] = {
+  {90.0002,90.0002,90.0002,90.0002,90.0002,90.0002},
+  {91.1559,91.1559,89.1746,91.9809,90.8253,91.9809},
+  {94.0046,94.0046,87.1079,96.8969,92.8919,96.8969},
+  {98.5275,98.5275,84.929,103.599,95.0709,103.599},
+  {101.16,101.16,83.94,107.22,96.0604,107.22},
+  {106.572,106.572,83.0353,113.537,96.9645,113.537},
+  {109.241,109.241,83.9991,115.241,96.0008,115.241},
+  {108.994,108.994,86.7458,112.248,93.254,112.248},
+  {106.712,106.712,90.8316,105.881,89.1688,105.881},
+  {103.203,103.203,95.4376,97.7661,84.5628,97.7661},
+  {100.099,100.099,98.0549,92.044,81.945,92.044},
+  {96.7766,96.7766,100.405,86.3711,79.5947,86.3711},
+  {93.4042,93.4042,102.622,80.7813,77.3774,80.7813},
+  {90.47,90.47,104.394,76.0756,75.6058,76.0756},
+  {87.8946,87.8946,105.765,72.1297,74.2347,72.1297},
+  {86.127,86.127,106.637,69.49,73.3632,69.49},
+  {85.3782,85.3782,106.912,68.4667,73.0888,68.4667},
+  {83.0038,83.0038,105.52,67.4835,74.4794,67.4835},
+  {78.2403,78.2403,102.078,66.1629,77.9228,66.1629},
+  {75.7364,75.7364,99.6884,66.0477,80.3115,66.0477},
+  {73.6732,73.6732,97.1387,66.5347,82.8612,66.5347}, 
+  {74.3017,74.3017,87.4133,76.8886,95.5871,76.8886},
+  {75.5777,75.5777,86.1402,79.4377,100.8597,79.4377},
+  {77.1631,77.1631,85.2217,81.9416,97.7787,81.9416},
+  {79.1369,79.1369,84.4884,84.6488,95.5115,84.6488},
+  {81.0592,81.0592,84.2088,86.8507,95.7911,86.8507},
+  {83.5974,83.5974,84.105,89.4926,95.8948,89.4926},
+  {85.5076,85.5076,84.5691,90.9387,95.4313,90.9387},
+  {87.0002,87.0002,85.3111,91.6893,94.6887,91.6893},
+  {88.1822,88.1822,86.1837,91.9981,93.8161,91.9981},
+  {89.0565,89.0565,87.1979,91.8589,92.802,91.8589},
+  {89.4771,89.4771,88.1942,91.2831,91.8056,91.2831},
+  {89.6885,89.6885,89.1866,90.5021,90.8132,90.5021},
+  {89.8375,89.8375,89.8369,90.0008,90.1635,90.0008},
+  {90.0002,90.0002,90.0002,90.0002,90.0002,90.0002},
+  {90.0002,90.0002,90.0002,90.0002,90.0002,90.0002}
 };
 
 float getSensorAngleInDegs(int sensorIndex) {
   // CJMCU-103 Rotary Angle Module SV01A103AEA01R00 has effective rotation angle 333.3 which can guarantee linearity
   // 512 indicates 90 degs
   
-  // float incomingByte = analogRead(readPin[sensorIndex]);
-  // return 256.65 - (incomingByte / 1024) * 333.3;
+  // consider the intial error caused by sensor and position
+  float incomingByte = analogRead(readPin[sensorIndex]);
+  return 256.65 - (incomingByte / 1024) * 333.3 - intitialSensorError[sensorIndex];
   
-  if (sensorIndex == 0) {
-    float incomingByte = analogRead(readPin[sensorIndex]);
-    return 256.65 - (incomingByte / 1024) * 333.3;
-  } else {
-    float incomingByte = analogRead(readPin[sensorIndex]);
-    return (incomingByte / 1024) * 333.3 - 76.65;
-  }
+  // if (sensorIndex == 0) {
+  //   float incomingByte = analogRead(readPin[sensorIndex]);
+  //   return 256.65 - (incomingByte / 1024) * 333.3;
+  // } else {
+  //   float incomingByte = analogRead(readPin[sensorIndex]);
+  //   return (incomingByte / 1024) * 333.3 - 76.65;
+  // }
 }
 
 float movingAverage(int sensorIndex, float newSensorAngle) {
@@ -195,19 +207,21 @@ void testSensorSignal() {
     Serial.println(getSensorAngleInDegs(3));
     Serial.print("SS5:");
     Serial.println(getSensorAngleInDegs(4));
+    Serial.print("SS6:");
+    Serial.println(getSensorAngleInDegs(5));
   } else {
     Serial.print("ASS1:");
     Serial.println(movingAverage(0, getSensorAngleInDegs(0)));
     Serial.print("ASS2:");
     Serial.println(movingAverage(1, getSensorAngleInDegs(1)));
-    // Serial.print("ASS3:");
-    // Serial.println(movingAverage(2, getSensorAngleInDegs(2)));
-    // Serial.print("ASS4:");
-    // Serial.println(movingAverage(3, getSensorAngleInDegs(3)));
-    // Serial.print("ASS5:");
-    // Serial.println(movingAverage(4, getSensorAngleInDegs(4)));
-    // Serial.print("ASS6:");
-    // Serial.println(movingAverage(5, getSensorAngleInDegs(5)));
+    Serial.print("ASS3:");
+    Serial.println(movingAverage(2, getSensorAngleInDegs(2)));
+    Serial.print("ASS4:");
+    Serial.println(movingAverage(3, getSensorAngleInDegs(3)));
+    Serial.print("ASS5:");
+    Serial.println(movingAverage(4, getSensorAngleInDegs(4)));
+    Serial.print("ASS6:");
+    Serial.println(movingAverage(5, getSensorAngleInDegs(5)));
   }
   delay(200);
 }
@@ -370,10 +384,10 @@ void initializeAirbags(int start, int end) {
     int num = 2;
     for (int j=0; j<num; j++) {
       inflate(cellLeftBagIndex);
-      delayMicroseconds(8000);
+      delayMicroseconds(6000);
       lock(cellLeftBagIndex);
       inflate(cellRightBagIndex);
-      delayMicroseconds(8000);
+      delayMicroseconds(6000);
       lock(cellRightBagIndex);
       delay(actuationInverval/1000);
     }
@@ -399,7 +413,7 @@ void unifiedUpdate(float angleSteps[][CellNum], int stepSize, int waiting) {
     
     unsigned long actuationTime;
     if (angleDiffs[i] > 0) {
-      if (numUnchangedAngleDiff[i] >= 10) {
+      if (numUnchangedAngleDiff[i] >= 2) {
         // linear control
         // if (abs(angleDiffs[i]) > 5.0) {
         //   cellsPulseLength[i][1] = cellsPulseLength[i][1] * 1.05;
@@ -411,10 +425,9 @@ void unifiedUpdate(float angleSteps[][CellNum], int stepSize, int waiting) {
             float prop_p = (abs(angleDiffs[i]) * prop_factor + abs(currentAngle[i])) / abs(currentAngle[i]); // proportional control
             cellsPulseLength[i][1] = cellsPulseLength[i][1] * prop_p;
           } else {
-            // cellsPulseLength[i][1] = cellsPulseLength[i][1] * 1.1;
             // float prop_p = (abs(angleDiffs[i]) * prop_factor + abs(currentAngle[i])) / abs(currentAngle[i]); // proportional control
             // cellsPulseLength[i][1] = cellsPulseLength[i][1] * prop_p;
-            cellsPulseLength[i][1] += 50;
+            cellsPulseLength[i][1] += 100;
           }
           numUnchangedAngleDiff[i] = 0;
         } else {
@@ -424,7 +437,7 @@ void unifiedUpdate(float angleSteps[][CellNum], int stepSize, int waiting) {
       }
       actuationTime = cellsPulseLength[i][1];
     } else {
-      if (numUnchangedAngleDiff[i] >= 10) {
+      if (numUnchangedAngleDiff[i] >= 2) {
         // linear control
         // if (abs(angleDiffs[i]) > 5.0) {
         //   cellsPulseLength[i][0] = cellsPulseLength[i][0] * 1.05;
@@ -436,10 +449,9 @@ void unifiedUpdate(float angleSteps[][CellNum], int stepSize, int waiting) {
             float prop_p = (abs(angleDiffs[i]) * prop_factor + abs(currentAngle[i])) / abs(currentAngle[i]); // proportional control
             cellsPulseLength[i][0] = cellsPulseLength[i][0] * prop_p;
           } else {
-            // cellsPulseLength[i][0] = cellsPulseLength[i][0] * 1.1;
             // float prop_p = (abs(angleDiffs[i]) * prop_factor + abs(currentAngle[i])) / abs(currentAngle[i]); // proportional control
             // cellsPulseLength[i][0] = cellsPulseLength[i][0] * prop_p;
-            cellsPulseLength[i][0] += 50;
+            cellsPulseLength[i][0] += 100;
           }
           numUnchangedAngleDiff[i] = 0;
         } else {
@@ -462,18 +474,23 @@ void unifiedUpdate(float angleSteps[][CellNum], int stepSize, int waiting) {
       
       if (angleDiffs[i] < 0) {
         vent(cellRightBagIndex);
-        inflate(cellLeftBagIndex);
+        if (!overShoot[i]) {
+          inflate(cellLeftBagIndex);
+        }
       } else {
         vent(cellLeftBagIndex);
-        inflate(cellRightBagIndex);
+        if (!overShoot[i]) {
+          inflate(cellRightBagIndex);
+        }
       }
       
     } else {
-      // in case vent not happened
       if (overShoot[i]) {
+        // if overshooting, lock all airbags for slow movement
         lock(cellLeftBagIndex);
         lock(cellRightBagIndex);
       } else {
+        // in case vent not happened
         if (angleDiffs[i] < 0) {
           lock(cellLeftBagIndex);
         } else {
@@ -481,6 +498,7 @@ void unifiedUpdate(float angleSteps[][CellNum], int stepSize, int waiting) {
         }
       }
       
+      // do not use overshooting control logic
       // lock(cellLeftBagIndex);
       // lock(cellRightBagIndex);
       
@@ -492,20 +510,27 @@ void unifiedUpdate(float angleSteps[][CellNum], int stepSize, int waiting) {
         if (abs(abs(angleDiffs[i]) - abs(prevAngleDiffs[i])) < 0.5) { // =0 or <1 or <0.5
           numUnchangedAngleDiff[i] += 1;
         } else {
-          numUnchangedAngleDiff[i] = 0;  
+          numUnchangedAngleDiff[i] = 0;
         }
+        
+        // check if overshooting happens
+        if (prevAngleDiffs[i] < 0 && angleDiffs[i] > 0 || prevAngleDiffs[i] > 0 && angleDiffs[i] < 0) {
+          cellsPulseLength[i][0] = constCellsPulseLength[i][0];
+          cellsPulseLength[i][1] = constCellsPulseLength[i][1];
+          numUnchangedAngleDiff[i] = 0;
+
+          // set overshooting to true
+          overShoot[i] = true;
+        }
+        
       } else {
-        // even if only one active has reached, reset its actuation puleseLength in case over shooting
-        cellsPulseLength[i][0] = constCellsPulseLength[i][0];
-        cellsPulseLength[i][1] = constCellsPulseLength[i][1];
-      }
-      
-      // check if overshooting happens
-      if (prevAngleDiffs[i] < 0 && angleDiffs[i] > 0 || prevAngleDiffs[i] > 0 && angleDiffs[i] < 0) {
+        // even if only one active has reached, reset its actuation puleseLength in case overshooting
         cellsPulseLength[i][0] = constCellsPulseLength[i][0];
         cellsPulseLength[i][1] = constCellsPulseLength[i][1];
         numUnchangedAngleDiff[i] = 0;
-        overShoot[i] = true;
+        
+        // set overshooting to false
+        overShoot[i] = false;
       }
       
       prevAngleDiffs[i] = angleDiffs[i];
@@ -573,7 +598,7 @@ void unifiedUpdate(float angleSteps[][CellNum], int stepSize, int waiting) {
     for (int j=0; j<CellNum; j++) {
       cellsPulseLength[j][0] = constCellsPulseLength[j][0];
       cellsPulseLength[j][1] = constCellsPulseLength[j][1];
-      overShoot[j] = 0; // reset overShoot status
+      overShoot[j] = false; // reset overShoot status
     }
     
     Serial.print("Point "); Serial.print(stepIndex); Serial.println(" is satisfied!"); Serial.println();
@@ -584,6 +609,7 @@ void unifiedUpdate(float angleSteps[][CellNum], int stepSize, int waiting) {
     delay(waiting);
     
   } else if (tryLimitReached) {
+    // lock all airbags in case over-shooting
     for (int j=0; j<CellNum; j++) {
       uint8_t cellLeftBagIndex = j * 2;
       uint8_t cellRightBagIndex = j * 2 + 1;
@@ -594,7 +620,7 @@ void unifiedUpdate(float angleSteps[][CellNum], int stepSize, int waiting) {
     for (int j=0; j<CellNum; j++) {
       cellsPulseLength[j][0] = constCellsPulseLength[j][0];
       cellsPulseLength[j][1] = constCellsPulseLength[j][1];
-      overShoot[j] = 0; // reset overShoot status
+      overShoot[j] = false; // reset overShoot status
     }
     
     Serial.print("The point "); Serial.print(stepIndex); Serial.println(" is passed");
@@ -750,41 +776,32 @@ void setup() {
 }
 
 void loop() {
-  update = 2;
+  update = 3;
   
   if (update == 1) {
-    int start = 0;
-    int end = CellNum;
+    // int start = 0;
+    // int end = CellNum;
     // // draw a path according to angle data from the software (flower path)
-    if (!initializeInflation) {
-      delay(1000);
-      initializeAirbags(start, end);
-      // delay(1000);
-    }
+    // if (!initializeInflation) {
+    //   delay(1000);
+    //   initializeAirbags(start, end);
+    // }
     // initializeInflation = true;
     // separateUpdate(start, end, 75.0);
     
-    // if (updateFinished) {
-    //   // testSensorSignal();
-    // } else {
-    //   unifiedUpdate(waterDropGeneratedAngles, mPathStepSize, 0);
-    // }
+    if (updateFinished) {
+      // testSensorSignal();
+    } else {
+      unifiedUpdate(waterDropGeneratedAngles, 25, 0);
+    }
     
   } else if (update == 2) {
-    // int evalCell = 1;
+    // int evalCell = 0;
     // testSensorSignal(evalCell);
     testSensorSignal();
     
   } else if (update == 3) {
-    // ventAllAirbags();
-    
-    uint8_t i= 1;
-    uint8_t cellLeftBagIndex = i * 2;
-    uint8_t cellRightBagIndex = i * 2 + 1;
-    // vent(cellLeftBagIndex);
-    // vent(cellRightBagIndex);
-    inflate(cellLeftBagIndex);
-    inflate(cellRightBagIndex);
+    ventAllAirbags();
     
   } else if (update == 4) {
     bool loopMovement = 1;
