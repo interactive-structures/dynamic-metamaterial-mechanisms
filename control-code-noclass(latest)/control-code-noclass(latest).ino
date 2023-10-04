@@ -1,68 +1,62 @@
-const int CellNum = 6;
-int readPin[CellNum] = {A0,A1,A2,A3,A4,A6};
-int bagPin[CellNum*2][2] = {
-  {28,31}, {32,33},
-  {34,35}, {36,37},
-  {9,8}, {7,6},
-  {5,4}, {3,2},
-  {40,41}, {42,43},
-  {44,45}, {46,47}
-};
+// hardware connection
+const int CellNum = 6; // number of active cells
+int readPin[CellNum] = {A0,A1,A2,A3,A4,A6}; // pin number to read the sensor signal
+// pin number to control the valve, each airbag requires 4 valves to control
+int bagPin[CellNum*2][2] = {{28,31}, {32,33}, {34,35}, {36,37}, {9,8}, {7,6}, {5,4}, {3,2}, {40,41}, {42,43}, {44,45}, {46,47}};
 
 // const int CellNum = 1;
 // int readPin[CellNum] = {A0};
 // int bagPin[CellNum*2][2] = {{2,3},{4,5}};
 
-const float tolerance = 3.0; // adjust this for application
-bool initializeInflation = false;
-unsigned long constCellsPulseLength[CellNum][2];
-unsigned long cellsPulseLength[CellNum][2];
-int minActuation = 3000; // adjust this for application
-unsigned long actuationInverval = 100000;
-unsigned int loopCount = 0;
-unsigned long lastUpdated[CellNum];
-long timeDiffs[CellNum];
-bool actuated[CellNum];
-bool cellsState[CellNum];
-float angleDiffs[CellNum];
-float prevAngleDiffs[CellNum];
-float targetAngle[CellNum];
-float currentAngle[CellNum];
-uint8_t numUnchanged = 0;
-uint8_t numUnchangedAngleDiff[CellNum];
-bool overShoot[CellNum];
-uint8_t update;
-bool allReached;
-bool updateFinished;
-uint8_t tryLimitNum;
-uint8_t tryLimitValue = 3;
-bool tryLimitReached; // give a limit tries in case never satisfied
-const int pathStepSize = 99; // number of points on the path defined in software
+// parameters for the control loop
+bool useProportionalControl = true;
+float prop_factor = 0.1; // the parameter for the proportional control, the larger the parameter, the quicker to reach the target (also with more overshooting)
+const float tolerance = 3.0; // the tolerance to determine if the active cell reaches the target angle
+uint8_t tryLimitNum; // count the number of tries
+uint8_t tryLimitValue = 3; // give a limit number of tries in case never satisfied
+bool tryLimitReached; // record the status of whether the tryLimitNum is reached
+int minActuation = 3000; // the minimum duration for each inflation of the airbag
+unsigned long actuationInverval = 100000; // the interval between each actuation, no need to change
+unsigned int loopCount = 0; // record the number of looped times
 
-// moving average filter for sensor readings
-bool useRawSignal = false;
-const int windowSize = 6;
-float sensorAngleReadings[CellNum][windowSize];
-float readingsSum[CellNum];
-int windowIndex[CellNum];
+bool initializeInflation = false; // whether to use the initialization function to pre-inflated all the airbags to 90degs
+unsigned long constCellsPulseLength[CellNum][2]; // the array to store the constant minActuation (two airbags in one active cell are stored separately)
+unsigned long cellsPulseLength[CellNum][2]; // the array to store the dynamic adjustment of the inflation duration (two airbags in one active cell are stored separately)
+unsigned long lastUpdated[CellNum]; // the array to record the time when the last actuation was completed
+long timeDiffs[CellNum]; // the array to record the time interval between each actuation, which is useful to observe how fast the program runs
+bool actuated[CellNum]; // the array to record the status of whether the active cell has been actuated, if actuated, jump to check the next active cell
+float currentAngle[CellNum]; // the array to record the current angle of the active cell
+float targetAngle[CellNum]; // the array to store the target angle of the active cell
+float angleDiffs[CellNum]; // the array to record the angle difference between the current angle and the target angle
+float prevAngleDiffs[CellNum]; // the array to record the previous angle difference between the current angle and the target angle
+bool cellsState[CellNum]; // the array to record the status of whether the active cell has reached the target angle
+uint8_t numUnchangedAngleDiff[CellNum]; // the array to record the number of times that angle difference is not changed after each actuation
+bool overShoot[CellNum]; // the array to record the status of whether the active cell has over-shooted the target angle
+bool allReached; // record the status of whether all active cells have reached the target angle
+bool updateFinished; // whether all the target angles are reached
+uint8_t update; // used in loop()
 
-// user input interaction
+// parameters for moving average filter for sensor readings
+float intitialSensorError[CellNum] = {-6, 1.56, 2.37, -1, -12, 0.88}; // the initial errors caused by sensor and position of the internal scissor mechanisms
+bool useRawSignal = false; // whether to use the raw signal from the sensor, if not, use the moving average filter
+const int windowSize = 6; // window size for moving average filter
+float sensorAngleReadings[CellNum][windowSize]; // the array to store the sensor readings for moving average filter
+float readingsSum[CellNum]; // the array to store the sum of sensor readings for moving average filter
+int windowIndex[CellNum]; // the array to store the index of window
+
+// parameters for user input interaction
 bool targetRecorded;
 bool startReplay;
 unsigned long lastRecordingTime;
 uint8_t pathPointIndex = 0;
 const int mPointStepSize = 1;
 float mAngleSteps[mPointStepSize][CellNum];
-const int mPathStepSize = 25; // number of sampling points on a user-defined path
+const int mPathStepSize = 99; // number of sampling points on a user-defined path from input interaction
+float collectedAngles[mPathStepSize][CellNum] = {}; // the array to store the collected angles of all active cells from input interaction
 
-// control parameters
-bool useProportionalControl = true;
-float prop_factor = 0.1; // use 1.01 for best performance
-float intitialSensorError[CellNum] = {-6, 1.56, 2.37, -1, -12, 0.88};
+int stepIndex = 0; // the index of the starting point on the path
 
-int stepIndex = 0;
-float collectedAngles[50][CellNum] = {};
-
+// angles from the software output
 float waterDropGeneratedAngles[25][6] = {
   {90.0002,90.0002,90.0002,90.0002,90.0002,90.0002},
   {87.6522,87.4781,91.0195,86.6329,88.9803,86.4588},
@@ -160,22 +154,15 @@ float heartGeneratedAngles[36][6] = {
 
 float getSensorAngleInDegs(int sensorIndex) {
   // CJMCU-103 Rotary Angle Module SV01A103AEA01R00 has effective rotation angle 333.3 which can guarantee linearity
-  // 512 indicates 90 degs
+  // The relative value of 512 from the sensor indicates 90 degs
   
-  // consider the intial error caused by sensor and position
+  // consider the intial error caused by sensor and position of the internal scissor mechanisms, and then calibrate it by the array intitialSensorError[sensorIndex]
   float incomingByte = analogRead(readPin[sensorIndex]);
   return 256.65 - (incomingByte / 1024) * 333.3 - intitialSensorError[sensorIndex];
-  
-  // if (sensorIndex == 0) {
-  //   float incomingByte = analogRead(readPin[sensorIndex]);
-  //   return 256.65 - (incomingByte / 1024) * 333.3;
-  // } else {
-  //   float incomingByte = analogRead(readPin[sensorIndex]);
-  //   return (incomingByte / 1024) * 333.3 - 76.65;
-  // }
 }
 
 float movingAverage(int sensorIndex, float newSensorAngle) {
+  // A moving average filter is used to smooth the sensor readings
   readingsSum[sensorIndex] = readingsSum[sensorIndex] - sensorAngleReadings[sensorIndex][windowIndex[sensorIndex]];
   sensorAngleReadings[sensorIndex][windowIndex[sensorIndex]] = newSensorAngle;
   readingsSum[sensorIndex] = readingsSum[sensorIndex] + newSensorAngle;
@@ -195,6 +182,7 @@ void testSensorSignal() {
   //   delay(50);
   // }
   
+  // Print the values of all sensor readings, can also be visualized from the serial plotter
   Serial.println();
   if (useRawSignal) {
     Serial.print("SS1:");
@@ -227,9 +215,9 @@ void testSensorSignal() {
 }
 
 void testSensorSignal(int sensorIndex) {
+  // input the index of the sensor and print its raw sensor reading
   Serial.print("Sensor "); Serial.print(sensorIndex); Serial.print(": ");
   float incomingByte = analogRead(readPin[sensorIndex]);
-  // float calibratedAngle = (incomingByte / 1024) * 333.3 - 76.65;
   float calibratedAngle = 256.65 - (incomingByte / 1024) * 333.3;
   Serial.println(calibratedAngle);
   delay(200);
@@ -252,6 +240,7 @@ void vent(int index) {
 }
 
 void ventAllAirbags() {
+  // vent all airbags
   for (int i=0; i<CellNum; i++) {
     uint8_t cellLeftBagIndex = i * 2;
     uint8_t cellRightBagIndex = i * 2 + 1;
@@ -260,40 +249,85 @@ void ventAllAirbags() {
   }
 }
 
-void separateUpdate(int start, int end, float target) {
+void initializeAirbags(int start, int end) {
+  // pre-inflated all the airbags and adjusted all the active cells to 90degs
+  // need the start index and the end index of cells
+  for (int i=start; i<end; i++) {
+    uint8_t cellLeftBagIndex = i * 2;
+    uint8_t cellRightBagIndex = i * 2 + 1;
+    
+    // inflate all the airbags
+    int num = 2;
+    for (int j=0; j<num; j++) {
+      inflate(cellLeftBagIndex);
+      delayMicroseconds(6000);
+      lock(cellLeftBagIndex);
+      inflate(cellRightBagIndex);
+      delayMicroseconds(6000);
+      lock(cellRightBagIndex);
+      delay(actuationInverval/1000);
+    }
+  }
+  delay(500);
+  
+  // adjust all the active cells to 90degs to finish the initialization
+  // specify the target angle of 90degs
+  while(!allReached) { specificAngleUpdate(start, end, 90.0); }
+  
+  initializeInflation = true;
+  for (int i=start; i<end; i++) { prevAngleDiffs[i] = 0; }
+  Serial.println("Initialization is finished"); Serial.println();
+}
+
+void specificAngleUpdate(int start, int end, float target) {
+  // update the active cells to a specfic target angle (a more simple version without proportional control and the detection of overshooting)
   for (int i=start; i<end; i++) {
     unsigned long currentTime = micros();
-    unsigned long actuationTime;
     
+    currentAngle[i] = movingAverage(i, getSensorAngleInDegs(i)); // get smooth sensor signal using moving average filter
+    targetAngle[i] = target; // get the target angle
+    angleDiffs[i] = targetAngle[i] - currentAngle[i]; // get the angle difference
+    
+    unsigned long actuationTime; // initialize this variable every loop to dynamically adjust the inflation duration
+    
+    // adjust the inflation duration after the angle difference is not changed anymore
     if (angleDiffs[i] > 0) {
-      if (numUnchangedAngleDiff[i] >= 2) {
-        cellsPulseLength[i][1] += 100;
+      // update the actuationTime of the right airbag
+      if (numUnchangedAngleDiff[i] >= 3) {
+        
+        // increasing the inflation duration by a constant value
+        cellsPulseLength[i][1] += 200;
         numUnchangedAngleDiff[i] = 0;
       }
       actuationTime = cellsPulseLength[i][1];
       
     } else {
-      if (numUnchangedAngleDiff[i] >= 2) {
-        cellsPulseLength[i][0] += 100;
+      // update the actuationTime of the left airbag
+      if (numUnchangedAngleDiff[i] >= 3) {
+        
+        // increasing the inflation duration by a constant value
+        cellsPulseLength[i][0] += 200;
         numUnchangedAngleDiff[i] = 0;
       }
       actuationTime = cellsPulseLength[i][0];
     }
     
+    // if it is not the time to update the active cell, continue the loop to the next active cell
     if (currentTime < actuationTime + lastUpdated[i]) { continue; }
     
+    // if it is the time to update the active cell, update the lastUpdated time with the current time
     lastUpdated[i] = currentTime;
     
-    currentAngle[i] = getSensorAngleInDegs(i);
-    targetAngle[i] = target;
-    cellsState[i] = (abs(angleDiffs[i]) < tolerance) ? 1 : 0;
-    
+    // get correct index of the valves
     uint8_t cellLeftBagIndex = i * 2;
     uint8_t cellRightBagIndex = i * 2 + 1;
     
+    // if the active cell has not reached the target angle while also not during actuation, update the airbag
     if (!actuated[i] && abs(angleDiffs[i]) > tolerance) {
       actuated[i] = true;
       
+      // inflate the airbag to adjust the angle of active cells
+      // if inside the initialization process, the airbag is not vented
       if (angleDiffs[i] < 0) {
         if (initializeInflation) { vent(cellRightBagIndex); }
         inflate(cellLeftBagIndex);
@@ -301,40 +335,45 @@ void separateUpdate(int start, int end, float target) {
         if (initializeInflation) { vent(cellLeftBagIndex); }
         inflate(cellRightBagIndex);
       }
-      
+    
+    // if the active cell has reached the target angle or during actuation
     } else {
+      // lock its airbag anyway for minimum actuation everytime
       lock(cellLeftBagIndex);
       lock(cellRightBagIndex);
+      
       // wait for a period for next control (important, thus needs actuated[i] to check)
       lastUpdated[i] += actuationInverval;
       actuated[i] = false;
       
+      // check the angle difference to see what happened after the last actuation
       if (abs(angleDiffs[i]) > tolerance) {
-        if (angleDiffs[i] == prevAngleDiffs[i]) {
+
+        // record the number that the angle difference is not changed after the last actuation
+        if (abs(abs(angleDiffs[i]) - abs(prevAngleDiffs[i])) < 0.5) { // =0 or <1 or <0.5, 0.5 is an appropriate parameter
           numUnchangedAngleDiff[i] += 1;
         } else {
           numUnchangedAngleDiff[i] = 0;
         }
       }
-      prevAngleDiffs[i] = angleDiffs[i];
+
+      prevAngleDiffs[i] = angleDiffs[i]; // update the previous angle difference with the current angle difference
     }
   }
   
+  // after each forloop, record the status of all active cells with current sensor reading
   for (int j=start; j<end; j++) {
-    currentAngle[j] = getSensorAngleInDegs(j);
+    currentAngle[j] = movingAverage(j, getSensorAngleInDegs(j));
     angleDiffs[j] = targetAngle[j] - currentAngle[j];
     cellsState[j] = (abs(angleDiffs[j]) < tolerance) ? 1 : 0;
   }
   
+  // print the angle difference of all active cells every 500 forloops
   loopCount++;
   if ((loopCount % 500) == 0) {
     for (int j=start; j<end; j++) {
-      // copy the data from the console to excel for visualization
-      Serial.print("CA: ");
-      Serial.print(currentAngle[j]);
-      Serial.print(";");
-      Serial.print(" TA: ");
-      Serial.print(targetAngle[j]);
+      Serial.print("AD"); Serial.print(j); Serial.print(": ");
+      Serial.print(currentAngle[j]); Serial.print("; ");
     }
     Serial.println();
     loopCount = 0;
@@ -349,19 +388,21 @@ void separateUpdate(int start, int end, float target) {
   }
   
   if (allReached) {
+    // lock all airbags at first in case over-shooting
     for (int j=start; j<end; j++) {
-      // lock all airbags in case over-shooting
       uint8_t cellLeftBagIndex = j * 2;
       uint8_t cellRightBagIndex = j * 2 + 1;
       lock(cellLeftBagIndex);
       lock(cellRightBagIndex);
-      Serial.print("Reached to the target angle: ");
+      Serial.print("Reached to the target with: ");
       Serial.println(currentAngle[j]);
     }
     
-    if (initializeInflation) { delay(30000); } // maintain the target angle for a while
+    // if not in the initializeInflation process, maintain the target angle for a while after reaching
+    if (initializeInflation) { delay(30000); }
+    
+    // reset all the actuation duration and then maintain the vent state for a while and then exit
     for (int j=start; j<end; j++) {
-      // reset actuation speed
       cellsPulseLength[j][0] = constCellsPulseLength[j][0];
       cellsPulseLength[j][1] = constCellsPulseLength[j][1];
       uint8_t cellLeftBagIndex = j * 2;
@@ -371,107 +412,93 @@ void separateUpdate(int start, int end, float target) {
         vent(cellRightBagIndex);
       }
     }
-    if (initializeInflation) { delay(200000); } // maintain the vent state for a while and then restart
+    if (initializeInflation) { 
+      delay(300000); 
+      exit(0);
+    } 
   }
-}
-
-void initializeAirbags(int start, int end) {
-  // need the start index and the end index of cells
-  for (int i=start; i<end; i++) {
-    uint8_t cellLeftBagIndex = i * 2;
-    uint8_t cellRightBagIndex = i * 2 + 1;
-    
-    int num = 2;
-    for (int j=0; j<num; j++) {
-      inflate(cellLeftBagIndex);
-      delayMicroseconds(6000);
-      lock(cellLeftBagIndex);
-      inflate(cellRightBagIndex);
-      delayMicroseconds(6000);
-      lock(cellRightBagIndex);
-      delay(actuationInverval/1000);
-    }
-  }
-  
-  delay(500);
-  // while(!allReached) { separateUpdate(start, end, 90.0); }
-  
-  initializeInflation = true;
-  for (int i=start; i<end; i++) { prevAngleDiffs[i] = 0; }
-  Serial.println("Initialization is finished"); Serial.println();
 }
 
 void unifiedUpdate(float angleSteps[][CellNum], int stepSize, int waiting) {
+  // update all the active cells simultaneously
   for (int i=0; i<CellNum; i++) {
     unsigned long currentTime = micros();
     // timeDiffs[i] = (long)currentTime - lastUpdated[i]; // calculate the duration of single forloop (unit is microsecond)
     
-    // currentAngle[i] = getSensorAngleInDegs(i); // raw signal
-    currentAngle[i] = movingAverage(i, getSensorAngleInDegs(i)); // smooth signal using moving average filter
-    targetAngle[i] = angleSteps[stepIndex][i];
-    angleDiffs[i] = targetAngle[i] - currentAngle[i];
+    currentAngle[i] = movingAverage(i, getSensorAngleInDegs(i)); // get smooth sensor signal using moving average filter
+    targetAngle[i] = angleSteps[stepIndex][i]; // get the target angle
+    angleDiffs[i] = targetAngle[i] - currentAngle[i]; // get the angle difference
     
-    unsigned long actuationTime;
+    unsigned long actuationTime; // initialize this variable every loop to dynamically adjust the inflation duration
+    
+    // adjust the inflation duration after the angle difference is not changed anymore
     if (angleDiffs[i] > 0) {
-      if (numUnchangedAngleDiff[i] >= 2) {
-        // linear control
-        // if (abs(angleDiffs[i]) > 5.0) {
-        //   cellsPulseLength[i][1] = cellsPulseLength[i][1] * 1.05;
-        // } else {
-        //   cellsPulseLength[i][1] = cellsPulseLength[i][1] * 1.03;
-        // }
+      // update the actuationTime of the right airbag
+      if (numUnchangedAngleDiff[i] >= 3) {
+        
         if (useProportionalControl) {
           if (abs(angleDiffs[i]) > 3.0) {
-            float prop_p = (abs(angleDiffs[i]) * prop_factor + abs(currentAngle[i])) / abs(currentAngle[i]); // proportional control
+            // use proportional control
+            float prop_p = (abs(angleDiffs[i]) * prop_factor + abs(currentAngle[i])) / abs(currentAngle[i]); 
             cellsPulseLength[i][1] = cellsPulseLength[i][1] * prop_p;
+            
           } else {
-            // float prop_p = (abs(angleDiffs[i]) * prop_factor + abs(currentAngle[i])) / abs(currentAngle[i]); // proportional control
-            // cellsPulseLength[i][1] = cellsPulseLength[i][1] * prop_p;
+            // not like proportional control but increasing the inflation duration by a constant value
             cellsPulseLength[i][1] += 100;
           }
           numUnchangedAngleDiff[i] = 0;
+          
         } else {
+          // don't use proportional control
           cellsPulseLength[i][1] += 200;
           numUnchangedAngleDiff[i] = 0;
         }
       }
-      actuationTime = cellsPulseLength[i][1];
+      
+      actuationTime = cellsPulseLength[i][1]; // update the actuationTime of the right airbag
+      
     } else {
-      if (numUnchangedAngleDiff[i] >= 2) {
-        // linear control
-        // if (abs(angleDiffs[i]) > 5.0) {
-        //   cellsPulseLength[i][0] = cellsPulseLength[i][0] * 1.05;
-        // } else {
-        //   cellsPulseLength[i][0] = cellsPulseLength[i][0] * 1.03;
-        // }
+      // update the actuationTime of the left airbag
+      if (numUnchangedAngleDiff[i] >= 3) {  
+        
         if (useProportionalControl) {
           if (abs(angleDiffs[i]) > 3.0) {
+            // use proportional control
             float prop_p = (abs(angleDiffs[i]) * prop_factor + abs(currentAngle[i])) / abs(currentAngle[i]); // proportional control
             cellsPulseLength[i][0] = cellsPulseLength[i][0] * prop_p;
+          
           } else {
-            // float prop_p = (abs(angleDiffs[i]) * prop_factor + abs(currentAngle[i])) / abs(currentAngle[i]); // proportional control
-            // cellsPulseLength[i][0] = cellsPulseLength[i][0] * prop_p;
+            // not like proportional control but increasing the inflation duration by a constant value
             cellsPulseLength[i][0] += 100;
           }
           numUnchangedAngleDiff[i] = 0;
+          
         } else {
+          // don't use proportional control
           cellsPulseLength[i][0] += 200;
           numUnchangedAngleDiff[i] = 0;
         }
       }
-      actuationTime = cellsPulseLength[i][0];
+
+      actuationTime = cellsPulseLength[i][0]; // update the actuationTime of the left airbag
     }
     
+    // if it is not the time to update the active cell, continue the loop to the next active cell
     if (currentTime < actuationTime + lastUpdated[i]) { continue; }
     
+    // if it is the time to update the active cell, update the lastUpdated time with the current time
     lastUpdated[i] = currentTime;
     
+    // get correct index of the valves
     uint8_t cellLeftBagIndex = i * 2;
     uint8_t cellRightBagIndex = i * 2 + 1;
     
+    // if the active cell has not reached the target angle while also not during actuation, update the airbag
     if (!actuated[i] && abs(angleDiffs[i]) > tolerance) {
       actuated[i] = true;
       
+      // inflate the airbag to adjust the angle of active cells
+      // however, if overshooting is detected, only vent the airbag to ensure the angle is changed gradually
       if (angleDiffs[i] < 0) {
         vent(cellRightBagIndex);
         if (!overShoot[i]) {
@@ -484,13 +511,14 @@ void unifiedUpdate(float angleSteps[][CellNum], int stepSize, int waiting) {
         }
       }
       
+    // if the active cell has reached the target angle or during actuation, lock its airbag anyway for minimum actuation everytime
     } else {
       if (overShoot[i]) {
-        // if overshooting, lock all airbags for slow movement
+        // if overshooting, lock two airbags after each actuation for slow movement
         lock(cellLeftBagIndex);
         lock(cellRightBagIndex);
       } else {
-        // in case vent not happened
+        // if not overshooting, only lock the actuated airbag, in case vent never happens and the angle is hard to be changed
         if (angleDiffs[i] < 0) {
           lock(cellLeftBagIndex);
         } else {
@@ -498,16 +526,15 @@ void unifiedUpdate(float angleSteps[][CellNum], int stepSize, int waiting) {
         }
       }
       
-      // do not use overshooting control logic
-      // lock(cellLeftBagIndex);
-      // lock(cellRightBagIndex);
-      
-      // wait for a period for next control (important, thus needs actuated[i] to check)
+      // wait for a period for next control to make the whole system more stable (important, thus needs actuated[i] to check)
       lastUpdated[i] += actuationInverval;
       actuated[i] = false;
       
+      // check the angle difference to see what happened after the last actuation
       if (abs(angleDiffs[i]) > tolerance) {
-        if (abs(abs(angleDiffs[i]) - abs(prevAngleDiffs[i])) < 0.5) { // =0 or <1 or <0.5
+        
+        // record the number that the angle difference is not changed after the last actuation
+        if (abs(abs(angleDiffs[i]) - abs(prevAngleDiffs[i])) < 0.5) { // =0 or <1 or <0.5, 0.5 is an appropriate parameter
           numUnchangedAngleDiff[i] += 1;
         } else {
           numUnchangedAngleDiff[i] = 0;
@@ -515,49 +542,44 @@ void unifiedUpdate(float angleSteps[][CellNum], int stepSize, int waiting) {
         
         // check if overshooting happens
         if (prevAngleDiffs[i] < 0 && angleDiffs[i] > 0 || prevAngleDiffs[i] > 0 && angleDiffs[i] < 0) {
+          overShoot[i] = true; // set the status of overshooting to true
+          
+          // since overshooting happens, reset the actuation duration to its minimum for slow movement
+          // if the angle is changed dramatically, the active cell will keeps overshooting and never reaches the target angle
           cellsPulseLength[i][0] = constCellsPulseLength[i][0];
           cellsPulseLength[i][1] = constCellsPulseLength[i][1];
           numUnchangedAngleDiff[i] = 0;
-
-          // set overshooting to true
-          overShoot[i] = true;
         }
         
       } else {
-        // even if only one active has reached, reset its actuation puleseLength in case overshooting
+        // even if only one active has reached, reset its actuation duration in case overshooting happens in next actuation
         cellsPulseLength[i][0] = constCellsPulseLength[i][0];
         cellsPulseLength[i][1] = constCellsPulseLength[i][1];
         numUnchangedAngleDiff[i] = 0;
         
-        // set overshooting to false
-        overShoot[i] = false;
+        overShoot[i] = false; // reset overshooting to false
       }
       
-      prevAngleDiffs[i] = angleDiffs[i];
+      prevAngleDiffs[i] = angleDiffs[i]; // update the previous angle difference with the current angle difference
     }
   }
   
+  // after each forloop, record the status of all active cells with current sensor reading
   for (int j=0; j<CellNum; j++) {
-    // currentAngle[j] = getSensorAngleInDegs(j);
     currentAngle[j] = movingAverage(j, getSensorAngleInDegs(j));
     angleDiffs[j] = targetAngle[j] - currentAngle[j];
     cellsState[j] = (abs(angleDiffs[j]) < tolerance) ? 1 : 0;
   }
   
+  // print the angle difference of all active cells every 100 forloops
   loopCount++;
   if ((loopCount % 100) == 0) {
-  //     for (int j=0; j<CellNum; j++) {
-  //       Serial.print(j); Serial.print(" cell state: "); Serial.println(cellsState[j]);
-  //       if (!cellsState[j]) {
-  //         Serial.print("CA: ");
-  //         Serial.print(currentAngle[j]);
-  //         Serial.print(";");
-  //         Serial.print(" TA: ");
-  //         Serial.println(targetAngle[j]);
-  //       }
-  //       
-  //       // Serial.print(j); Serial.print(" timeDiff "); Serial.println(timeDiffs[j]);
-  //     }
+    // for (int j=0; j<CellNum; j++) {
+    //   Serial.print("AD"); Serial.print(j); Serial.print(": ");
+    //   Serial.print(currentAngle[j]); Serial.print("; ");
+      
+    //   // Serial.print(j); Serial.print(" timeDiff "); Serial.println(timeDiffs[j]);
+    // }
     // Serial.println();
     
     Serial.print("AD1: ");
@@ -575,7 +597,7 @@ void unifiedUpdate(float angleSteps[][CellNum], int stepSize, int waiting) {
     
     loopCount = 0;
     tryLimitNum += 1;
-    if (tryLimitNum == tryLimitValue) { tryLimitReached = true; }
+    if (tryLimitNum == tryLimitValue) { tryLimitReached = true; } // check if the try limit is reached
   }
   
   allReached = true;
@@ -587,14 +609,15 @@ void unifiedUpdate(float angleSteps[][CellNum], int stepSize, int waiting) {
   }
   
   if (allReached) {
+    // lock all airbags at first in case over-shooting
     for (int j=0; j<CellNum; j++) {
-      // lock all airbags in case over-shooting
       uint8_t cellLeftBagIndex = j * 2;
       uint8_t cellRightBagIndex = j * 2 + 1;
       lock(cellLeftBagIndex);
       lock(cellRightBagIndex);
     }
-
+    
+    // reset all the actuation duration to its minimum for slow movement
     for (int j=0; j<CellNum; j++) {
       cellsPulseLength[j][0] = constCellsPulseLength[j][0];
       cellsPulseLength[j][1] = constCellsPulseLength[j][1];
@@ -602,6 +625,8 @@ void unifiedUpdate(float angleSteps[][CellNum], int stepSize, int waiting) {
     }
     
     Serial.print("Point "); Serial.print(stepIndex); Serial.println(" is satisfied!"); Serial.println();
+    
+    // print the angle difference after reaching the target point
     for (int j=0; j<CellNum; j++) { Serial.print(movingAverage(j, getSensorAngleInDegs(j))); Serial.print("; "); }
     Serial.println();
     stepIndex += 1;
@@ -609,7 +634,7 @@ void unifiedUpdate(float angleSteps[][CellNum], int stepSize, int waiting) {
     delay(waiting);
     
   } else if (tryLimitReached) {
-    // lock all airbags in case over-shooting
+    // lock all airbags at first in case over-shooting
     for (int j=0; j<CellNum; j++) {
       uint8_t cellLeftBagIndex = j * 2;
       uint8_t cellRightBagIndex = j * 2 + 1;
@@ -617,6 +642,7 @@ void unifiedUpdate(float angleSteps[][CellNum], int stepSize, int waiting) {
       lock(cellRightBagIndex);
     }
     
+    // reset all the actuation duration to its minimum for slow movement
     for (int j=0; j<CellNum; j++) {
       cellsPulseLength[j][0] = constCellsPulseLength[j][0];
       cellsPulseLength[j][1] = constCellsPulseLength[j][1];
@@ -630,6 +656,7 @@ void unifiedUpdate(float angleSteps[][CellNum], int stepSize, int waiting) {
     delay(waiting);
   }
   
+  // all the points are reached, stop the movement
   if (stepIndex == stepSize) {
     Serial.println("All points have been reached!");
     updateFinished = true;
@@ -641,17 +668,20 @@ void manualInputPoint(bool loopMovement) {
   if (startReplay) {
     // start reach to the target point
     if (!updateFinished) {
-      unifiedUpdate(mAngleSteps, mPointStepSize, 5000);
+      unifiedUpdate(mAngleSteps, mPointStepSize, 30000);
     }
+    // whether to loop the movement
     if (loopMovement) {
-      if (updateFinished) { 
+      if (updateFinished) {
         ventAllAirbags();
         delay(500);
         updateFinished = false;
+        stepIndex = 0;
       }
     }
+    
+  // get user input of one target point
   } else {
-    // get user input of one target point
     if (!targetRecorded) {
       while (Serial.available() == 0) {
         Serial.println("Please move the grid corner to the target point, and input 1 to store the data");
@@ -659,9 +689,9 @@ void manualInputPoint(bool loopMovement) {
         testSensorSignal();
       }
     }
-    
+    // get the user input
     if (Serial.available()) {
-      char input = Serial.read();  
+      char input = Serial.read();
       switch (input) {
         case '0':
           targetRecorded = false;
@@ -696,6 +726,7 @@ void manualInputPoint(bool loopMovement) {
 
 void manualInputPath(unsigned long pathRecordingInterval) {
   if (targetRecorded) {
+    // sample a point every time interval while the user moving the grid
     unsigned long currentTime = millis();
     if (currentTime - lastRecordingTime > pathRecordingInterval) {
       lastRecordingTime = currentTime;
@@ -709,7 +740,8 @@ void manualInputPath(unsigned long pathRecordingInterval) {
       Serial.print("},");
       Serial.println();
     }
-    
+  
+  // get user input of one user-defined path
   } else {
     while (Serial.available() == 0) {
       if (pathPointIndex == 0) {
@@ -718,7 +750,7 @@ void manualInputPath(unsigned long pathRecordingInterval) {
       }
     }
   }
-  
+  // get the user input
   if (Serial.available()) {
     char input = Serial.read();
     switch (input) {
@@ -738,7 +770,8 @@ void manualInputPath(unsigned long pathRecordingInterval) {
 }
 
 void setup() {
-  // use a high baud rate for quicker serial communication
+  // The program needs to run as quickly as possible for accurarte timing
+  // Therefore, use a very high baud rate for quicker serial communication which usually takes long time to finish
   Serial.begin(2000000);
   
   // set sensor signal pin as INPUT
@@ -776,19 +809,11 @@ void setup() {
 }
 
 void loop() {
-  update = 3;
+  // specify the update mode to excute different functions
+  update = 4;
   
   if (update == 1) {
-    // int start = 0;
-    // int end = CellNum;
-    // // draw a path according to angle data from the software (flower path)
-    // if (!initializeInflation) {
-    //   delay(1000);
-    //   initializeAirbags(start, end);
-    // }
-    // initializeInflation = true;
-    // separateUpdate(start, end, 75.0);
-    
+    // draw a path according to the software output (e.g., heart symbol)
     if (updateFinished) {
       // testSensorSignal();
     } else {
@@ -796,44 +821,38 @@ void loop() {
     }
     
   } else if (update == 2) {
+    // update the selected active cells to a specific target angle
+    int start = 0;
+    int end = CellNum;
+    
+    // if (!initializeInflation) {
+    //   delay(1000);
+    //   initializeAirbags(start, end);
+    // }
+    initializeInflation = true;
+    specificAngleUpdate(start, end, 75.0);
+    
+  } else if (update == 3) {
     // int evalCell = 0;
     // testSensorSignal(evalCell);
     testSensorSignal();
     
-  } else if (update == 3) {
+  } else if (update == 4) {
     ventAllAirbags();
     
-  } else if (update == 4) {
-    bool loopMovement = 1;
+  } else if (update == 5) {
+    // The user inputs a point by moving the grid corner manually
+    bool loopMovement = false;
+    manualInputPoint(loopMovement);
     
-    // input interaction with point
-    // manualInputPoint(loopMovement);
-    // if (!updateFinished) {
-    //   unifiedUpdate(mAngleSteps, mPointStepSize, 50000);
-    // }
-    // if (loopMovement) {
-    //   if (updateFinished) {
-    //     ventAllAirbags();
-    //     delay(500);
-    //     updateFinished = false;
-    //     stepIndex = 0;
-    //   }
-    // }
-    
-    // input interaction with path with pathRecordingInterval as parameter
+  } else if (update == 6) {
+    // The user inputs a path with pathRecordingInterval as the time interval to sample points
     manualInputPath(500);
     
+    // comment out the following code first to run manualInputPath(500)
+    // uncomment the following code to update the recorded path, also need to comment the manualInputPath(500)
     // if (!updateFinished) {
     //   unifiedUpdate(collectedAngles, mPathStepSize, 50);
     // }
-    // if (loopMovement) {
-    //   if (updateFinished) { 
-    //     ventAllAirbags();
-    //     delay(100);
-    //     updateFinished = false;
-    //     stepIndex = 0;
-    //   }
-    // }
-    
   }
 }
