@@ -6,9 +6,9 @@
 ## function files that define the target paths
 ## --------
 
-function: D:/alex/Repositories/2023-robotic-mm-IPOPT/example-data/inputs/2023-09-08 5x5/__input/flower.txt
-function: D:/alex/Repositories/2023-robotic-mm-IPOPT/example-data/inputs/2023-09-08 5x5/__input/heart.txt
-function: D:/alex/Repositories/2023-robotic-mm-IPOPT/example-data/inputs/2023-09-08 5x5/__input/drop.txt
+function: D:/alex/Repositories/2023-robotic-mm-IPOPT/example-data/inputs/2023-09-08 Desk symbols 5x5 flower heart drop/__input/flower.txt
+function: D:/alex/Repositories/2023-robotic-mm-IPOPT/example-data/inputs/2023-09-08 Desk symbols 5x5 flower heart drop/__input/heart.txt
+function: D:/alex/Repositories/2023-robotic-mm-IPOPT/example-data/inputs/2023-09-08 Desk symbols 5x5 flower heart drop/__input/drop.txt
 
 # ---- WORKING ----
 

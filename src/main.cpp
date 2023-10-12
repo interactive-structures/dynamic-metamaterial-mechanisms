@@ -238,7 +238,7 @@ void write_active_angles_csv(std::string file, GridModel gm, CellType cellType, 
 }
 
 void write_all_angles_csv(std::string file, GridModel gm, std::string anglesFolder) {
-    // Write angles of active cells as csv to new file
+    // Write angles of all cells as csv to new file
     std::ofstream angleOutFile;
     angleOutFile.open(file, std::ofstream::out | std::ofstream::trunc);
 
@@ -268,6 +268,67 @@ void write_all_angles_csv(std::string file, GridModel gm, std::string anglesFold
     }
     angleOutFile.close();
 }
+
+void write_existing_angles_csv(std::string file, std::string anglesFolder) {
+    // Write angles of all cells as csv to new file
+    std::ofstream angleOutFile;
+    angleOutFile.open(file, std::ofstream::out | std::ofstream::trunc);
+
+    std::string delimiter = "";
+    int i = 0;
+    bool exists = std::filesystem::exists(anglesFolder + "a" + std::to_string(i));
+
+    while (exists) 
+    {
+        std::string frame = anglesFolder + "a" + std::to_string(i);
+        std::ifstream in(frame.c_str());
+ 
+        std::string line;
+        // Read the next line from File untill it reaches the end.
+        delimiter = "";
+        while (std::getline(in, line)) 
+        {
+            angleOutFile << delimiter << (atof(line.c_str()) / PI * 180.0);
+            delimiter = ",";
+
+        }
+        angleOutFile << "\n";
+
+        i++;
+        exists = std::filesystem::exists(anglesFolder + "a" + std::to_string(i));
+    }
+
+
+    //for (auto& anglefile : std::filesystem::directory_iterator(anglesFolder))
+    //{
+    //    /*auto filename = std::filesystem::path(anglefile).filename();
+    //    std::cout << filename << std::endl;*/
+    //}
+    //
+    //// Write header
+    //for (int i = 0; i < gm.cells.size(); i++)
+    //{
+    //    cells.push_back(i);
+    //    angleOutFile << delim << enumString[gm.cells[i].type] << " " << i;
+    //    delim = ",";
+    //}
+    //
+    //// Write angles
+    //angleOutFile << "\n";
+    //auto angles = anglesFromFolder(anglesFolder);
+    //for (auto frame : angles)
+    //{
+    //    delim = "";
+    //    for (int cell : cells)
+    //    {
+    //        angleOutFile << delim << (frame[cell] / PI * 180.0);
+    //        delim = ",";
+    //    }
+    //    angleOutFile << "\n";
+    //}
+    angleOutFile.close();
+}
+
 
 // Some simulation debug code
 void helper() {
@@ -464,6 +525,14 @@ void helper() {
 int main(int argc, char *argv[])
 { 
    //helper(); //uncomment to run helper
+
+    //std::string existing_output_folder = "G:/My Drive/Projects/2024-CHI -- Robotic Metamaterials/Editor/2023_09 Applications for CHI24/2023-09-08 Desk symbols 5x5 flower heart drop/aligned symbols TR-1-1/2023-09-09_16-47-52--3A-6R-flower-heart-drop/";
+    //for(int i = 0; i < 3; i++)
+    //    write_existing_angles_csv(existing_output_folder + "function_" + std::to_string(i) + "/angles_all_" + std::to_string(i) + ".csv", existing_output_folder + "function_" + std::to_string(i) + "/angles/");
+
+    //exit(1);
+
+
 
     /*
   // command line interface
@@ -736,8 +805,8 @@ int main(int argc, char *argv[])
     MultiAnimation animation(animation_gms, animation_results, animation_target_paths, 2, animation_targets, ground); 
     animation.animate_mesh();                                                       
 
-    write_active_angles_csv(current_output_folder + "angles_active.csv", gm_active, CellType::ACTIVE, anglesFolder);
-    write_all_angles_csv(current_output_folder + "angles_all.csv", gm_active, anglesFolder);
+    write_active_angles_csv(functionFolder + "angles_active.csv", gm_active, CellType::ACTIVE, anglesFolder);
+    write_all_angles_csv(functionFolder + "angles_all.csv", gm_active, anglesFolder);
     //write_angles(anglesFolder + "all.csv", gm_active, anglesFolder);
 
   }
