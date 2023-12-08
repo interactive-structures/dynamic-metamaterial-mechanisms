@@ -9,6 +9,7 @@
 #include <time.h>
 #include <float.h>
 
+
 bool operator==(const GridCell &lhs, const GridCell &rhs)
 {
 	return lhs.type == rhs.type && lhs.vertices.isApprox(rhs.vertices);
@@ -483,6 +484,7 @@ GridModel GridModel::addActiveCells()
 	}
 	return active;
 }
+
 
 std::vector<GridResult>
 optimize(const GridModel &model, std::string pointDirectory)

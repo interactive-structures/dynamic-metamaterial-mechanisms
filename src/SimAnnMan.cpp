@@ -197,8 +197,10 @@ void SimAnnMan::runSimulatedAnnealing(int maxIterations, double coolingFactor)
     std::vector<bool> bitcode;
     for (auto c : candidateBase.cells)
     {
-      if (c.type == RIGID) {bitcode.push_back(true);}
-      else {bitcode.push_back(false);}
+      if (c.type == RIGID) 
+          bitcode.push_back(true);
+      else 
+          bitcode.push_back(false);
     }
 
     // push candidate modification to all models
@@ -256,6 +258,7 @@ void SimAnnMan::runSimulatedAnnealing(int maxIterations, double coolingFactor)
             cell.type = SHEAR;
           }
         }
+
         std::vector<int> toRigid;
         while (toRigid.size() < num_cells)
         {

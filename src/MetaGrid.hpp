@@ -109,6 +109,18 @@ public:
     std::vector<Point> setDOFs(const std::vector<int>& dofs, const std::vector<double>& values);
     std::vector<Point> setDOFsActive(const std::vector<int>& dofs, const std::vector<double>& values, std::vector<double> angles);
     std::vector<int> degreesOfFreedom();
+
+    //std::string toString(MetaGrid& grid);
+    //std::string toString(std::vector<std::vector<RelEdge>> edgeGraph);
+    //std::string toString(Point shift);
+    //std::string toString();
+    //std::string toString();
+    //std::string toString();
+    //std::string toString();
+    //std::string toString();
+    //std::string toString();
+    //std::string toString();
+
 };
 
 #endif /* MetaGrid_hpp */

@@ -29,6 +29,8 @@ double SimuAn::getError()
     {
         error += re.objError;
     }
+
+    return error;
 }
 
 double SimuAn::calcObj()
