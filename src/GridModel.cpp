@@ -95,6 +95,11 @@ GridCell::GridCell(const GridCell &other)
 
 bool GridModel::loadFromFile(const std::string fname)
 {
+	return loadFromFile(fname, false);
+}
+
+bool GridModel::loadFromFile(const std::string fname, bool loadActive)
+{
 	using namespace std;
 	ifstream file(fname);
 
@@ -120,11 +125,11 @@ bool GridModel::loadFromFile(const std::string fname)
 
 	int nv, nc, na, nconstr, npath;
 
-	file >> nv;
-	file >> nc;
-	file >> na;
-	file >> nconstr;
-	file >> npath;
+	file >> nv;			//#num_vertices
+	file >> nc;			//#num_cells 
+	file >> na;			//#num_anchors 
+	file >> nconstr;	//#num_inputvertex 
+	file >> npath;		//#num_inputpoints 
 
 	file.getline(tmp, 1024);
 	file.getline(tmp, 1024);
@@ -169,12 +174,19 @@ bool GridModel::loadFromFile(const std::string fname)
 		file >> c;
 		file >> d;
 
-		cells.push_back(GridCell(a, b, c, d, t == 's' ? SHEAR : t == 'a' ? ACTIVE
-																		 : RIGID));
+		 		
+		//EDIT load active cells selectively!
+		auto cellType = SHEAR;
+		if (t == 'r')
+			cellType = RIGID;
+		else if (t == 'a' && loadActive)
+			cellType = ACTIVE;
+
+		cells.push_back(GridCell(a, b, c, d, cellType));
+		//cells.push_back(GridCell(a, b, c, d, t == 's' ? SHEAR : t == 'a' ? ACTIVE : RIGID));
 	}
 
 	vector<Point> path;
-
 	for (int c = 0; c < nconstr; c++)
 	{
 		file.getline(tmp, 1024);

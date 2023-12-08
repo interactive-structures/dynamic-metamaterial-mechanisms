@@ -71,17 +71,20 @@ public:
           break;
         }
       }
-      if (accept) {toRigid.push_back(candidate);}
+
+      if (accept) {
+          toRigid.push_back(candidate);
+      }
     }
 
     for (auto bgm : bestModels) {
-      for (int i : toRigid)
-      {
+      //for (int i : toRigid)
+      //{
         //std::cout << i << std::endl;
 
         // uncomment to add rigid cells to start: can lead to lower path accuracy
         // bgm.cells[i].type = RIGID;
-      }
+      //}
       workingModels.push_back(GridModel(bgm));
     }
 

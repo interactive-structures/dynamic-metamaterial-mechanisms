@@ -132,7 +132,8 @@ void SimAnnMan::runSimulatedAnnealing(int maxIterations, double coolingFactor)
   double startTemp = maxIterations / 3.0;
   srand(time(NULL));    // Initialize rng
   Timer timer("timer"); // Initialize timer
-  if (!outFolder.empty())
+
+  if (!outFolder.empty()) 
   { // Intialize objective file
     std::ofstream objOutFile;
     objOutFile.open(outFolder + "objectives.csv", std::ofstream::out | std::ofstream::trunc);
@@ -379,5 +380,6 @@ std::tuple<double, double, double> SimAnnMan::calcObj(std::vector<GridModel> can
   objective = pathWeight * avgPathObjective + dofWeight * dofObjective * dofObjective + 0.0 * totalAngleObjective;
   objOutFile << pathWeight * avgPathObjective << "," << dofWeight * dofObjective << "," << objective << "\n";
   objOutFile.close();
+
   return std::make_tuple(avgPathObjective, dofObjective, objective);
 }

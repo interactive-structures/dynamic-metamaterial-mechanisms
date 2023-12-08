@@ -114,6 +114,7 @@ public:
 	}
 
 	bool loadFromFile(std::string fname);
+	bool loadFromFile(std::string fname, bool loadActive);
 	void generateConstraintGraph();
 	void mergeComponents(bool toActive = false);
 	void splitComponents();
