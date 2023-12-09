@@ -3,6 +3,7 @@
 #include "IpIpoptApplication.hpp"
 #include "IpSolveStatistics.hpp"
 #include "MyNLP.hpp"
+#include "StringConverter.h"
 
 #include <fstream>
 #include <stdlib.h>
@@ -494,6 +495,8 @@ optimize(const GridModel &model, std::string pointDirectory)
 	GridModel copy(model);
 
 	MetaGrid grid(copy);
+	std::cout << "MetaGrid just after copy: \n" << toString(grid);
+
 	grid.setEdges();
 	grid.setEdgeRelations();
 
@@ -546,6 +549,8 @@ optimize(const GridModel &model, std::string pointDirectory)
 		ret.push_back(resi);
 	}
 
+	std::cout << "MetaGrid at the end of OPTIMIZE(): \n" << toString(grid);
+
 	return ret;
 }
 
@@ -557,6 +562,8 @@ optimizeActive(const GridModel &model, std::vector<std::vector<double> > cell_an
 	GridModel copy(model);
 
 	MetaGrid grid(copy);
+	std::cout << "MetaGrid just after copy: \n" << toString(grid);
+
 	grid.setEdges();
 	grid.setEdgeRelations();
 
@@ -608,6 +615,8 @@ optimizeActive(const GridModel &model, std::vector<std::vector<double> > cell_an
 
 		ret.push_back(resi);
 	}
+
+	std::cout << "MetaGrid at the end of optimizeACTIVE(): \n" << toString(grid);
 
 	return ret;
 }

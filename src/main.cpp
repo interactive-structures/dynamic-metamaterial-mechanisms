@@ -21,6 +21,7 @@ double path_weight;
 double dof_weight;
 bool ground;
 
+std::string load_file;
 std::string output_folder;
 std::string current_output_folder;
 
@@ -108,6 +109,11 @@ void read_config_file() {
 		//    std::cout << "num_layers: " << num_layers << std::endl;
 		//}
 		//else 
+		if (qualifier == "load")
+		{
+			load_file = content;
+			std::cout << "load: " << content << std::endl;
+		}
 		if (qualifier == "function")
 		{
 			//std::string function = parse_string(content);
@@ -215,11 +221,13 @@ void storeModel(GridModel gm, std::string outFolder)
 	std::ofstream gridOutFile;
 	gridOutFile.open(outFolder + "output_model", std::ofstream::out | std::ofstream::trunc);
 
-	gridOutFile << "#num_vertices #num_cells #num_anchors #index_inputvertex #num_inputpoints #index_outputvertex #num_outputpoints\n";
+	//gridOutFile << "#num_vertices #num_cells #num_anchors #index_inputvertex #num_inputpoints #index_outputvertex #num_outputpoints\n";
+	gridOutFile << "#num_vertices #num_cells #num_anchors #num_inputvertex #num_inputpoints\n";
 	gridOutFile << gm.points.size() << " " << gm.cells.size() << " " << gm.anchors.size() << " ";
 	if (gm.targets.size() != 0)
 	{
-		gridOutFile << gm.targets[0] << " " << gm.targetPaths[0].size() << " ";
+		//gridOutFile << gm.targets[0] << " " << gm.targetPaths[0].size() << " ";
+		gridOutFile << gm.targets.size() << " " << gm.targetPaths[0].size() << " ";
 	}
 	else
 	{
@@ -228,7 +236,8 @@ void storeModel(GridModel gm, std::string outFolder)
 
 	if (gm.inputs.size() != 0)
 	{
-		gridOutFile << gm.inputs[0] << " " << gm.inputPaths[0].size() << " \n";
+		//gridOutFile << gm.inputs[0] << " " << gm.inputPaths[0].size() << " \n";
+		gridOutFile << gm.inputs.size() << " " << gm.inputPaths[0].size() << " \n";
 	}
 	else
 	{
@@ -292,10 +301,11 @@ void storeModel(GridModel gm, std::string outFolder)
 	gridOutFile.close();
 }
 
-std::vector<std::vector<double> > anglesFromFolder(std::string anglesFolder)
+std::vector<std::vector<double>> anglesFromFolder(std::string anglesFolder)
 {
-	std::vector<std::vector<double> > angles;
+	std::vector<std::vector<double>> angles;
 	int i = 0;
+
 	while (std::filesystem::exists(anglesFolder + "a" + std::to_string(i)))
 	{
 		std::ifstream frame(anglesFolder + "a" + std::to_string(i));
@@ -309,6 +319,26 @@ std::vector<std::vector<double> > anglesFromFolder(std::string anglesFolder)
 		i++;
 	}
 	return angles;
+}
+
+std::vector<std::vector<double>> framesFromFolder(std::string folder, std::string prefix)
+{
+	std::vector<std::vector<double>> framesData;
+	int i = 0;
+
+	while (std::filesystem::exists(folder + prefix + std::to_string(i)))
+	{
+		std::ifstream frame(folder + prefix + std::to_string(i));
+		std::vector<double> dataThisFrame;
+		
+		std::string line;
+		for (std::getline(frame, line); !line.empty(); std::getline(frame, line))
+			dataThisFrame.push_back(std::stod(line));
+
+		framesData.push_back(dataThisFrame);
+		i++;
+	}
+	return framesData;
 }
 
 void write_active_angles_csv(std::string file, GridModel gm, CellType cellType, std::string anglesFolder) {
@@ -378,36 +408,22 @@ void write_all_angles_csv(std::string file, GridModel gm, std::string anglesFold
 	angleOutFile.close();
 }
 
-void write_existing_angles_csv(std::string file, std::string anglesFolder) {
+void write_points_csv(std::string file, std::string sourceFolder) {
 	// Write angles of all cells as csv to new file
-	std::ofstream angleOutFile;
-	angleOutFile.open(file, std::ofstream::out | std::ofstream::trunc);
+	std::ofstream outFile;
+	outFile.open(file, std::ofstream::out | std::ofstream::trunc);
 
-	std::string delimiter = "";
-	int i = 0;
-	bool exists = std::filesystem::exists(anglesFolder + "a" + std::to_string(i));
+	std::string delim = "";
 
-	while (exists)
-	{
-		std::string frame = anglesFolder + "a" + std::to_string(i);
-		std::ifstream in(frame.c_str());
+	// Write header
+	outFile << "X, Y\n";
 
-		std::string line;
-		// Read the next line from File untill it reaches the end.
-		delimiter = "";
-		while (std::getline(in, line))
-		{
-			angleOutFile << delimiter << (atof(line.c_str()) / PI * 180.0);
-			delimiter = ",";
+	// Write angles
+	auto points = framesFromFolder(sourceFolder, "p");
+	for (auto frame : points)
+		outFile << frame[0] << ", " << frame[1] << "\n";
 
-		}
-		angleOutFile << "\n";
-
-		i++;
-		exists = std::filesystem::exists(anglesFolder + "a" + std::to_string(i));
-	}
-
-	angleOutFile.close();
+	outFile.close();
 }
 
 
@@ -626,87 +642,56 @@ void helper() {
 
 void load_configuration() 
 {
-	//std::string resultFolder = "D:/Repositories/dynamic-metamaterial-mechanisms/example-data/results_local/current/2023-12-07_18-34-18/";
-	std::string resultFolder = "D:/alex/Repositories/2023-robotic-mm-IPOPT/example-data/results_local/current/2023-12-08_11-23-40/";
+	std::cout << "\n\--- LOAD configuration ---\n\n";
 
-	//std::string currentFolder = get_this_folder_path();
-	//std::string functionFolder = "../example-data/results_local/2022-09-13 (good) 8x8, 3f, 5a - envelope, quarifolium, heart/function_0/";
+	int index = load_file.find_last_of('/');
+	assert(index < load_file.size() - 1);
+
+	std::string resultFolder = load_file.substr(0, index+1);
+
 	std::string functionFolder = resultFolder + "function_0/";
 	std::string pointsFolder = functionFolder + "points/";
 	std::string anglesFolder = functionFolder + "angles/";
 
 
 	GridModel gm;
-	gm.loadFromFile(resultFolder + "output_model", false);	
-		std::cout << "\ngm constraint graph after loading" << std::endl;
-		printConstraintGraph(gm);
-
+	//gm.loadFromFile(resultFolder + "output_model__smaller_circle", false);	
+	gm.loadFromFile(load_file, false);	
 	gm.generateConstraintGraph();
-		std::cout << "\ngm constraint graph after generating constraints" << std::endl;
-		printConstraintGraph(gm);
+	std::cout << toString(gm) << std::endl;
 
 	auto ret = optimize(gm, ""); // run optimize to get grid position at each frame
-		std::cout << "\ngm constraint graph after optimize()" << std::endl;
-		printConstraintGraph(gm);
-
 	auto cell_angles = get_angles(ret, gm);                                               // get angles for each cell at each frame
 
-	////// NOT CREATING AN ACTIVE GRID MODEL, BUT LOADING IT
-	////GridModel gm_active = GridModel(gm);
-	////gm_active.cells = gm_active_base.cells;                                               // add active cells
 
-	//GridModel gm_active;
-	//gm_active.loadFromFile(resultFolder + "output_model", true);
-	//	std::cout << "\ngm_active constraint graph after loading" << std::endl;
-	//	printConstraintGraph(gm_active);
+	GridModel gm_active;
+	//gm_active.loadFromFile(resultFolder + "output_model__smaller_circle", true);
+	gm_active.loadFromFile(load_file, true);
+	gm_active.generateConstraintGraph();
+	std::cout << toString(gm_active) << std::endl;
 
-	//gm_active.generateConstraintGraph();
-	//	std::cout << "\ngm_active constraint graph after generating constraints" << std::endl;
-	//	printConstraintGraph(gm_active);
+	auto active_ret = optimizeActive(gm_active, cell_angles, pointsFolder, anglesFolder); // Call optimizeActive to verify results with only control of actuating cells
+	std::cout << toString(gm_active) << std::endl;
 
-	//auto active_ret = optimizeActive(gm_active, cell_angles, pointsFolder, anglesFolder); // Call optimizeActive to verify results with only control of actuating cells
-	//	std::cout << "\ngm_active constraint graph after optimizeActive()" << std::endl;
-	//	printConstraintGraph(gm_active);
 
-	//// Write angles of active cells as csv to new file
-	//std::string datetime = get_time_string();
-	//std::string loadedFolder = resultFolder + "loaded__" + datetime + "/";
-	//if (!std::filesystem::exists(loadedFolder))
-	//	std::filesystem::create_directory(loadedFolder);
+	// Write angles of active cells as csv to new file
+	std::string datetime = get_time_string();
+	std::string loadedFolder = resultFolder + "loaded__" + datetime + "/";
+	if (!std::filesystem::exists(loadedFolder))
+		std::filesystem::create_directory(loadedFolder);
 
-	//write_all_angles_csv(loadedFolder + "angles_all__" + datetime + ".csv", gm_active, anglesFolder);
-	//storeModel(gm_active, loadedFolder);                                         // Store best model with actuating cells in results folder
-
-	////auto cell_angles = get_angles(ret, gm);                                               // get angles for each cell at each frame
-	////auto active_ret = optimizeActive(gm, cell_angles, pointsFolder, anglesFolder);
-	////storeModel(gm, current_output_folder);
+	write_all_angles_csv(loadedFolder + "angles_all.csv", gm_active, anglesFolder);
+	write_points_csv(loadedFolder + "points.csv", pointsFolder);
+	storeModel(gm_active, loadedFolder);                                         // Store best model with actuating cells in results folder
 
 
 
-	//// set up animation for active grid: pass in as vector
-	//std::vector<GridModel> animation_gms;
-	//animation_gms.push_back(gm_active);
-
-	//std::vector<std::vector<GridResult>> animation_results;
-	//animation_results.push_back(active_ret);
-
-	//std::vector<std::vector<std::vector<GridModel::Point>>> animation_target_paths;
-	//animation_target_paths.push_back(gm.targetPaths);
-
-	//std::vector<std::vector<int>> animation_targets;
-	//animation_targets.push_back(gm.targets);
-
-	//// run animation
-	//MultiAnimation animation(animation_gms, animation_results, animation_target_paths, 2, animation_targets, false);
-	//animation.animate_mesh();
-
-
-	// set up animation for non-active grid: pass in as vector
+	// set up animation for active grid: pass in as vector
 	std::vector<GridModel> animation_gms;
-	animation_gms.push_back(gm);
+	animation_gms.push_back(gm_active);
 
 	std::vector<std::vector<GridResult>> animation_results;
-	animation_results.push_back(ret);
+	animation_results.push_back(active_ret);
 
 	std::vector<std::vector<std::vector<GridModel::Point>>> animation_target_paths;
 	animation_target_paths.push_back(gm.targetPaths);
@@ -719,22 +704,28 @@ void load_configuration()
 	animation.animate_mesh();
 
 
-	exit(EXIT_SUCCESS);
+	//// set up animation for non-active grid: pass in as vector
+	//std::vector<GridModel> animation_gms;
+	//animation_gms.push_back(gm);
+	//
+	//std::vector<std::vector<GridResult>> animation_results;
+	//animation_results.push_back(ret);
+	//
+	//std::vector<std::vector<std::vector<GridModel::Point>>> animation_target_paths;
+	//animation_target_paths.push_back(gm.targetPaths);
+	//
+	//std::vector<std::vector<int>> animation_targets;
+	//animation_targets.push_back(gm.targets);
+	//
+	//// run animation
+	//MultiAnimation animation(animation_gms, animation_results, animation_target_paths, 2, animation_targets, false);
+	//animation.animate_mesh();
 }
 
-int main(int argc, char* argv[])
+void generate_configuration()
 {
-	//load_configuration();
-	 
-	
-	//helper(); //uncomment to run helper
-	//std::string existing_output_folder = "G:/My Drive/Projects/2024-CHI -- Robotic Metamaterials/Editor/2023_09 Applications for CHI24/2023-09-08 Desk symbols 5x5 flower heart drop/aligned symbols TR-1-1/2023-09-09_16-47-52--3A-6R-flower-heart-drop/";
-	//for(int i = 0; i < 3; i++)
-	//    write_existing_angles_csv(existing_output_folder + "function_" + std::to_string(i) + "/angles_all_" + std::to_string(i) + ".csv", existing_output_folder + "function_" + std::to_string(i) + "/angles/");
+	std::cout << "\n\n--- GENERATE configuration ---\n\n";
 
-	//exit(1);
-
-	read_config_file();
 	create_output_folder();
 
 	// get grids
@@ -765,7 +756,7 @@ int main(int argc, char* argv[])
 	std::vector<std::vector<int>> combined_targets;
 
 
-	for (int i = 0; i < gms.size(); i++) 
+	for (int i = 0; i < gms.size(); i++)
 	{
 		std::string functionFolder = current_output_folder + "function_" + std::to_string(i) + "/";
 		std::string pointsFolder = functionFolder + "points/";
@@ -777,30 +768,18 @@ int main(int argc, char* argv[])
 
 
 		GridModel gm = GridModel(gms[i]);
-
 		std::cout << toString(gm) << std::endl;
 
-			std::cout << "\ngm constraint graph before optimize()" << std::endl;
-			printConstraintGraph(gm);
-		
 		auto ret = optimize(gm, ""); // run optimize to get grid position at each frame
-			std::cout << "\ngm constraint graph after optimize()" << std::endl;
-			printConstraintGraph(gm);
 
 		GridModel gm_active = GridModel(gm);
-			std::cout << "\ngm_active constraint graph before adding cells" << std::endl;
-			printConstraintGraph(gm_active);
-			std::cout << "\ngm_active_base constraint graph before adding cells" << std::endl;
-			printConstraintGraph(gm_active_base);
-
 		gm_active.cells = gm_active_base.cells;                                               // add active cells
-			std::cout << "\ngm_active constraint graph after adding cells" << std::endl;
-			printConstraintGraph(gm_active);
-		
+
 		auto cell_angles = get_angles(ret, gm);                                               // get angles for each cell at each frame
 		auto active_ret = optimizeActive(gm_active, cell_angles, pointsFolder, anglesFolder); // Call optimizeActive to verify results with only control of actuating cells
-			std::cout << "\ngm_active constraint graph after optimizeActive()" << std::endl;
-			printConstraintGraph(gm_active);
+
+		std::cout << toString(gm_active) << std::endl;
+
 
 		storeModel(gm_active, current_output_folder);                                         // Store best model with actuating cells in results folder
 
@@ -831,6 +810,7 @@ int main(int argc, char* argv[])
 
 		write_active_angles_csv(functionFolder + "angles_active.csv", gm_active, CellType::ACTIVE, anglesFolder);
 		write_all_angles_csv(functionFolder + "angles_all.csv", gm_active, anglesFolder);
+		write_points_csv(functionFolder + "points.csv", pointsFolder);
 		//write_angles(anglesFolder + "all.csv", gm_active, anglesFolder);
 
 	}
@@ -846,4 +826,14 @@ int main(int argc, char* argv[])
 	// auto file_ret = optimizeActive(gmFile, anglesFromFolder(anglesFolder), "", "");
 	// Animation test(gmFile, file_ret, gm.targetPaths, 2, gm.targets);
 	// test.animate();
+}
+
+int main(int argc, char* argv[])
+{
+	read_config_file();
+
+	if (load_file.size() > 0)
+		load_configuration();
+	else
+		generate_configuration();
 }

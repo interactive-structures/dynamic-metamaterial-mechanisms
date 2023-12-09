@@ -68,7 +68,7 @@ struct RelEdge
     int cell_index;
     
     RelEdge(int _i, RelationType _type, int _cell_index)
-    : i(_i), type(_type), cell_index(_cell_index)
+        : i(_i), type(_type), cell_index(_cell_index)
     {}
     
     char flag = false;
@@ -79,10 +79,13 @@ void savePoints(std::string fname, std::vector<Point>& pts);
 
 class MetaGrid
 {
-    std::vector<std::vector<RelEdge>> edgeGraph;
+    //std::vector<std::vector<RelEdge>> edgeGraph;
     std::vector<std::vector<int>> connectedComponents(std::vector<std::vector<RelEdge>>& graph);
 
 public:
+    std::vector<std::vector<RelEdge>> edgeGraph;
+
+
     Point shift;
     std::vector<int> anchors;
     std::vector<Point> anchorPositions;

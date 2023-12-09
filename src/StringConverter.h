@@ -23,9 +23,7 @@ std::string toString(std::vector<std::vector<Point>> points);
 std::string toString(GridCell& cell);
 std::string toString(std::vector<GridCell> cells);
 
-std::string toString(std::vector<std::vector<std::pair<GridCell, std::set<Edge>>>> constraintGraph);
-
-
+std::string toStringConstraintGraph(GridModel& model);
 
 
 std::string toString(MetaGrid& grid);
